@@ -25,74 +25,80 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
+    try {
+      const formData = new FormData(e.currentTarget)
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
 
-    const supabase = createBrowserClient()
+      console.log("[v0] Login: Starting login attempt for", email)
 
-    console.log("[v0] Login: Attempting login for", email)
+      const supabase = createBrowserClient()
+      console.log("[v0] Login: Supabase client created")
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+      console.log("[v0] Login: Calling signInWithPassword...")
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      console.log("[v0] Login: signInWithPassword completed")
 
-    if (signInError) {
-      console.log("[v0] Login: Error", signInError.message)
-      setError(signInError.message)
+      if (signInError) {
+        console.log("[v0] Login: Error", signInError.message)
+        setError(signInError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!data.user) {
+        console.log("[v0] Login: No user returned")
+        setError("Login failed. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      console.log("[v0] Login: Success, user ID:", data.user.id)
+
+      // Get profile to determine redirect
+      console.log("[v0] Login: Fetching profile...")
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .single()
+
+      if (profileErr) {
+        console.log("[v0] Login: Profile error:", profileErr.message)
+        setError("Failed to load profile. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      if (!profile) {
+        console.log("[v0] Login: Profile not found")
+        setError("Profile not found. Please contact support.")
+        setLoading(false)
+        return
+      }
+
+      console.log("[v0] Login: Profile type:", profile.user_type)
+
+      // Small delay to ensure session is stored
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      if (profile.user_type === "instructor") {
+        console.log("[v0] Login: Redirecting to instructor dashboard")
+        router.push("/instructor/dashboard")
+      } else if (profile.user_type === "studio") {
+        console.log("[v0] Login: Redirecting to studio dashboard")
+        router.push("/studio/dashboard")
+      } else {
+        console.log("[v0] Login: Unknown user type, redirecting to home")
+        router.push("/")
+      }
+    } catch (err) {
+      console.error("[v0] Login: Unexpected error:", err)
+      setError("An unexpected error occurred. Please try again.")
       setLoading(false)
-      return
-    }
-
-    if (!data.user) {
-      console.log("[v0] Login: No user returned")
-      setError("Login failed. Please try again.")
-      setLoading(false)
-      return
-    }
-
-    console.log("[v0] Login: Success, user ID:", data.user.id)
-    console.log("[v0] Login: Session data:", data.session ? "exists" : "null")
-
-    const allKeys = Object.keys(localStorage)
-    console.log("[v0] Login: All localStorage keys:", allKeys)
-    const supabaseKeys = allKeys.filter((k) => k.includes("supabase"))
-    console.log("[v0] Login: Supabase localStorage keys:", supabaseKeys)
-    supabaseKeys.forEach((key) => {
-      const value = localStorage.getItem(key)
-      console.log(`[v0] Login: ${key}:`, value ? "has value" : "empty")
-    })
-
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const storedSession = localStorage.getItem("supabase.auth.token")
-    console.log("[v0] Login: Session stored in localStorage:", !!storedSession)
-
-    // Get profile to determine redirect
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("user_type")
-      .eq("id", data.user.id)
-      .single()
-
-    if (profileErr || !profile) {
-      console.log("[v0] Login: Profile error or not found")
-      router.replace("/")
-      return
-    }
-
-    console.log("[v0] Login: Profile type:", profile.user_type)
-
-    if (profile.user_type === "instructor") {
-      console.log("[v0] Login: Redirecting to instructor dashboard")
-      router.replace("/instructor/dashboard")
-    } else if (profile.user_type === "studio") {
-      console.log("[v0] Login: Redirecting to studio dashboard")
-      router.replace("/studio/dashboard")
-    } else {
-      console.log("[v0] Login: Unknown user type, redirecting to home")
-      router.replace("/")
     }
   }
 
