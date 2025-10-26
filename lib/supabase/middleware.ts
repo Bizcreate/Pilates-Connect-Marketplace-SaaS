@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
+  console.log("[v0] Middleware: Starting, path:", request.nextUrl.pathname)
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -12,9 +14,12 @@ export async function updateSession(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          const cookies = request.cookies.getAll()
+          console.log("[v0] Middleware: Reading cookies, count:", cookies.length)
+          return cookies
         },
         setAll(cookiesToSet) {
+          console.log("[v0] Middleware: Setting cookies, count:", cookiesToSet.length)
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set({ name, value, ...options })
           })
@@ -30,7 +35,11 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Refresh the auth session but don't redirect - let pages handle auth
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+  console.log("[v0] Middleware: getUser result:", { hasUser: !!user, userId: user?.id, error: error?.message })
 
   return supabaseResponse
 }

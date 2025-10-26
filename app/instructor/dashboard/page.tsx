@@ -21,12 +21,24 @@ import { redirect } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default async function InstructorDashboardPage() {
+  console.log("[v0] Dashboard: Starting to load")
+
   const supabase = await createClient()
+  console.log("[v0] Dashboard: Supabase client created")
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+
+  console.log("[v0] Dashboard: getUser result:", {
+    hasUser: !!user,
+    userId: user?.id,
+    error: userError?.message,
+  })
+
   if (!user) {
+    console.log("[v0] Dashboard: No user found, redirecting to login")
     redirect("/auth/login")
   }
 
@@ -36,13 +48,19 @@ export default async function InstructorDashboardPage() {
     .eq("id", user.id)
     .maybeSingle()
 
+  console.log("[v0] Dashboard: Profile loaded:", profile)
+
   if (!profile) {
+    console.log("[v0] Dashboard: No profile found, redirecting to login")
     redirect("/auth/login")
   }
 
   if (profile?.user_type !== "instructor") {
+    console.log("[v0] Dashboard: User is not instructor, redirecting to studio dashboard")
     redirect("/studio/dashboard")
   }
+
+  console.log("[v0] Dashboard: Auth checks passed, loading dashboard content")
 
   const isProfileIncomplete = !profile.display_name
 

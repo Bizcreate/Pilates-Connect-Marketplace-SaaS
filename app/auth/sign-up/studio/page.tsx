@@ -1,9 +1,7 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,12 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { createStudioAccount } from "../actions"
+import { createClient } from "@/lib/supabase/client"
 
 const EQUIPMENT_OPTIONS = ["Reformer", "Cadillac", "Chair", "Tower", "Mat", "Wunda", "Barrels"]
 
 export default function StudioSignUpPage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [equipment, setEquipment] = useState<string[]>([])
@@ -45,30 +42,36 @@ export default function StudioSignUpPage() {
     }
 
     try {
-      const result = await createStudioAccount({
+      const supabase = createClient()
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        displayName: contactName,
-        studioName,
-        location,
-        phone,
-        bio,
-        website,
-        instagram,
-        equipment,
+        options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+          data: {
+            user_type: "studio",
+            display_name: contactName,
+            location,
+            phone: phone || null,
+            bio: bio || null,
+            studio_name: studioName,
+            equipment,
+            website: website || null,
+            instagram: instagram || null,
+          },
+        },
       })
 
-      if (!result.success) {
-        if (result.error === "EMAIL_EXISTS") {
-          setError("This email is already registered. Please use the login page.")
-        } else {
-          setError(result.message || "Failed to create account. Please try again.")
-        }
+      if (signUpError) {
+        console.error("[v0] Signup error:", signUpError)
+        setError(signUpError.message)
         setLoading(false)
         return
       }
 
-      window.location.href = `/auth/login?email=${encodeURIComponent(email)}&message=Account created successfully! Please log in.`
+      window.location.href = "/auth/sign-up-success"
     } catch (err: any) {
       console.error("[v0] Studio signup error:", err)
       setError(err.message || "Failed to create account. Please try again.")
