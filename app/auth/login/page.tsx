@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -20,10 +20,20 @@ export default function LoginPage() {
   const email = searchParams.get("email") || ""
   const successMessage = searchParams.get("message") || null
 
+  useEffect(() => {
+    console.log("[v0] LoginPage: Component mounted")
+    return () => console.log("[v0] LoginPage: Component unmounted")
+  }, [])
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    console.log("[v0] Login: handleSubmit called")
+
     e.preventDefault()
+    console.log("[v0] Login: preventDefault called")
+
     setError("")
     setLoading(true)
+    console.log("[v0] Login: Loading state set to true")
 
     try {
       const formData = new FormData(e.currentTarget)
@@ -102,6 +112,10 @@ export default function LoginPage() {
     }
   }
 
+  const handleButtonClick = () => {
+    console.log("[v0] Login: Button clicked, loading state:", loading)
+  }
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-6">
       <div className="w-full max-w-sm">
@@ -138,7 +152,7 @@ export default function LoginPage() {
                   <Label htmlFor="password">Password</Label>
                   <Input id="password" name="password" type="password" required />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading} onClick={handleButtonClick}>
                   {loading ? "Signing in..." : "Sign in"}
                 </Button>
               </div>
