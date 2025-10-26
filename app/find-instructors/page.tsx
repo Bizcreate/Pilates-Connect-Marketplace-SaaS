@@ -11,16 +11,41 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Search, MapPin, Filter, Star, Award, Calendar, Lock } from "lucide-react"
+import { Search, MapPin, Filter, Award, Calendar, Lock, DollarSign } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
+
+type Instructor = {
+  id: string
+  display_name: string
+  location: string | null
+  bio: string | null
+  avatar_url: string | null
+  instructor_profile: {
+    years_experience: number | null
+    certifications: string[]
+    equipment: string[]
+    specializations: string[]
+    hourly_rate_min: number | null
+    hourly_rate_max: number | null
+    availability_status: string | null
+  } | null
+  availability_slots: {
+    id: string
+    start_time: string
+    end_time: string
+    is_available: boolean
+  }[]
+}
 
 export default function FindInstructorsPage() {
   const [showFilters, setShowFilters] = useState(true)
   const [isSignedIn, setIsSignedIn] = useState(false)
   const [isStudio, setIsStudio] = useState(false)
+  const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function checkAuth() {
+    async function fetchData() {
       const supabase = createBrowserClient()
       const {
         data: { user },
@@ -31,70 +56,35 @@ export default function FindInstructorsPage() {
         setIsSignedIn(true)
         setIsStudio(profile?.user_type === "studio")
       }
+
+      const { data: instructorsData, error } = await supabase
+        .from("profiles")
+        .select(
+          `
+          *,
+          instructor_profile:instructor_profiles(*),
+          availability_slots(
+            id,
+            start_time,
+            end_time,
+            is_available
+          )
+        `,
+        )
+        .eq("user_type", "instructor")
+        .order("created_at", { ascending: false })
+        .limit(20)
+
+      if (instructorsData && !error) {
+        setInstructors(instructorsData)
+      }
+
+      setIsLoading(false)
     }
-    checkAuth()
+    fetchData()
   }, [])
 
   // Mock data - will be replaced with real data from database
-  const instructors = [
-    {
-      id: 1,
-      name: "Sarah Mitchell",
-      location: "Bondi, NSW",
-      rating: 4.9,
-      reviewCount: 24,
-      experience: "5+ years",
-      certifications: ["Comprehensive", "Reformer", "Mat", "Cadillac"],
-      specialties: ["Pre/Postnatal", "Rehabilitation"],
-      availability: "Available",
-      hourlyRate: "$60-80",
-      bio: "Passionate Pilates instructor with comprehensive certification and specialization in pre/postnatal care.",
-      image: "/professional-woman-instructor.jpg",
-    },
-    {
-      id: 2,
-      name: "James Chen",
-      location: "Surry Hills, NSW",
-      rating: 4.8,
-      reviewCount: 18,
-      experience: "3-5 years",
-      certifications: ["Reformer", "Mat", "Chair"],
-      specialties: ["Athletic Performance", "Injury Prevention"],
-      availability: "Available",
-      hourlyRate: "$50-70",
-      bio: "Former athlete turned Pilates instructor, focusing on performance enhancement and injury prevention.",
-      image: "/professional-man-instructor.jpg",
-    },
-    {
-      id: 3,
-      name: "Emma Thompson",
-      location: "Manly, NSW",
-      rating: 5.0,
-      reviewCount: 32,
-      experience: "5+ years",
-      certifications: ["Comprehensive", "Reformer", "Mat", "Cadillac", "Tower"],
-      specialties: ["Classical Pilates", "Advanced Practitioners"],
-      availability: "Limited",
-      hourlyRate: "$70-90",
-      bio: "Classically trained instructor with extensive experience in all apparatus and advanced techniques.",
-      image: "/professional-woman-pilates.jpg",
-    },
-    {
-      id: 4,
-      name: "Michael Rodriguez",
-      location: "Bondi, NSW",
-      rating: 4.7,
-      reviewCount: 15,
-      experience: "1-3 years",
-      certifications: ["Mat", "Reformer"],
-      specialties: ["Beginners", "Group Classes"],
-      availability: "Available",
-      hourlyRate: "$45-60",
-      bio: "Energetic instructor specializing in beginner-friendly classes and building strong foundations.",
-      image: "/professional-man-fitness.jpg",
-    },
-  ]
-
   const equipment = ["Reformer", "Cadillac", "Chair", "Tower", "Mat", "Barrel"]
   const certificationLevels = ["Mat Certified", "Reformer Certified", "Comprehensive Certified"]
 
@@ -238,7 +228,9 @@ export default function FindInstructorsPage() {
             {/* Instructor Grid */}
             <div className={showFilters ? "lg:col-span-3" : "lg:col-span-4"}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">{instructors.length} instructors found</p>
+                <p className="text-sm text-muted-foreground">
+                  {isLoading ? "Loading..." : `${instructors.length} instructors found`}
+                </p>
                 <Select defaultValue="rating">
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by" />
@@ -252,96 +244,143 @@ export default function FindInstructorsPage() {
                 </Select>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {instructors.map((instructor) => (
-                  <Card key={instructor.id} className="hover:shadow-lg transition-shadow relative">
-                    {!isStudio && (
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background/80 backdrop-blur-[2px] z-10 rounded-lg flex items-end justify-center pb-8">
-                        <div className="text-center p-6 bg-background/95 rounded-lg border shadow-lg max-w-sm">
-                          <Lock className="h-10 w-10 text-primary mx-auto mb-3" />
-                          <h3 className="font-semibold mb-2">Unlock Full Access</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Sign in as a studio to view contact details and message instructors
-                          </p>
-                          <Button asChild className="w-full">
-                            <Link href="/auth/sign-up">Create Studio Account</Link>
+              {isLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading instructors...</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {instructors.map((instructor) => {
+                    const profile = instructor.instructor_profile
+                    const rateRange =
+                      profile?.hourly_rate_min && profile?.hourly_rate_max
+                        ? `$${profile.hourly_rate_min}-${profile.hourly_rate_max}/class`
+                        : "Rate TBD"
+                    const availabilityStatus = profile?.availability_status || "Unknown"
+                    const upcomingSlots = instructor.availability_slots
+                      ?.filter((slot) => slot.is_available && new Date(slot.start_time) > new Date())
+                      .slice(0, 3)
+
+                    return (
+                      <Card key={instructor.id} className="hover:shadow-lg transition-shadow relative">
+                        {!isStudio && (
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background/80 backdrop-blur-[2px] z-10 rounded-lg flex items-end justify-center pb-8">
+                            <div className="text-center p-6 bg-background/95 rounded-lg border shadow-lg max-w-sm">
+                              <Lock className="h-10 w-10 text-primary mx-auto mb-3" />
+                              <h3 className="font-semibold mb-2">Unlock Full Access</h3>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Sign in as a studio to view contact details and message instructors
+                              </p>
+                              <Button asChild className="w-full">
+                                <Link href="/auth/sign-up">Create Studio Account</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <CardContent className="p-6">
+                          <div className="flex gap-4 mb-4">
+                            <img
+                              src={instructor.avatar_url || "/placeholder.svg?height=80&width=80"}
+                              alt={instructor.display_name}
+                              className="h-20 w-20 rounded-full object-cover"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-1">
+                                <h3 className="font-semibold text-lg">{instructor.display_name}</h3>
+                                <Badge
+                                  variant={availabilityStatus === "available" ? "default" : "secondary"}
+                                  className="text-xs capitalize"
+                                >
+                                  {availabilityStatus}
+                                </Badge>
+                              </div>
+                              {instructor.location && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{instructor.location}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {instructor.bio && (
+                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{instructor.bio}</p>
+                          )}
+
+                          {upcomingSlots && upcomingSlots.length > 0 && (
+                            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                              <p className="text-xs font-medium text-muted-foreground mb-2">Next Available:</p>
+                              <div className="space-y-1">
+                                {upcomingSlots.map((slot) => (
+                                  <div key={slot.id} className="flex items-center gap-2 text-sm">
+                                    <Calendar className="h-3 w-3 text-primary" />
+                                    <span>
+                                      {new Date(slot.start_time).toLocaleDateString("en-AU", {
+                                        month: "short",
+                                        day: "numeric",
+                                      })}{" "}
+                                      at{" "}
+                                      {new Date(slot.start_time).toLocaleTimeString("en-AU", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-3 mb-4">
+                            {profile?.years_experience && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Award className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">Experience:</span>
+                                <span className="font-medium">{profile.years_experience}+ years</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-sm">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Rate:</span>
+                              <span className="font-medium">{rateRange}</span>
+                            </div>
+                          </div>
+
+                          {profile?.certifications && profile.certifications.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-xs text-muted-foreground mb-2">Certifications:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {profile.certifications.map((cert) => (
+                                  <Badge key={cert} variant="outline" className="text-xs">
+                                    {cert}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {profile?.specializations && profile.specializations.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-xs text-muted-foreground mb-2">Specialties:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {profile.specializations.map((specialty) => (
+                                  <Badge key={specialty} variant="secondary" className="text-xs">
+                                    {specialty}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <Button className="w-full" asChild>
+                            <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
                           </Button>
-                        </div>
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex gap-4 mb-4">
-                        <img
-                          src={instructor.image || "/placeholder.svg"}
-                          alt={instructor.name}
-                          className="h-20 w-20 rounded-full object-cover"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-1">
-                            <h3 className="font-semibold text-lg">{instructor.name}</h3>
-                            <Badge
-                              variant={instructor.availability === "Available" ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {instructor.availability}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <MapPin className="h-3 w-3" />
-                            <span>{instructor.location}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-primary text-primary" />
-                            <span className="font-medium text-sm">{instructor.rating}</span>
-                            <span className="text-xs text-muted-foreground">({instructor.reviewCount} reviews)</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{instructor.bio}</p>
-
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Award className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Experience:</span>
-                          <span className="font-medium">{instructor.experience}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Rate:</span>
-                          <span className="font-medium">{instructor.hourlyRate}/class</span>
-                        </div>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="text-xs text-muted-foreground mb-2">Certifications:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {instructor.certifications.map((cert) => (
-                            <Badge key={cert} variant="outline" className="text-xs">
-                              {cert}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="text-xs text-muted-foreground mb-2">Specialties:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {instructor.specialties.map((specialty) => (
-                            <Badge key={specialty} variant="secondary" className="text-xs">
-                              {specialty}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Button className="w-full" asChild>
-                        <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

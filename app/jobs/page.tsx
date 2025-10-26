@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookmark } from "lucide-react"
+import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookmark, Calendar } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
@@ -35,6 +35,23 @@ type Job = {
   } | null
   is_saved?: boolean
   is_mock?: boolean
+}
+
+type CoverRequest = {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  class_type: string
+  notes: string | null
+  status: string
+  created_at: string
+  studio: {
+    display_name: string
+    studio_profiles: {
+      studio_name: string
+    } | null
+  } | null
 }
 
 const MOCK_JOBS: Job[] = [
@@ -127,12 +144,14 @@ const MOCK_JOBS: Job[] = [
 export default function JobsPage() {
   const [showFilters, setShowFilters] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
+  const [coverRequests, setCoverRequests] = useState<CoverRequest[]>([])
+  const [activeTab, setActiveTab] = useState<"jobs" | "covers">("jobs")
   const [isLoading, setIsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchJobs() {
+    async function fetchData() {
       const supabase = createBrowserClient()
 
       const {
@@ -140,46 +159,68 @@ export default function JobsPage() {
       } = await supabase.auth.getUser()
       setUserId(user?.id || null)
 
-      const { data, error } = await supabase
-        .from("jobs")
-        .select(
-          `
+      const [jobsResult, coversResult] = await Promise.all([
+        supabase
+          .from("jobs")
+          .select(
+            `
           *,
           studio:profiles!jobs_studio_id_fkey(
             display_name,
             studio_profiles(studio_name)
           )
         `,
-        )
-        .eq("status", "open")
-        .order("created_at", { ascending: false })
+          )
+          .eq("status", "open")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("cover_requests")
+          .select(
+            `
+          *,
+          studio:profiles!cover_requests_studio_id_fkey(
+            display_name,
+            studio_profiles(studio_name)
+          )
+        `,
+          )
+          .eq("status", "open")
+          .gte("date", new Date().toISOString().split("T")[0])
+          .order("date", { ascending: true })
+          .limit(20),
+      ])
 
       let jobsToDisplay: Job[] = []
 
-      if (error) {
-        console.error("[v0] Error fetching jobs:", error)
+      if (jobsResult.error) {
+        console.error("[v0] Error fetching jobs:", jobsResult.error)
         jobsToDisplay = MOCK_JOBS
-      } else if (data && data.length > 0) {
+      } else if (jobsResult.data && jobsResult.data.length > 0) {
         if (user) {
           const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
 
           const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
-          jobsToDisplay = data.map((job) => ({
+          jobsToDisplay = jobsResult.data.map((job) => ({
             ...job,
             is_saved: savedJobIds.has(job.id),
           }))
         } else {
-          jobsToDisplay = data
+          jobsToDisplay = jobsResult.data
         }
       } else {
         jobsToDisplay = MOCK_JOBS
       }
 
       setJobs(jobsToDisplay)
+
+      if (coversResult.data && coversResult.data.length > 0) {
+        setCoverRequests(coversResult.data)
+      }
+
       setIsLoading(false)
     }
 
-    fetchJobs()
+    fetchData()
   }, [])
 
   const handleSaveJob = async (jobId: string, currentlySaved: boolean) => {
@@ -228,8 +269,27 @@ export default function JobsPage() {
       <main className="flex-1 bg-muted/30">
         <div className="container py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Browse Pilates Jobs</h1>
-            <p className="text-muted-foreground">Find your next opportunity at top Pilates studios across Australia</p>
+            <h1 className="text-3xl font-bold mb-2">Browse Opportunities</h1>
+            <p className="text-muted-foreground">Find permanent positions and urgent cover requests</p>
+          </div>
+
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={activeTab === "jobs" ? "default" : "outline"}
+              onClick={() => setActiveTab("jobs")}
+              className="flex-1 sm:flex-initial"
+            >
+              <Briefcase className="h-4 w-4 mr-2" />
+              Permanent Jobs ({jobs.length})
+            </Button>
+            <Button
+              variant={activeTab === "covers" ? "default" : "outline"}
+              onClick={() => setActiveTab("covers")}
+              className="flex-1 sm:flex-initial"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Urgent Covers ({coverRequests.length})
+            </Button>
           </div>
 
           <Card className="mb-6">
@@ -332,105 +392,179 @@ export default function JobsPage() {
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">Loading jobs...</p>
                 </div>
-              ) : jobs.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <p className="text-muted-foreground mb-4">No jobs found. Check back soon!</p>
-                    <Button asChild>
-                      <Link href="/studio/post-job">Post a Job</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+              ) : activeTab === "jobs" ? (
+                jobs.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <p className="text-muted-foreground mb-4">No jobs found. Check back soon!</p>
+                      <Button asChild>
+                        <Link href="/studio/post-job">Post a Job</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {jobs.map((job) => {
+                      const studioName =
+                        job.studio?.studio_profiles?.studio_name || job.studio?.display_name || "Studio"
+                      const rate =
+                        job.compensation_min && job.compensation_type
+                          ? `$${job.compensation_min}${job.compensation_max ? `-$${job.compensation_max}` : ""}/${job.compensation_type}`
+                          : "Rate TBD"
+
+                      return (
+                        <Card key={job.id} className="hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-start gap-3 mb-3">
+                                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <Building2 className="h-6 w-6 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold text-lg mb-1">{job.title}</h3>
+                                    <p className="text-muted-foreground font-medium">{studioName}</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-3">
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>{job.location}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Briefcase className="h-4 w-4" />
+                                    <span className="capitalize">{job.job_type}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <DollarSign className="h-4 w-4" />
+                                    <span className="font-medium text-foreground">{rate}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-4 w-4" />
+                                    <span>Posted {formatRelativeTime(job.created_at)}</span>
+                                  </div>
+                                </div>
+
+                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{job.description}</p>
+
+                                <div className="space-y-2">
+                                  {job.equipment && job.equipment.length > 0 && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground mr-2">Equipment:</span>
+                                      <div className="inline-flex flex-wrap gap-1">
+                                        {job.equipment.map((item) => (
+                                          <Badge key={item} variant="outline" className="text-xs">
+                                            {item}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {job.certifications_required && job.certifications_required.length > 0 && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground mr-2">Required:</span>
+                                      <div className="inline-flex flex-wrap gap-1">
+                                        {job.certifications_required.map((cert) => (
+                                          <Badge key={cert} variant="secondary" className="text-xs">
+                                            {cert}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex md:flex-col gap-2">
+                                {job.is_mock ? (
+                                  <Button className="flex-1 md:flex-initial" asChild>
+                                    <Link href="/auth/sign-up">View Details</Link>
+                                  </Button>
+                                ) : (
+                                  <Button className="flex-1 md:flex-initial" asChild>
+                                    <Link href={`/jobs/${job.id}`}>View Details</Link>
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 md:flex-initial bg-transparent"
+                                  onClick={() => handleSaveJob(job.id, job.is_saved || false)}
+                                >
+                                  <Bookmark className={`h-4 w-4 mr-2 ${job.is_saved ? "fill-current" : ""}`} />
+                                  {job.is_saved ? "Saved" : "Save"}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
-                  {jobs.map((job) => {
-                    const studioName = job.studio?.studio_profiles?.studio_name || job.studio?.display_name || "Studio"
-                    const rate =
-                      job.compensation_min && job.compensation_type
-                        ? `$${job.compensation_min}${job.compensation_max ? `-$${job.compensation_max}` : ""}/${job.compensation_type}`
-                        : "Rate TBD"
+                  {coverRequests.map((cover) => {
+                    const studioName =
+                      cover.studio?.studio_profiles?.studio_name || cover.studio?.display_name || "Studio"
+                    const coverDate = new Date(cover.date).toLocaleDateString("en-AU", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })
+                    const isUrgent = new Date(cover.date).getTime() - new Date().getTime() < 48 * 60 * 60 * 1000
 
                     return (
-                      <Card key={job.id} className="hover:shadow-lg transition-shadow">
+                      <Card key={cover.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                             <div className="flex-1">
                               <div className="flex items-start gap-3 mb-3">
                                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                  <Building2 className="h-6 w-6 text-primary" />
+                                  <Clock className="h-6 w-6 text-primary" />
                                 </div>
                                 <div className="flex-1">
-                                  <h3 className="font-semibold text-lg mb-1">{job.title}</h3>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-semibold text-lg">{cover.class_type} Class Cover</h3>
+                                    {isUrgent && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Urgent
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <p className="text-muted-foreground font-medium">{studioName}</p>
                                 </div>
                               </div>
 
                               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-3">
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{job.location}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Briefcase className="h-4 w-4" />
-                                  <span className="capitalize">{job.job_type}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <DollarSign className="h-4 w-4" />
-                                  <span className="font-medium text-foreground">{rate}</span>
+                                  <Calendar className="h-4 w-4" />
+                                  <span className="font-medium text-foreground">{coverDate}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-4 w-4" />
-                                  <span>Posted {formatRelativeTime(job.created_at)}</span>
+                                  <span>
+                                    {cover.start_time} - {cover.end_time}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{cover.studio?.display_name || "Location TBD"}</span>
                                 </div>
                               </div>
 
-                              <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{job.description}</p>
-
-                              <div className="space-y-2">
-                                {job.equipment && job.equipment.length > 0 && (
-                                  <div>
-                                    <span className="text-xs text-muted-foreground mr-2">Equipment:</span>
-                                    <div className="inline-flex flex-wrap gap-1">
-                                      {job.equipment.map((item) => (
-                                        <Badge key={item} variant="outline" className="text-xs">
-                                          {item}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                {job.certifications_required && job.certifications_required.length > 0 && (
-                                  <div>
-                                    <span className="text-xs text-muted-foreground mr-2">Required:</span>
-                                    <div className="inline-flex flex-wrap gap-1">
-                                      {job.certifications_required.map((cert) => (
-                                        <Badge key={cert} variant="secondary" className="text-xs">
-                                          {cert}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              {cover.notes && (
+                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{cover.notes}</p>
+                              )}
                             </div>
 
                             <div className="flex md:flex-col gap-2">
-                              {job.is_mock ? (
-                                <Button className="flex-1 md:flex-initial" asChild>
-                                  <Link href="/auth/sign-up">View Details</Link>
-                                </Button>
-                              ) : (
-                                <Button className="flex-1 md:flex-initial" asChild>
-                                  <Link href={`/jobs/${job.id}`}>View Details</Link>
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                className="flex-1 md:flex-initial bg-transparent"
-                                onClick={() => handleSaveJob(job.id, job.is_saved || false)}
-                              >
-                                <Bookmark className={`h-4 w-4 mr-2 ${job.is_saved ? "fill-current" : ""}`} />
-                                {job.is_saved ? "Saved" : "Save"}
+                              <Button className="flex-1 md:flex-initial" asChild>
+                                <Link href={`/cover-requests/${cover.id}`}>Accept Cover</Link>
+                              </Button>
+                              <Button variant="outline" className="flex-1 md:flex-initial bg-transparent">
+                                <Bookmark className="h-4 w-4 mr-2" />
+                                Save
                               </Button>
                             </div>
                           </div>
