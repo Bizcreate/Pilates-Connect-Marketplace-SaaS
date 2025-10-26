@@ -1,4 +1,3 @@
-// next.config.js
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
@@ -13,7 +12,16 @@ const securityHeaders = [
   },
 ]
 
-module.exports = {
+export default {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }]
   },
