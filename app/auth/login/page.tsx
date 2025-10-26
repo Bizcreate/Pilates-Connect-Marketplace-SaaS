@@ -53,6 +53,18 @@ export default function LoginPage() {
     }
 
     console.log("[v0] Login: Success, user ID:", data.user.id)
+    console.log("[v0] Login: Session data:", data.session ? "exists" : "null")
+
+    const allKeys = Object.keys(localStorage)
+    console.log("[v0] Login: All localStorage keys:", allKeys)
+    const supabaseKeys = allKeys.filter((k) => k.includes("supabase"))
+    console.log("[v0] Login: Supabase localStorage keys:", supabaseKeys)
+    supabaseKeys.forEach((key) => {
+      const value = localStorage.getItem(key)
+      console.log(`[v0] Login: ${key}:`, value ? "has value" : "empty")
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     const storedSession = localStorage.getItem("supabase.auth.token")
     console.log("[v0] Login: Session stored in localStorage:", !!storedSession)

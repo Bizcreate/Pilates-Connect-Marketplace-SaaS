@@ -1,3 +1,7 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,61 +10,112 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Plus, MessageSquare, Users, Briefcase, TrendingUp, Calendar } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { createBrowserClient } from "@/lib/supabase/client"
 
-export default async function StudioDashboardPage() {
-  const supabase = await createClient()
+export default function StudioDashboardPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
+  const [jobs, setJobs] = useState<any[]>([])
+  const [applications, setApplications] = useState<any[]>([])
+  const supabase = createBrowserClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    redirect("/auth/login")
+  useEffect(() => {
+    async function loadDashboard() {
+      console.log("[v0] Studio Dashboard: Starting auth check")
+      const allKeys = Object.keys(localStorage)
+      const supabaseKeys = allKeys.filter((k) => k.includes("supabase"))
+      console.log("[v0] Studio Dashboard: Supabase localStorage keys:", supabaseKeys)
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      console.log("[v0] Studio Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
+
+      if (!user) {
+        console.log("[v0] Studio Dashboard: No user, redirecting to login")
+        router.push("/auth/login")
+        return
+      }
+
+      // Get profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_type, display_name")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (!profileData) {
+        router.push("/auth/login")
+        return
+      }
+
+      if (profileData.user_type !== "studio") {
+        router.push("/instructor/dashboard")
+        return
+      }
+
+      setProfile(profileData)
+
+      // Fetch studio's jobs
+      const { data: jobsData } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("studio_id", user.id)
+        .order("created_at", { ascending: false })
+
+      setJobs(jobsData || [])
+
+      // Fetch applications for studio's jobs
+      if (jobsData && jobsData.length > 0) {
+        const { data: applicationsData } = await supabase
+          .from("applications")
+          .select(`
+            *,
+            instructor:profiles!applications_instructor_id_fkey(display_name, email),
+            job:jobs(title)
+          `)
+          .in(
+            "job_id",
+            jobsData.map((j) => j.id),
+          )
+          .order("created_at", { ascending: false })
+          .limit(10)
+
+        setApplications(applicationsData || [])
+      }
+
+      setLoading(false)
+    }
+
+    loadDashboard()
+  }, [router, supabase])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("user_type, display_name")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  if (!profile) {
-    redirect("/auth/login")
-  }
-
-  if (profile?.user_type !== "studio") {
-    redirect("/instructor/dashboard")
-  }
-
-  // Fetch studio's jobs
-  const { data: jobs } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("studio_id", user.id)
-    .order("created_at", { ascending: false })
-
-  // Fetch applications for studio's jobs
-  const { data: applications } = await supabase
-    .from("applications")
-    .select(`
-      *,
-      instructor:profiles!applications_instructor_id_fkey(display_name, email),
-      job:jobs(title)
-    `)
-    .in("job_id", jobs?.map((j) => j.id) || [])
-    .order("created_at", { ascending: false })
-    .limit(10)
-
-  const activeJobs = jobs?.filter((j) => j.status === "open") || []
-  const totalApplications = applications?.length || 0
-  const newApplications = applications?.filter((a) => a.status === "pending") || []
+  const activeJobs = jobs.filter((j) => j.status === "open")
+  const totalApplications = applications.length
+  const newApplications = applications.filter((a) => a.status === "pending")
 
   const stats = {
     activeJobs: activeJobs.length,
     totalApplications,
-    unreadMessages: 0, // Will be implemented with messaging system
-    profileViews: 0, // Will be implemented with analytics
+    unreadMessages: 0,
+    profileViews: 0,
   }
 
   const recentApplications = newApplications.slice(0, 5).map((app) => ({
