@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, Settings } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import type { User as SupabaseUser } from "@supabase/ssr"
 
 interface UserMenuProps {
   user: SupabaseUser

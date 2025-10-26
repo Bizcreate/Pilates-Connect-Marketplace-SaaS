@@ -6,7 +6,7 @@ import { Activity } from "lucide-react"
 import { UserMenu } from "@/components/user-menu"
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
-import type { User } from "@supabase/supabase-js"
+import type { User } from "@supabase/ssr"
 
 export function SiteHeader() {
   const [user, setUser] = useState<User | null>(null)
@@ -21,6 +21,7 @@ export function SiteHeader() {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser()
+
         setUser(authUser)
 
         if (authUser) {
@@ -32,7 +33,9 @@ export function SiteHeader() {
           setUserType(profile?.user_type || null)
         }
       } catch (error) {
-        console.error("[v0] Auth error in header:", error)
+        console.error("Auth error:", error)
+        setUser(null)
+        setUserType(null)
       } finally {
         setLoading(false)
       }
@@ -54,6 +57,7 @@ export function SiteHeader() {
       } else {
         setUserType(null)
       }
+      setLoading(false)
     })
 
     return () => {

@@ -19,8 +19,15 @@ export default async function StudioDashboardPage() {
     redirect("/auth/login")
   }
 
-  // Verify user is a studio
-  const { data: profile } = await supabase.from("profiles").select("user_type, display_name").eq("id", user.id).single()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_type, display_name")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (!profile) {
+    redirect("/auth/login")
+  }
 
   if (profile?.user_type !== "studio") {
     redirect("/instructor/dashboard")

@@ -15,8 +15,8 @@ export default function PricingPage() {
         <section className="container py-16 text-center space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold">Simple, Transparent Pricing</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Choose the plan that fits your Lagree studio workflow. Paid plans include filters for machine type
-            (Micro/Mega/EVO), class length, and certification requirements.
+            Choose the plan that fits your Pilates studio workflow. Paid plans include filters for equipment type
+            (Reformer, Cadillac, Chair, Tower), class length, and certification requirements.
           </p>
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
             <Zap className="h-4 w-4" />
@@ -27,7 +27,9 @@ export default function PricingPage() {
         {/* Studio Pricing */}
         <section className="container py-12">
           <h2 className="text-3xl font-bold text-center mb-12">For Fitness Studios</h2>
-          <p className="text-center text-muted-foreground mb-8">Find and hire qualified Lagree instructors with ease</p>
+          <p className="text-center text-muted-foreground mb-8">
+            Find and hire qualified Pilates instructors with ease
+          </p>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {/* Basic */}
@@ -97,7 +99,7 @@ export default function PricingPage() {
                   <span className="text-4xl font-bold">$49</span>
                   <span className="text-muted-foreground">/per month</span>
                 </div>
-                <CardDescription className="mt-2">Most popular for growing Lagree/Pilates studios</CardDescription>
+                <CardDescription className="mt-2">Most popular for growing Pilates studios</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-3">
@@ -111,7 +113,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span className="text-sm">Advanced search (Lagree machines, certs)</span>
+                    <span className="text-sm">Advanced search (equipment, certifications)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -152,7 +154,7 @@ export default function PricingPage() {
                   <span className="text-4xl font-bold">$149</span>
                   <span className="text-muted-foreground">/per month</span>
                 </div>
-                <CardDescription className="mt-2">For multi-location Lagree chains</CardDescription>
+                <CardDescription className="mt-2">For multi-location Pilates chains</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-3">
@@ -218,7 +220,7 @@ export default function PricingPage() {
                 <span className="text-muted-foreground">/forever</span>
               </div>
               <CardDescription className="mt-2">
-                Everything you need to find your next Lagree or Pilates opportunity
+                Everything you need to find your next Pilates opportunity
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

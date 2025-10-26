@@ -5,9 +5,20 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Search, Briefcase, MessageSquare, Calendar, CheckCircle2, Clock, XCircle, User } from "lucide-react"
+import {
+  Search,
+  Briefcase,
+  MessageSquare,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  User,
+  AlertCircle,
+} from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default async function InstructorDashboardPage() {
   const supabase = await createClient()
@@ -21,17 +32,19 @@ export default async function InstructorDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type, display_name")
+    .select("user_type, display_name, email")
     .eq("id", user.id)
     .maybeSingle()
 
   if (!profile) {
-    redirect("/auth/complete-profile")
+    redirect("/auth/login")
   }
 
   if (profile?.user_type !== "instructor") {
     redirect("/studio/dashboard")
   }
+
+  const isProfileIncomplete = !profile.display_name
 
   // Fetch instructor's applications
   const { data: applications } = await supabase
@@ -82,10 +95,25 @@ export default async function InstructorDashboardPage() {
 
       <main className="flex-1 bg-muted/30">
         <div className="container py-8 space-y-8">
+          {isProfileIncomplete && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Complete Your Profile</AlertTitle>
+              <AlertDescription className="flex items-center justify-between">
+                <span>Add your name and details to get the most out of Pilates Connect</span>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/instructor/profile">Edit Profile</Link>
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Welcome back, {profile?.display_name}!</h1>
+              <h1 className="text-3xl font-bold">
+                Welcome back{profile?.display_name ? `, ${profile.display_name}` : ""}!
+              </h1>
               <p className="text-muted-foreground mt-1">Track your applications and find new opportunities</p>
             </div>
             <div className="flex gap-3">

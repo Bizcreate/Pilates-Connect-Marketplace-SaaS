@@ -26,6 +26,13 @@ export default function PostJobPage() {
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>([])
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([])
+  const [scheduleBlocks, setScheduleBlocks] = useState<
+    Array<{
+      day: string
+      startTime: string
+      endTime: string
+    }>
+  >([{ day: "Monday", startTime: "09:00", endTime: "17:00" }])
 
   const equipment = ["Reformer", "Cadillac", "Chair", "Tower", "Mat", "Barrel"]
   const certifications = ["Mat", "Reformer", "Comprehensive", "Pre/Postnatal"]
@@ -41,6 +48,20 @@ export default function PostJobPage() {
 
   const toggleClassType = (item: string) => {
     setSelectedClassTypes((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]))
+  }
+
+  const addScheduleBlock = () => {
+    setScheduleBlocks([...scheduleBlocks, { day: "Monday", startTime: "09:00", endTime: "17:00" }])
+  }
+
+  const removeScheduleBlock = (index: number) => {
+    setScheduleBlocks(scheduleBlocks.filter((_, i) => i !== index))
+  }
+
+  const updateScheduleBlock = (index: number, field: string, value: string) => {
+    const updated = [...scheduleBlocks]
+    updated[index] = { ...updated[index], [field]: value }
+    setScheduleBlocks(updated)
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, status: "open" | "draft" = "open") => {
@@ -69,6 +90,7 @@ export default function PostJobPage() {
         compensation_min: Number.parseInt(formData.get("rate-min") as string) || null,
         compensation_max: Number.parseInt(formData.get("rate-max") as string) || null,
         schedule_details: (formData.get("schedule") as string) || null,
+        schedule_blocks: scheduleBlocks,
         start_date: (formData.get("start-date") as string) || null,
         status,
       }
@@ -287,12 +309,66 @@ export default function PostJobPage() {
                   <Input id="start-date" name="start-date" type="date" />
                 </div>
 
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Schedule Blocks</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addScheduleBlock}>
+                      Add Time Slot
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {scheduleBlocks.map((block, index) => (
+                      <div key={index} className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-xs">Day</Label>
+                          <Select value={block.day} onValueChange={(value) => updateScheduleBlock(index, "day", value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Monday">Monday</SelectItem>
+                              <SelectItem value="Tuesday">Tuesday</SelectItem>
+                              <SelectItem value="Wednesday">Wednesday</SelectItem>
+                              <SelectItem value="Thursday">Thursday</SelectItem>
+                              <SelectItem value="Friday">Friday</SelectItem>
+                              <SelectItem value="Saturday">Saturday</SelectItem>
+                              <SelectItem value="Sunday">Sunday</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-xs">Start Time</Label>
+                          <Input
+                            type="time"
+                            value={block.startTime}
+                            onChange={(e) => updateScheduleBlock(index, "startTime", e.target.value)}
+                          />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-xs">End Time</Label>
+                          <Input
+                            type="time"
+                            value={block.endTime}
+                            onChange={(e) => updateScheduleBlock(index, "endTime", e.target.value)}
+                          />
+                        </div>
+                        {scheduleBlocks.length > 1 && (
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleBlock(index)}>
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="schedule">Schedule Details</Label>
+                  <Label htmlFor="schedule">Additional Schedule Notes</Label>
                   <Textarea
                     id="schedule"
                     name="schedule"
-                    placeholder="e.g., Monday-Friday mornings, Weekend classes, Flexible hours..."
+                    placeholder="e.g., Flexible hours, Weekend availability preferred..."
                     rows={3}
                   />
                 </div>

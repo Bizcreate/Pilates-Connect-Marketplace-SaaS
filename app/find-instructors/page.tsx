@@ -152,9 +152,9 @@ export default function FindInstructorsPage() {
             {showFilters && (
               <aside className="lg:col-span-1 space-y-4">
                 <Card>
-                  <CardContent className="p-4 space-y-6">
+                  <CardContent className="p-6 space-y-6">
                     <div>
-                      <h3 className="font-semibold mb-3">Availability</h3>
+                      <h3 className="font-semibold text-base mb-4">Availability</h3>
                       <Select>
                         <SelectTrigger>
                           <SelectValue placeholder="Any" />
@@ -167,8 +167,8 @@ export default function FindInstructorsPage() {
                       </Select>
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-3">Experience Level</h3>
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-base mb-4">Experience Level</h3>
                       <Select>
                         <SelectTrigger>
                           <SelectValue placeholder="Any" />
@@ -183,9 +183,9 @@ export default function FindInstructorsPage() {
                       </Select>
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-3">Equipment Experience</h3>
-                      <div className="space-y-2">
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-base mb-4">Equipment Experience</h3>
+                      <div className="grid grid-cols-2 gap-3">
                         {equipment.map((item) => (
                           <div key={item} className="flex items-center space-x-2">
                             <Checkbox id={`filter-${item}`} />
@@ -197,13 +197,13 @@ export default function FindInstructorsPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-3">Certification Level</h3>
-                      <div className="space-y-2">
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-base mb-4">Certification Level</h3>
+                      <div className="space-y-3">
                         {certificationLevels.map((item) => (
                           <div key={item} className="flex items-center space-x-2">
                             <Checkbox id={`cert-filter-${item}`} />
-                            <Label htmlFor={`cert-filter-${item}`} className="font-normal cursor-pointer text-sm">
+                            <Label htmlFor={`cert-filter-${item}`} className="font-normal cursor-pointer">
                               {item}
                             </Label>
                           </div>
@@ -211,17 +211,19 @@ export default function FindInstructorsPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold mb-3">Hourly Rate</h3>
-                      <div className="space-y-2">
-                        <Label htmlFor="rate-min" className="text-sm">
-                          Min: $0
-                        </Label>
-                        <Input id="rate-min" type="range" min="0" max="100" step="5" />
-                        <Label htmlFor="rate-max" className="text-sm">
-                          Max: $100+
-                        </Label>
-                        <Input id="rate-max" type="range" min="0" max="100" step="5" />
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-base mb-4">Hourly Rate</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Min:</span>
+                          <span className="font-medium">$0</span>
+                        </div>
+                        <Input type="range" min="0" max="100" step="5" className="w-full" />
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Max:</span>
+                          <span className="font-medium">$100+</span>
+                        </div>
+                        <Input type="range" min="0" max="100" step="5" className="w-full" />
                       </div>
                     </div>
 

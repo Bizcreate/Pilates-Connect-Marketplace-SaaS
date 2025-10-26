@@ -15,31 +15,22 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set({ name, value, ...options })
+          })
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set({ name, value, ...options })
+          })
         },
       },
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Redirect to login if accessing protected routes without auth
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith("/studio") ||
-      request.nextUrl.pathname.startsWith("/instructor") ||
-      request.nextUrl.pathname.startsWith("/dashboard"))
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/auth/login"
-    return NextResponse.redirect(url)
-  }
+  // Refresh the auth session but don't redirect - let pages handle auth
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
