@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,100 +19,57 @@ export default function LoginPage() {
   const email = searchParams.get("email") || ""
   const successMessage = searchParams.get("message") || null
 
-  useEffect(() => {
-    console.log("[v0] LoginPage: Component mounted")
-    return () => console.log("[v0] LoginPage: Component unmounted")
-  }, [])
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    console.log("[v0] Login: handleSubmit called")
-
     e.preventDefault()
-    console.log("[v0] Login: preventDefault called")
-
     setError("")
     setLoading(true)
-    console.log("[v0] Login: Loading state set to true")
 
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get("email") as string
       const password = formData.get("password") as string
 
-      console.log("[v0] Login: Starting login attempt for", email)
+      console.log("[v0] Login: Attempting login for", email)
 
       const supabase = createBrowserClient()
-      console.log("[v0] Login: Supabase client created")
 
-      console.log("[v0] Login: Calling signInWithPassword...")
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      console.log("[v0] Login: signInWithPassword completed")
 
       if (signInError) {
-        console.log("[v0] Login: Error", signInError.message)
+        console.error("[v0] Login: Error", signInError.message)
         setError(signInError.message)
-        setLoading(false)
         return
       }
 
       if (!data.user) {
-        console.log("[v0] Login: No user returned")
         setError("Login failed. Please try again.")
-        setLoading(false)
         return
       }
 
-      console.log("[v0] Login: Success, user ID:", data.user.id)
+      console.log("[v0] Login: Success! User ID:", data.user.id)
 
       // Get profile to determine redirect
-      console.log("[v0] Login: Fetching profile...")
-      const { data: profile, error: profileErr } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .single()
+      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
 
-      if (profileErr) {
-        console.log("[v0] Login: Profile error:", profileErr.message)
-        setError("Failed to load profile. Please try again.")
-        setLoading(false)
-        return
-      }
+      console.log("[v0] Login: User type:", profile?.user_type)
 
-      if (!profile) {
-        console.log("[v0] Login: Profile not found")
-        setError("Profile not found. Please contact support.")
-        setLoading(false)
-        return
-      }
-
-      console.log("[v0] Login: Profile type:", profile.user_type)
-
-      // Small delay to ensure session is stored
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      if (profile.user_type === "instructor") {
-        console.log("[v0] Login: Redirecting to instructor dashboard")
-        router.push("/instructor/dashboard")
-      } else if (profile.user_type === "studio") {
-        console.log("[v0] Login: Redirecting to studio dashboard")
-        router.push("/studio/dashboard")
+      // Redirect based on user type
+      if (profile?.user_type === "instructor") {
+        window.location.href = "/instructor/dashboard"
+      } else if (profile?.user_type === "studio") {
+        window.location.href = "/studio/dashboard"
       } else {
-        console.log("[v0] Login: Unknown user type, redirecting to home")
-        router.push("/")
+        window.location.href = "/"
       }
     } catch (err) {
       console.error("[v0] Login: Unexpected error:", err)
       setError("An unexpected error occurred. Please try again.")
+    } finally {
       setLoading(false)
     }
-  }
-
-  const handleButtonClick = () => {
-    console.log("[v0] Login: Button clicked, loading state:", loading)
   }
 
   return (
@@ -152,7 +108,7 @@ export default function LoginPage() {
                   <Label htmlFor="password">Password</Label>
                   <Input id="password" name="password" type="password" required />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading} onClick={handleButtonClick}>
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Signing in..." : "Sign in"}
                 </Button>
               </div>

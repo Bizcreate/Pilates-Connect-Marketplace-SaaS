@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Activity } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Activity, Menu } from "lucide-react"
 import { UserMenu } from "@/components/user-menu"
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -12,18 +13,17 @@ export function SiteHeader() {
   const [user, setUser] = useState<User | null>(null)
   const [userType, setUserType] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
 
     const getUser = async () => {
       try {
-        console.log("[v0] SiteHeader: Checking auth...")
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser()
 
-        console.log("[v0] SiteHeader: User found:", !!authUser)
         setUser(authUser)
 
         if (authUser) {
@@ -32,7 +32,6 @@ export function SiteHeader() {
             .select("user_type")
             .eq("id", authUser.id)
             .maybeSingle()
-          console.log("[v0] SiteHeader: User type:", profile?.user_type)
           setUserType(profile?.user_type || null)
         }
       } catch (error) {
@@ -46,15 +45,9 @@ export function SiteHeader() {
 
     getUser()
 
-    const timeout = setTimeout(() => {
-      console.log("[v0] SiteHeader: Auth check timeout, showing sign in buttons")
-      setLoading(false)
-    }, 3000)
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log("[v0] SiteHeader: Auth state changed, user:", !!session?.user)
       setUser(session?.user ?? null)
       if (session?.user) {
         const { data: profile } = await supabase
@@ -70,10 +63,35 @@ export function SiteHeader() {
     })
 
     return () => {
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
+
+  const NavLinks = () => (
+    <>
+      <Link
+        href="/jobs"
+        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Jobs
+      </Link>
+      <Link
+        href="/find-instructors"
+        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Find Instructors
+      </Link>
+      <Link
+        href="/pricing"
+        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Pricing
+      </Link>
+    </>
+  )
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -83,25 +101,13 @@ export function SiteHeader() {
           <span className="text-xl font-semibold">Pilates Connect</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/jobs" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-            Jobs
-          </Link>
-          <Link
-            href="/find-instructors"
-            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Find Instructors
-          </Link>
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-          >
-            Pricing
-          </Link>
+          <NavLinks />
         </nav>
 
-        <div className="flex items-center gap-3">
+        {/* Desktop Auth Buttons */}
+        <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
           ) : user ? (
@@ -121,6 +127,50 @@ export function SiteHeader() {
               </Button>
             </>
           )}
+        </div>
+
+        <div className="flex md:hidden items-center gap-2">
+          {!loading && user && <UserMenu user={user} userType={userType} />}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <nav className="flex flex-col gap-4 mt-8">
+                <NavLinks />
+                <div className="border-t pt-4 mt-4 space-y-2">
+                  {loading ? (
+                    <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+                  ) : user ? (
+                    <Button variant="outline" asChild className="w-full bg-transparent">
+                      <Link
+                        href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" asChild className="w-full bg-transparent">
+                        <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
+                          Sign In
+                        </Link>
+                      </Button>
+                      <Button asChild className="w-full">
+                        <Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>
+                          Get Started
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

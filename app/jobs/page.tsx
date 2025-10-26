@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookmark, Calendar } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { mockCoverRequests } from "@/lib/mock-data"
 
 type Job = {
   id: string
@@ -141,6 +142,26 @@ const MOCK_JOBS: Job[] = [
   },
 ]
 
+const MOCK_COVER_REQUESTS: CoverRequest[] = mockCoverRequests.map((cover) => ({
+  id: cover.id,
+  date: cover.date,
+  start_time: cover.time,
+  end_time: new Date(new Date(`${cover.date} ${cover.time}`).getTime() + 55 * 60 * 1000).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }),
+  class_type: cover.class_type,
+  notes: cover.description,
+  status: cover.status,
+  created_at: cover.created_at,
+  studio: {
+    display_name: cover.studio_name,
+    studio_profiles: {
+      studio_name: cover.studio_name,
+    },
+  },
+}))
+
 export default function JobsPage() {
   const [showFilters, setShowFilters] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -213,7 +234,9 @@ export default function JobsPage() {
 
       setJobs(jobsToDisplay)
 
-      if (coversResult.data && coversResult.data.length > 0) {
+      if (coversResult.error || !coversResult.data || coversResult.data.length === 0) {
+        setCoverRequests(MOCK_COVER_REQUESTS)
+      } else if (coversResult.data && coversResult.data.length > 0) {
         setCoverRequests(coversResult.data)
       }
 
