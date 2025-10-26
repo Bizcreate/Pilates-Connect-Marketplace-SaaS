@@ -10,15 +10,18 @@ import { SiteFooter } from "@/components/site-footer"
 import { Copy, Gift, Users, DollarSign, CheckCircle } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { mockReferrals } from "@/lib/mock-data"
 
 export default function ReferralsPage() {
   const { toast } = useToast()
-  const [referralCode, setReferralCode] = useState("")
+  const [referralCode, setReferralCode] = useState("SARAH2025")
   const [referralLink, setReferralLink] = useState("")
-  const [stats, setStats] = useState({ pending: 0, completed: 0, earnings: 0 })
-  const [referrals, setReferrals] = useState<any[]>([])
+  const [stats, setStats] = useState({ pending: 1, completed: 1, earnings: 50 })
+  const [referrals, setReferrals] = useState<any[]>(mockReferrals)
 
   useEffect(() => {
+    setReferralLink(`${window.location.origin}/auth/sign-up?ref=${referralCode}`)
+
     async function loadReferralData() {
       const supabase = createBrowserClient()
       const {
@@ -27,7 +30,6 @@ export default function ReferralsPage() {
 
       if (!user) return
 
-      // Get user's referral code
       const { data: profile } = await supabase
         .from("profiles")
         .select("referral_code, referral_earnings")
@@ -40,10 +42,9 @@ export default function ReferralsPage() {
         setStats((prev) => ({ ...prev, earnings: profile.referral_earnings || 0 }))
       }
 
-      // Get referral stats
       const { data: referralData } = await supabase.from("referrals").select("*").eq("referrer_id", user.id)
 
-      if (referralData) {
+      if (referralData && referralData.length > 0) {
         setReferrals(referralData)
         setStats({
           pending: referralData.filter((r) => r.status === "pending").length,
@@ -76,7 +77,6 @@ export default function ReferralsPage() {
             </p>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardContent className="p-6">
@@ -121,7 +121,6 @@ export default function ReferralsPage() {
             </Card>
           </div>
 
-          {/* Referral Link Card */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -163,7 +162,6 @@ export default function ReferralsPage() {
             </CardContent>
           </Card>
 
-          {/* Referral History */}
           <Card>
             <CardHeader>
               <CardTitle>Referral History</CardTitle>
@@ -175,18 +173,17 @@ export default function ReferralsPage() {
                   {referrals.map((referral) => (
                     <div key={referral.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <p className="font-medium">{referral.referred_email || "Pending signup"}</p>
+                        <p className="font-medium">{referral.referred_name}</p>
                         <p className="text-sm text-muted-foreground">
-                          Referred {new Date(referral.created_at).toLocaleDateString()}
+                          {referral.referred_type} • Referred {referral.date}
                         </p>
                       </div>
-                      <Badge
-                        variant={
-                          referral.status === "completed" || referral.status === "rewarded" ? "default" : "secondary"
-                        }
-                      >
-                        {referral.status}
-                      </Badge>
+                      <div className="text-right">
+                        <Badge variant={referral.status === "completed" ? "default" : "secondary"}>
+                          {referral.status}
+                        </Badge>
+                        <p className="text-sm font-medium text-green-600 mt-1">{referral.reward}</p>
+                      </div>
                     </div>
                   ))}
                 </div>

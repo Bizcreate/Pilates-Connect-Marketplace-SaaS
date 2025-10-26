@@ -20,8 +20,10 @@ import {
   MapPin,
   CalendarDays,
   AlertCircle,
+  Search,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { mockCoverRequests, mockInstructors, mockJobs, mockApplications, mockMessages } from "@/lib/mock-data"
 
 export default function StudioDashboardPage() {
   const router = useRouter()
@@ -174,6 +176,65 @@ export default function StudioDashboardPage() {
     status: app.status,
   }))
 
+  const displayCoverRequests =
+    coverRequests.length > 0
+      ? coverRequests
+      : mockCoverRequests.map((req) => ({
+          id: req.id,
+          class_type: req.class_type,
+          date: req.date,
+          start_time: req.time,
+          end_time: req.time,
+          notes: req.description,
+          status: req.status,
+          instructor: null,
+        }))
+
+  const displayInstructors =
+    availableInstructors.length > 0
+      ? availableInstructors
+      : mockInstructors.map((inst) => ({
+          id: inst.id,
+          start_time: new Date().toISOString(),
+          instructor: {
+            id: inst.id,
+            display_name: inst.name,
+            location: inst.location,
+          },
+          instructor_profile: {
+            certifications: inst.certifications,
+            years_experience: inst.experience_years,
+            hourly_rate_min: inst.hourly_rate - 10,
+            hourly_rate_max: inst.hourly_rate + 10,
+          },
+        }))
+
+  const displayJobs =
+    jobs.length > 0
+      ? jobs
+      : mockJobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          job_type: job.type,
+          location: job.location,
+          status: job.status,
+          created_at: job.posted_date,
+        }))
+
+  const displayApplications =
+    applications.length > 0
+      ? applications
+      : mockApplications
+          .filter((app) => app.type === "permanent")
+          .map((app) => ({
+            id: app.id,
+            status: app.status,
+            created_at: app.applied_date,
+            job_id: app.id,
+            instructor: { display_name: "Mock Instructor", email: "instructor@example.com" },
+            job: { title: app.job_title },
+          }))
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -247,13 +308,65 @@ export default function StudioDashboardPage() {
             </Card>
           </div>
 
-          <Tabs defaultValue="cover-requests" className="space-y-4">
+          <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="cover-requests">Cover Requests ({activeCoverRequests.length})</TabsTrigger>
-              <TabsTrigger value="instructors">Available Instructors ({availableInstructors.length})</TabsTrigger>
-              <TabsTrigger value="jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
-              <TabsTrigger value="applications">Recent Applications ({newApplications.length})</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({displayCoverRequests.length})</TabsTrigger>
+              <TabsTrigger value="instructors">Available Instructors ({displayInstructors.length})</TabsTrigger>
+              <TabsTrigger value="jobs">Active Jobs ({displayJobs.length})</TabsTrigger>
+              <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/studio/request-cover">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Request Urgent Cover
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/studio/post-job">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Post New Job
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/find-instructors">
+                        <Search className="h-4 w-4 mr-2" />
+                        Browse Instructors
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {mockMessages.map((msg) => (
+                      <div key={msg.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">{msg.from}</p>
+                            {msg.unread && <div className="h-2 w-2 rounded-full bg-primary" />}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{msg.preview}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{msg.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="cover-requests" className="space-y-4">
               <Card>
@@ -341,7 +454,7 @@ export default function StudioDashboardPage() {
                   <CardDescription>Instructors ready to work now</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {availableInstructors.length === 0 ? (
+                  {displayInstructors.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No instructors available</h3>
@@ -351,7 +464,7 @@ export default function StudioDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    availableInstructors.map((slot) => (
+                    displayInstructors.map((slot) => (
                       <div
                         key={slot.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -411,7 +524,7 @@ export default function StudioDashboardPage() {
                   <CardDescription>Manage and track your current job listings</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {activeJobs.length === 0 ? (
+                  {displayJobs.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No active jobs</h3>
@@ -423,7 +536,7 @@ export default function StudioDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    activeJobs.map((job) => (
+                    displayJobs.map((job) => (
                       <div
                         key={job.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -462,6 +575,105 @@ export default function StudioDashboardPage() {
                       </div>
                     ))
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="hiring" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Hiring Pipeline</CardTitle>
+                  <CardDescription>Track applicants through your hiring process</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm">
+                        Applied ({displayApplications.filter((a) => a.status === "pending").length})
+                      </h3>
+                      <div className="space-y-2">
+                        {displayApplications
+                          .filter((a) => a.status === "pending")
+                          .map((app) => (
+                            <Card key={app.id} className="p-3">
+                              <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                              <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                            </Card>
+                          ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm">Interview (0)</h3>
+                      <p className="text-xs text-muted-foreground">No interviews scheduled</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm">Offer (0)</h3>
+                      <p className="text-xs text-muted-foreground">No offers extended</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm">
+                        Hired ({displayApplications.filter((a) => a.status === "accepted").length})
+                      </h3>
+                      <div className="space-y-2">
+                        {displayApplications
+                          .filter((a) => a.status === "accepted")
+                          .map((app) => (
+                            <Card key={app.id} className="p-3">
+                              <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                              <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                            </Card>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Fill Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">94%</div>
+                    <p className="text-xs text-green-600 mt-1">+5% from last month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Avg. Time to Fill</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">2.3 days</div>
+                    <p className="text-xs text-green-600 mt-1">-0.5 days faster</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Instructor Rating</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">4.8/5.0</div>
+                    <p className="text-xs text-muted-foreground mt-1">Average rating</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Overview</CardTitle>
+                  <CardDescription>Your hiring and cover statistics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">Analytics Dashboard Coming Soon</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Detailed insights into your hiring patterns, costs, and instructor performance
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -18,11 +18,20 @@ import {
   AlertCircle,
   CalendarDays,
   MapPin,
+  MessageSquare,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEffect, useState } from "react"
+import {
+  mockCoverRequests,
+  mockAvailability,
+  mockJobs,
+  mockEarnings,
+  mockApplications,
+  mockMessages,
+} from "@/lib/mock-data"
 
 export default function InstructorDashboardPage() {
   const router = useRouter()
@@ -170,8 +179,66 @@ export default function InstructorDashboardPage() {
     jobsAccepted: acceptedApplications.length,
     availabilitySlots: availabilitySlots.length,
     coverRequests: coverRequests.length,
-    unreadMessages: 0,
+    unreadMessages: mockMessages.filter((m) => m.unread).length,
   }
+
+  const displayCoverRequests =
+    coverRequests.length > 0
+      ? coverRequests
+      : mockCoverRequests.map((req) => ({
+          id: req.id,
+          class_type: req.class_type,
+          date: req.date,
+          start_time: req.time,
+          end_time: req.time,
+          notes: req.description,
+          status: req.status,
+          studio: { display_name: req.studio_name, location: req.location },
+        }))
+
+  const displayAvailability =
+    availabilitySlots.length > 0
+      ? availabilitySlots
+      : mockAvailability.map((avail) => ({
+          id: avail.id,
+          start_time: `${avail.date}T${avail.start_time}`,
+          end_time: `${avail.date}T${avail.end_time}`,
+          notes: `Available for ${avail.equipment.join(", ")}`,
+        }))
+
+  const displayApplications =
+    applications.length > 0
+      ? applications
+      : mockApplications.map((app) => ({
+          id: app.id,
+          status: app.status,
+          created_at: app.applied_date,
+          job_id: app.id,
+          job: {
+            title: app.job_title,
+            job_type: app.type,
+            location: "Sydney, NSW",
+            compensation_min: 75,
+            compensation_max: 95,
+            compensation_type: "hour",
+            studio: { display_name: app.studio_name },
+          },
+        }))
+
+  const displayJobs =
+    availableJobs.length > 0
+      ? availableJobs
+      : mockJobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          job_type: job.type,
+          location: job.location,
+          compensation_min: 75,
+          compensation_max: 95,
+          compensation_type: "hour",
+          created_at: job.posted_date,
+          studio: { display_name: job.studio_name },
+        }))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -267,16 +334,79 @@ export default function InstructorDashboardPage() {
                 <p className="text-xs text-muted-foreground mt-1">Confirmed positions</p>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.unreadMessages}</div>
+                <p className="text-xs text-muted-foreground mt-1">Messages waiting for your response</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Main Content Tabs */}
-          <Tabs defaultValue="cover-requests" className="space-y-4">
+          <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
-              <TabsTrigger value="availability">My Availability ({availabilitySlots.length})</TabsTrigger>
-              <TabsTrigger value="applications">My Applications ({applications.length})</TabsTrigger>
-              <TabsTrigger value="recommended">Recommended Jobs ({availableJobs.length})</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({displayCoverRequests.length})</TabsTrigger>
+              <TabsTrigger value="availability">My Availability ({displayAvailability.length})</TabsTrigger>
+              <TabsTrigger value="applications">Applications ({displayApplications.length})</TabsTrigger>
+              <TabsTrigger value="earnings">Earnings</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/instructor/post-availability">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Post New Availability
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/jobs">
+                        <Search className="h-4 w-4 mr-2" />
+                        Browse All Jobs
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/messages">
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Messages ({mockMessages.filter((m) => m.unread).length})
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {mockMessages.map((msg) => (
+                      <div key={msg.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">{msg.from}</p>
+                            {msg.unread && <div className="h-2 w-2 rounded-full bg-primary" />}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{msg.preview}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{msg.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="cover-requests" className="space-y-4">
               <Card>
@@ -285,7 +415,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Studios looking for immediate cover - respond quickly!</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {coverRequests.length === 0 ? (
+                  {displayCoverRequests.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No cover requests available</h3>
@@ -294,7 +424,7 @@ export default function InstructorDashboardPage() {
                       </p>
                     </div>
                   ) : (
-                    coverRequests.map((request) => (
+                    displayCoverRequests.map((request) => (
                       <div
                         key={request.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -351,7 +481,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Manage when you're available for work</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {availabilitySlots.length === 0 ? (
+                  {displayAvailability.length === 0 ? (
                     <div className="text-center py-12">
                       <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No availability posted</h3>
@@ -363,7 +493,7 @@ export default function InstructorDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    availabilitySlots.map((slot) => (
+                    displayAvailability.map((slot) => (
                       <div
                         key={slot.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -399,7 +529,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Track the status of your job applications</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {applications.length === 0 ? (
+                  {displayApplications.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No applications yet</h3>
@@ -409,7 +539,7 @@ export default function InstructorDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    applications.map((application) => (
+                    displayApplications.map((application) => (
                       <div
                         key={application.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -467,6 +597,80 @@ export default function InstructorDashboardPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="earnings" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${mockEarnings.thisMonth.toLocaleString()}</div>
+                    <p className="text-xs text-green-600 mt-1">+12% from last month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Last Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${mockEarnings.lastMonth.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${mockEarnings.pending.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">To be paid</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${mockEarnings.total.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Earnings History</CardTitle>
+                  <CardDescription>Your monthly earnings over the past 6 months</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {mockEarnings.breakdown.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{item.month} 2025</span>
+                        <span className="text-sm font-bold">${item.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="calendar" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Schedule</CardTitle>
+                  <CardDescription>Upcoming classes, covers, and availability</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">Calendar View Coming Soon</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Full calendar integration with your schedule, availability, and bookings
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="recommended" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -474,7 +678,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>New opportunities matching your profile</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {availableJobs.length === 0 ? (
+                  {displayJobs.length === 0 ? (
                     <div className="text-center py-12">
                       <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No new jobs available</h3>
@@ -484,7 +688,7 @@ export default function InstructorDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    availableJobs.map((job) => (
+                    displayJobs.map((job) => (
                       <div
                         key={job.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
