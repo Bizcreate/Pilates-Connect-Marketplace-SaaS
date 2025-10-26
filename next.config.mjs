@@ -1,14 +1,20 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+// next.config.js
+const securityHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self';",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vusercontent.net https://vercel-insights.com;",
+      "connect-src 'self' https://*.supabase.co https://vercel-insights.com;",
+      "img-src 'self' data: blob:;",
+      "style-src 'self' 'unsafe-inline';",
+      "font-src 'self' data:;",
+    ].join(" "),
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
+]
+
+module.exports = {
+  async headers() {
+    return [{ source: "/(.*)", headers: securityHeaders }]
   },
 }
-
-export default nextConfig

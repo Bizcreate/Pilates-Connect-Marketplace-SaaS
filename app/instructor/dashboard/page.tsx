@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,95 +18,129 @@ import {
   User,
   AlertCircle,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { createBrowserClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useEffect, useState } from "react"
 
-export default async function InstructorDashboardPage() {
-  console.log("[v0] Dashboard: Starting to load")
+export default function InstructorDashboardPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
+  const [applications, setApplications] = useState<any[]>([])
+  const [availableJobs, setAvailableJobs] = useState<any[]>([])
 
-  const supabase = await createClient()
-  console.log("[v0] Dashboard: Supabase client created")
+  useEffect(() => {
+    async function loadData() {
+      const supabase = createBrowserClient()
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+      console.log("[v0] Dashboard: Checking auth...")
 
-  console.log("[v0] Dashboard: getUser result:", {
-    hasUser: !!user,
-    userId: user?.id,
-    error: userError?.message,
-  })
+      const storedSession = localStorage.getItem("supabase.auth.token")
+      console.log("[v0] Dashboard: Session in localStorage:", !!storedSession)
 
-  if (!user) {
-    console.log("[v0] Dashboard: No user found, redirecting to login")
-    redirect("/auth/login")
-  }
+      // Check auth
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("user_type, display_name, email")
-    .eq("id", user.id)
-    .maybeSingle()
+      console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
 
-  console.log("[v0] Dashboard: Profile loaded:", profile)
+      if (!user) {
+        console.log("[v0] Dashboard: No user, redirecting to login")
+        router.replace("/auth/login")
+        return
+      }
 
-  if (!profile) {
-    console.log("[v0] Dashboard: No profile found, redirecting to login")
-    redirect("/auth/login")
-  }
+      // Load profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_type, display_name, email")
+        .eq("id", user.id)
+        .maybeSingle()
 
-  if (profile?.user_type !== "instructor") {
-    console.log("[v0] Dashboard: User is not instructor, redirecting to studio dashboard")
-    redirect("/studio/dashboard")
-  }
-
-  console.log("[v0] Dashboard: Auth checks passed, loading dashboard content")
-
-  const isProfileIncomplete = !profile.display_name
-
-  // Fetch instructor's applications
-  const { data: applications } = await supabase
-    .from("applications")
-    .select(`
-      *,
-      job:jobs(
-        id,
-        title,
-        job_type,
-        location,
-        compensation_min,
-        compensation_max,
-        compensation_type,
-        studio:profiles!jobs_studio_id_fkey(display_name)
+      console.log(
+        "[v0] Dashboard: Profile result:",
+        profileData ? `Found profile, type: ${profileData.user_type}` : "No profile found",
       )
-    `)
-    .eq("instructor_id", user.id)
-    .order("created_at", { ascending: false })
 
-  // Fetch available jobs (not applied to)
-  const appliedJobIds = applications?.map((a) => a.job_id) || []
-  const { data: availableJobs } = await supabase
-    .from("jobs")
-    .select(`
-      *,
-      studio:profiles!jobs_studio_id_fkey(display_name)
-    `)
-    .eq("status", "open")
-    .not("id", "in", `(${appliedJobIds.join(",") || "null"})`)
-    .order("created_at", { ascending: false })
-    .limit(5)
+      if (!profileData) {
+        console.log("[v0] Dashboard: No profile, redirecting to login")
+        router.replace("/auth/login")
+        return
+      }
 
-  const pendingApplications = applications?.filter((a) => a.status === "pending") || []
-  const interviewApplications = applications?.filter((a) => a.status === "interview") || []
-  const acceptedApplications = applications?.filter((a) => a.status === "accepted") || []
+      if (profileData.user_type !== "instructor") {
+        console.log("[v0] Dashboard: Wrong user type, redirecting to studio dashboard")
+        router.replace("/studio/dashboard")
+        return
+      }
+
+      setProfile(profileData)
+
+      // Load applications
+      const { data: appsData } = await supabase
+        .from("applications")
+        .select(`
+          *,
+          job:jobs(
+            id,
+            title,
+            job_type,
+            location,
+            compensation_min,
+            compensation_max,
+            compensation_type,
+            studio:profiles!jobs_studio_id_fkey(display_name)
+          )
+        `)
+        .eq("instructor_id", user.id)
+        .order("created_at", { ascending: false })
+
+      setApplications(appsData || [])
+
+      // Load available jobs
+      const appliedJobIds = appsData?.map((a) => a.job_id) || []
+      const { data: jobsData } = await supabase
+        .from("jobs")
+        .select(`
+          *,
+          studio:profiles!jobs_studio_id_fkey(display_name)
+        `)
+        .eq("status", "open")
+        .not("id", "in", `(${appliedJobIds.join(",") || "null"})`)
+        .order("created_at", { ascending: false })
+        .limit(5)
+
+      setAvailableJobs(jobsData || [])
+      setLoading(false)
+    }
+
+    loadData()
+  }, [router])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const isProfileIncomplete = !profile?.display_name
+
+  const pendingApplications = applications.filter((a) => a.status === "pending")
+  const interviewApplications = applications.filter((a) => a.status === "interview")
+  const acceptedApplications = applications.filter((a) => a.status === "accepted")
 
   const stats = {
     activeApplications: pendingApplications.length,
     interviews: interviewApplications.length,
     jobsAccepted: acceptedApplications.length,
-    unreadMessages: 0, // Will be implemented with messaging system
+    unreadMessages: 0,
   }
 
   return (
@@ -206,8 +242,8 @@ export default async function InstructorDashboardPage() {
           {/* Main Content Tabs */}
           <Tabs defaultValue="applications" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="applications">My Applications ({applications?.length || 0})</TabsTrigger>
-              <TabsTrigger value="recommended">Recommended Jobs ({availableJobs?.length || 0})</TabsTrigger>
+              <TabsTrigger value="applications">My Applications ({applications.length})</TabsTrigger>
+              <TabsTrigger value="recommended">Recommended Jobs ({availableJobs.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="applications" className="space-y-4">
@@ -217,7 +253,7 @@ export default async function InstructorDashboardPage() {
                   <CardDescription>Track the status of your job applications</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {!applications || applications.length === 0 ? (
+                  {applications.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No applications yet</h3>
@@ -292,7 +328,7 @@ export default async function InstructorDashboardPage() {
                   <CardDescription>New opportunities matching your profile</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {!availableJobs || availableJobs.length === 0 ? (
+                  {availableJobs.length === 0 ? (
                     <div className="text-center py-12">
                       <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No new jobs available</h3>

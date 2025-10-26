@@ -34,12 +34,7 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Refresh the auth session but don't redirect - let pages handle auth
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-  console.log("[v0] Middleware: getUser result:", { hasUser: !!user, userId: user?.id, error: error?.message })
-
+  // Just pass through without any auth logic
+  // Client-side auth will handle everything
   return supabaseResponse
 }
