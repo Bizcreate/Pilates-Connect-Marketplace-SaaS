@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { ReferralWidget } from "@/components/referral-widget"
 import {
   Search,
   Briefcase,
@@ -356,6 +357,7 @@ export default function InstructorDashboardPage() {
               <TabsTrigger value="applications">Applications ({displayApplications.length})</TabsTrigger>
               <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
+              <TabsTrigger value="referrals">Referrals</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -406,6 +408,7 @@ export default function InstructorDashboardPage() {
                   </CardContent>
                 </Card>
               </div>
+              <ReferralWidget />
             </TabsContent>
 
             <TabsContent value="cover-requests" className="space-y-4">
@@ -671,64 +674,8 @@ export default function InstructorDashboardPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="recommended" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommended Jobs</CardTitle>
-                  <CardDescription>New opportunities matching your profile</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {displayJobs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No new jobs available</h3>
-                      <p className="text-sm text-muted-foreground mb-4">Check back later for new opportunities</p>
-                      <Button asChild>
-                        <Link href="/jobs">Browse All Jobs</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    displayJobs.map((job) => (
-                      <div
-                        key={job.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{job.title}</h3>
-                              <p className="text-sm text-muted-foreground">{job.studio?.display_name}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <span className="capitalize">{job.job_type}</span>
-                                <span>•</span>
-                                <span>{job.location}</span>
-                                {job.compensation_min && (
-                                  <>
-                                    <span>•</span>
-                                    <span>
-                                      ${job.compensation_min}
-                                      {job.compensation_max && `-$${job.compensation_max}`}/{job.compensation_type}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground">Posted {formatRelativeTime(job.created_at)}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/jobs/${job.id}`}>View Details</Link>
-                          </Button>
-                          <Button size="sm" asChild>
-                            <Link href={`/jobs/${job.id}/apply`}>Apply Now</Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="referrals" className="space-y-4">
+              <ReferralWidget />
             </TabsContent>
           </Tabs>
         </div>

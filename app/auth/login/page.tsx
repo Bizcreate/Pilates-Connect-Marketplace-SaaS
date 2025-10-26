@@ -41,33 +41,46 @@ export default function LoginPage() {
       if (signInError) {
         console.error("[v0] Login: Error", signInError.message)
         setError(signInError.message)
+        setLoading(false)
         return
       }
 
       if (!data.user) {
         setError("Login failed. Please try again.")
+        setLoading(false)
         return
       }
 
       console.log("[v0] Login: Success! User ID:", data.user.id)
 
-      // Get profile to determine redirect
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .maybeSingle()
 
-      console.log("[v0] Login: User type:", profile?.user_type)
-
-      // Redirect based on user type
-      if (profile?.user_type === "instructor") {
-        window.location.href = "/instructor/dashboard"
-      } else if (profile?.user_type === "studio") {
-        window.location.href = "/studio/dashboard"
-      } else {
-        window.location.href = "/"
+      if (profileError) {
+        console.error("[v0] Login: Profile fetch error:", profileError)
+        setError("Failed to load profile. Please try again.")
+        setLoading(false)
+        return
       }
+
+      // Force a full page reload to ensure session is properly set
+      const redirectPath =
+        profile?.user_type === "instructor"
+          ? "/instructor/dashboard"
+          : profile?.user_type === "studio"
+            ? "/studio/dashboard"
+            : "/"
+
+      // Use router.push with a small delay to ensure session is set
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      router.push(redirectPath)
+      router.refresh()
     } catch (err) {
       console.error("[v0] Login: Unexpected error:", err)
       setError("An unexpected error occurred. Please try again.")
-    } finally {
       setLoading(false)
     }
   }

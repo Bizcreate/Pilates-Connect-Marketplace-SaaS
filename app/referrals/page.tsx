@@ -1,201 +1,279 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Copy, Gift, Users, DollarSign, CheckCircle } from "lucide-react"
-import { createBrowserClient } from "@/lib/supabase/client"
-import { useToast } from "@/hooks/use-toast"
-import { mockReferrals } from "@/lib/mock-data"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Gift, Users, DollarSign, CheckCircle, TrendingUp, Award } from "lucide-react"
+import Link from "next/link"
 
 export default function ReferralsPage() {
-  const { toast } = useToast()
-  const [referralCode, setReferralCode] = useState("SARAH2025")
-  const [referralLink, setReferralLink] = useState("")
-  const [stats, setStats] = useState({ pending: 1, completed: 1, earnings: 50 })
-  const [referrals, setReferrals] = useState<any[]>(mockReferrals)
-
-  useEffect(() => {
-    setReferralLink(`${window.location.origin}/auth/sign-up?ref=${referralCode}`)
-
-    async function loadReferralData() {
-      const supabase = createBrowserClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("referral_code, referral_earnings")
-        .eq("id", user.id)
-        .single()
-
-      if (profile) {
-        setReferralCode(profile.referral_code)
-        setReferralLink(`${window.location.origin}/auth/sign-up?ref=${profile.referral_code}`)
-        setStats((prev) => ({ ...prev, earnings: profile.referral_earnings || 0 }))
-      }
-
-      const { data: referralData } = await supabase.from("referrals").select("*").eq("referrer_id", user.id)
-
-      if (referralData && referralData.length > 0) {
-        setReferrals(referralData)
-        setStats({
-          pending: referralData.filter((r) => r.status === "pending").length,
-          completed: referralData.filter((r) => r.status === "completed" || r.status === "rewarded").length,
-          earnings: profile?.referral_earnings || 0,
-        })
-      }
-    }
-    loadReferralData()
-  }, [])
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: "Copied!",
-      description: "Referral link copied to clipboard",
-    })
-  }
-
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
 
-      <main className="flex-1 bg-muted/30">
-        <div className="container py-8 max-w-5xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Referral Program</h1>
-            <p className="text-muted-foreground">
-              Earn rewards by referring studios and instructors to Pilates Connect
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-b from-primary/10 to-background py-20">
+          <div className="container max-w-4xl text-center">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
+              <Gift className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Earn Rewards by Referring</h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              Share Pilates Connect with your network and earn $50 for every successful referral
             </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" asChild>
+                <Link href="/auth/sign-up">Get Started</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/auth/login">Sign In to Refer</Link>
+              </Button>
+            </div>
           </div>
+        </section>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+        {/* How It Works */}
+        <section className="py-20 bg-muted/30">
+          <div className="container max-w-6xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">How It Works</h2>
+              <p className="text-muted-foreground">Three simple steps to start earning</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              <Card>
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pending Referrals</p>
-                    <p className="text-2xl font-bold">{stats.pending}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardTitle>1. Share Your Link</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Get your unique referral link from your dashboard and share it with studios or instructors
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
+              <Card>
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <CheckCircle className="h-6 w-6 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Completed Referrals</p>
-                    <p className="text-2xl font-bold">{stats.completed}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardTitle>2. They Sign Up</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Your referral creates an account and subscribes to a paid plan using your link
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-green-600" />
+              <Card>
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <DollarSign className="h-6 w-6 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Earnings</p>
-                    <p className="text-2xl font-bold">${stats.earnings}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardTitle>3. Earn Rewards</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Receive $50 credit after their first month, plus they get 10% off for 3 months
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
+        </section>
 
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5 text-primary" />
-                Your Referral Link
-              </CardTitle>
-              <CardDescription>Share this link to earn $50 for each successful referral</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input value={referralLink} readOnly className="font-mono text-sm" />
-                <Button onClick={() => copyToClipboard(referralLink)}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-              </div>
+        {/* Rewards Tiers */}
+        <section className="py-20">
+          <div className="container max-w-6xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Referral Tiers</h2>
+              <p className="text-muted-foreground">Unlock bigger rewards as you refer more people</p>
+            </div>
 
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-semibold mb-2">How it works:</h4>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>Share your unique referral link with studios or instructors</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>They sign up and subscribe to a paid plan</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>You earn $50 credit after their first month</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>Your referral gets 10% off their first 3 months</span>
-                  </li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid md:grid-cols-3 gap-8">
+              <Card className="border-2">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
+                    <Award className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <CardTitle>Bronze</CardTitle>
+                  <CardDescription>3-9 referrals</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">$50 per referral</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Priority support</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Bronze badge</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Referral History</CardTitle>
-              <CardDescription>Track your referrals and their status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {referrals.length > 0 ? (
-                <div className="space-y-3">
-                  {referrals.map((referral) => (
-                    <div key={referral.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{referral.referred_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {referral.referred_type} • Referred {referral.date}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={referral.status === "completed" ? "default" : "secondary"}>
-                          {referral.status}
-                        </Badge>
-                        <p className="text-sm font-medium text-green-600 mt-1">{referral.reward}</p>
-                      </div>
+              <Card className="border-2 border-primary">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-gray-400/10 flex items-center justify-center mb-4">
+                    <Award className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <CardTitle>Silver</CardTitle>
+                  <CardDescription>10-24 referrals</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">$75 per referral</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">All Bronze benefits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Featured profile</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Silver badge</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center mb-4">
+                    <Award className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <CardTitle>Gold</CardTitle>
+                  <CardDescription>25+ referrals</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">$100 per referral</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">All Silver benefits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Exclusive events</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Gold badge</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits */}
+        <section className="py-20 bg-muted/30">
+          <div className="container max-w-6xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Why Refer?</h2>
+              <p className="text-muted-foreground">Benefits for you and your referrals</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    For You
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Earn $50-$100 per referral</p>
+                      <p className="text-sm text-muted-foreground">Based on your referral tier</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No referrals yet. Start sharing your link!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Unlimited earning potential</p>
+                      <p className="text-sm text-muted-foreground">No cap on referrals or earnings</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Exclusive perks</p>
+                      <p className="text-sm text-muted-foreground">Priority support and featured profiles</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-primary" />
+                    For Your Referrals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">10% off for 3 months</p>
+                      <p className="text-sm text-muted-foreground">Discount on their subscription</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Trusted recommendation</p>
+                      <p className="text-sm text-muted-foreground">Join through someone they know</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Full platform access</p>
+                      <p className="text-sm text-muted-foreground">All features from day one</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20">
+          <div className="container max-w-4xl text-center">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
+              <TrendingUp className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-3xl font-bold mb-4">Ready to Start Earning?</h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              Join Pilates Connect today and get your unique referral link
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" asChild>
+                <Link href="/auth/sign-up">Create Account</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/auth/login">Sign In</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
 
       <SiteFooter />

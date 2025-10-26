@@ -149,15 +149,15 @@ export default function FindInstructorsPage() {
               <Card className="p-6 sticky top-6">
                 <h2 className="font-semibold mb-4">Filters</h2>
 
-                <div className="space-y-6">
-                  <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
                     <Label>Location</Label>
                     <Input placeholder="Enter suburb..." className="mt-2" />
                   </div>
 
                   {activeTab === "all" && (
                     <>
-                      <div>
+                      <div className="col-span-2 sm:col-span-1">
                         <Label>Experience Level</Label>
                         <Select>
                           <SelectTrigger className="mt-2">
@@ -172,7 +172,7 @@ export default function FindInstructorsPage() {
                         </Select>
                       </div>
 
-                      <div>
+                      <div className="col-span-2 sm:col-span-1">
                         <Label>Availability</Label>
                         <Select>
                           <SelectTrigger className="mt-2">
@@ -189,7 +189,7 @@ export default function FindInstructorsPage() {
                   )}
 
                   {activeTab === "covers" && (
-                    <div>
+                    <div className="col-span-2">
                       <Label>Urgency</Label>
                       <Select>
                         <SelectTrigger className="mt-2">
@@ -204,7 +204,7 @@ export default function FindInstructorsPage() {
                     </div>
                   )}
 
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <Label className="mb-3 block">Certifications</Label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -240,7 +240,7 @@ export default function FindInstructorsPage() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <Label className="mb-3 block">Specializations</Label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -264,14 +264,16 @@ export default function FindInstructorsPage() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="col-span-2">
                     <Label>Max Rate: ${maxRate[0]}+</Label>
                     <Slider value={maxRate} onValueChange={setMaxRate} max={150} step={5} className="mt-4" />
                   </div>
 
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Clear Filters
-                  </Button>
+                  <div className="col-span-2">
+                    <Button variant="outline" className="w-full bg-transparent">
+                      Clear Filters
+                    </Button>
+                  </div>
                 </div>
               </Card>
             </div>

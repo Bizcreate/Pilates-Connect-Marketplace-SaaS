@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { ReferralWidget } from "@/components/referral-widget"
 import {
   Plus,
   MessageSquare,
@@ -316,6 +317,7 @@ export default function StudioDashboardPage() {
               <TabsTrigger value="jobs">Active Jobs ({displayJobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="referrals">Referrals</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -366,6 +368,7 @@ export default function StudioDashboardPage() {
                   </CardContent>
                 </Card>
               </div>
+              <ReferralWidget />
             </TabsContent>
 
             <TabsContent value="cover-requests" className="space-y-4">
@@ -502,7 +505,7 @@ export default function StudioDashboardPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" asChild>
+                          <Button variant="outline" size="sm" asChild>
                             <Link href={`/instructors/${slot.instructor?.id}`}>View Profile</Link>
                           </Button>
                           <Button size="sm">
@@ -678,56 +681,8 @@ export default function StudioDashboardPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="applications" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Applications</CardTitle>
-                  <CardDescription>Review and respond to instructor applications</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {recentApplications.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No applications yet</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Applications will appear here once instructors apply to your jobs
-                      </p>
-                    </div>
-                  ) : (
-                    recentApplications.map((application) => (
-                      <div
-                        key={application.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <h3 className="font-semibold">{application.instructorName}</h3>
-                              <p className="text-sm text-muted-foreground">{application.jobTitle}</p>
-                            </div>
-                            <Badge
-                              variant={application.status === "pending" ? "default" : "secondary"}
-                              className="capitalize"
-                            >
-                              {application.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">Applied {application.appliedDate}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            View Profile
-                          </Button>
-                          <Button size="sm">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Message
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="referrals" className="space-y-4">
+              <ReferralWidget />
             </TabsContent>
           </Tabs>
         </div>
