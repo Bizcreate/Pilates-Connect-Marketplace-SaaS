@@ -20,7 +20,7 @@ export function SiteFooter() {
             <h3 className="font-semibold mb-3">For Studios</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/post-job" className="hover:text-foreground transition-colors">
+                <Link href="/studio/post-job" className="hover:text-foreground transition-colors">
                   Post a Job
                 </Link>
               </li>
@@ -46,13 +46,13 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/create-profile" className="hover:text-foreground transition-colors">
+                <Link href="/instructor/profile" className="hover:text-foreground transition-colors">
                   Create Profile
                 </Link>
               </li>
               <li>
-                <Link href="/resources" className="hover:text-foreground transition-colors">
-                  Resources
+                <Link href="/referrals" className="hover:text-foreground transition-colors">
+                  Referrals
                 </Link>
               </li>
             </ul>
@@ -62,13 +62,13 @@ export function SiteFooter() {
             <h3 className="font-semibold mb-3">Company</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/about" className="hover:text-foreground transition-colors">
-                  About
+                <Link href="/pricing" className="hover:text-foreground transition-colors">
+                  Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-foreground transition-colors">
-                  Contact
+                <Link href="/referrals" className="hover:text-foreground transition-colors">
+                  Referrals
                 </Link>
               </li>
               <li>
@@ -76,12 +76,17 @@ export function SiteFooter() {
                   Privacy
                 </Link>
               </li>
+              <li>
+                <Link href="/terms" className="hover:text-foreground transition-colors">
+                  Terms
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 Reformer Connect. All rights reserved.</p>
+          <p>&copy; 2025 Pilates Connect. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -2,8 +2,6 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
-  console.log("[v0] Middleware: Starting, path:", request.nextUrl.pathname)
-
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -14,12 +12,9 @@ export async function updateSession(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          const cookies = request.cookies.getAll()
-          console.log("[v0] Middleware: Reading cookies, count:", cookies.length)
-          return cookies
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          console.log("[v0] Middleware: Setting cookies, count:", cookiesToSet.length)
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set({ name, value, ...options })
           })
@@ -34,7 +29,7 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Just pass through without any auth logic
-  // Client-side auth will handle everything
+  await supabase.auth.getUser()
+
   return supabaseResponse
 }

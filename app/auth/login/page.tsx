@@ -29,8 +29,6 @@ export default function LoginPage() {
       const email = formData.get("email") as string
       const password = formData.get("password") as string
 
-      console.log("[v0] Login: Attempting login for", email)
-
       const supabase = createBrowserClient()
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -39,7 +37,6 @@ export default function LoginPage() {
       })
 
       if (signInError) {
-        console.error("[v0] Login: Error", signInError.message)
         setError(signInError.message)
         setLoading(false)
         return
@@ -51,35 +48,20 @@ export default function LoginPage() {
         return
       }
 
-      console.log("[v0] Login: Success! User ID:", data.user.id)
+      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).maybeSingle()
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .maybeSingle()
-
-      if (profileError) {
-        console.error("[v0] Login: Profile fetch error:", profileError)
-        setError("Failed to load profile. Please try again.")
-        setLoading(false)
-        return
-      }
-
-      // Force a full page reload to ensure session is properly set
       const redirectPath =
         profile?.user_type === "instructor"
           ? "/instructor/dashboard"
           : profile?.user_type === "studio"
             ? "/studio/dashboard"
-            : "/"
+            : profile?.user_type === "admin"
+              ? "/admin/dashboard"
+              : "/"
 
-      // Use router.push with a small delay to ensure session is set
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      router.push(redirectPath)
-      router.refresh()
+      window.location.href = redirectPath
     } catch (err) {
-      console.error("[v0] Login: Unexpected error:", err)
+      console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
       setLoading(false)
     }

@@ -4,6 +4,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gift, Users, DollarSign, CheckCircle, TrendingUp, Award } from "lucide-react"
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Referral Program - Earn Rewards | Pilates Connect",
+  description:
+    "Earn $50-$100 for every successful referral to Pilates Connect. Share with studios and instructors to unlock exclusive rewards and benefits.",
+  keywords: "pilates referral program, earn rewards, instructor referrals, studio referrals, pilates marketplace",
+  openGraph: {
+    title: "Earn Rewards by Referring - Pilates Connect",
+    description: "Share Pilates Connect and earn $50 for every successful referral. Unlimited earning potential!",
+    type: "website",
+  },
+}
 
 export default function ReferralsPage() {
   return (
@@ -13,21 +26,23 @@ export default function ReferralsPage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-gradient-to-b from-primary/10 to-background py-20">
-          <div className="container max-w-4xl text-center">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
-              <Gift className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Earn Rewards by Referring</h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Share Pilates Connect with your network and earn $50 for every successful referral
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
-                <Link href="/auth/sign-up">Get Started</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/auth/login">Sign In to Refer</Link>
-              </Button>
+          <div className="container max-w-4xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
+                <Gift className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Earn Rewards by Referring</h1>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
+                Share Pilates Connect with your network and earn $50 for every successful referral
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" asChild>
+                  <Link href="/auth/sign-up">Get Started</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/auth/login">Sign In to Refer</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -256,21 +271,23 @@ export default function ReferralsPage() {
 
         {/* CTA */}
         <section className="py-20">
-          <div className="container max-w-4xl text-center">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
-              <TrendingUp className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Earning?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Join Pilates Connect today and get your unique referral link
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
-                <Link href="/auth/sign-up">Create Account</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/auth/login">Sign In</Link>
-              </Button>
+          <div className="container max-w-4xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
+                <TrendingUp className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Ready to Start Earning?</h2>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
+                Join Pilates Connect today and get your unique referral link
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" asChild>
+                  <Link href="/auth/sign-up">Create Account</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>

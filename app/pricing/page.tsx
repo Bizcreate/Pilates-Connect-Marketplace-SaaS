@@ -78,7 +78,7 @@ export default function PricingPage() {
                 </div>
 
                 <Button className="w-full mt-6 bg-transparent" variant="outline" asChild>
-                  <Link href="/auth/sign-up?plan=basic">Get Started Free</Link>
+                  <Link href="/auth/sign-up/studio?plan=basic">Get Started Free</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -138,7 +138,7 @@ export default function PricingPage() {
                 </ul>
 
                 <Button className="w-full mt-6" asChild>
-                  <Link href="/auth/sign-up?plan=professional">Start Free Trial</Link>
+                  <Link href="/checkout/studio-professional">Start Free Trial</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -197,7 +197,7 @@ export default function PricingPage() {
                 </ul>
 
                 <Button className="w-full mt-6 bg-transparent" variant="outline" asChild>
-                  <Link href="/auth/sign-up?plan=enterprise">Start Now</Link>
+                  <Link href="/checkout/studio-enterprise">Start Now</Link>
                 </Button>
               </CardContent>
             </Card>

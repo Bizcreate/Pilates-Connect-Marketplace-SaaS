@@ -1,20 +1,22 @@
+import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react"
+import { Analytics } from "@/components/analytics"
 
-export const metadata: Metadata = { title: "Pilates Connect", description: "…",
+export const metadata: Metadata = {
+  title: "Pilates Connect",
+  description: "Australia's premier marketplace connecting Pilates instructors with studios",
     generator: 'v0.app'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const enableAnalytics =
-    process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "1"
-
   return (
     <html lang="en">
       <body>
         {children}
-        {enableAnalytics ? <Analytics /> : null}
+        <Analytics />
+        <VercelAnalytics />
       </body>
     </html>
   )

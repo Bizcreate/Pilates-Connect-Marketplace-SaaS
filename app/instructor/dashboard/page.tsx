@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
+import { CoverRequestDialog } from "@/components/cover-request-dialog"
 import {
   Search,
   Briefcase,
@@ -42,6 +43,8 @@ export default function InstructorDashboardPage() {
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [availabilitySlots, setAvailabilitySlots] = useState<any[]>([])
   const [coverRequests, setCoverRequests] = useState<any[]>([])
+  const [selectedCoverRequest, setSelectedCoverRequest] = useState<any>(null)
+  const [coverDialogOpen, setCoverDialogOpen] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -156,6 +159,19 @@ export default function InstructorDashboardPage() {
 
     loadData()
   }, [router])
+
+  const handleAcceptCover = async () => {
+    console.log("Accepting cover request:", selectedCoverRequest.id)
+    // TODO: Implement actual API call to accept cover
+    alert("Cover request accepted! The studio will be notified.")
+  }
+
+  const handleRemoveAvailability = async (slotId: string) => {
+    if (!confirm("Are you sure you want to remove this availability slot?")) return
+    console.log("Removing availability slot:", slotId)
+    // TODO: Implement actual API call to remove availability
+    setAvailabilitySlots(availabilitySlots.filter((slot) => slot.id !== slotId))
+  }
 
   if (loading) {
     return (
@@ -465,10 +481,25 @@ export default function InstructorDashboardPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedCoverRequest(request)
+                              setCoverDialogOpen(true)
+                            }}
+                          >
                             View Details
                           </Button>
-                          <Button size="sm">Accept Cover</Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCoverRequest(request)
+                              setCoverDialogOpen(true)
+                            }}
+                          >
+                            Accept Cover
+                          </Button>
                         </div>
                       </div>
                     ))
@@ -511,10 +542,10 @@ export default function InstructorDashboardPage() {
                           {slot.notes && <p className="text-sm text-muted-foreground">{slot.notes}</p>}
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            Edit
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/instructor/availability/${slot.id}/edit`}>Edit</Link>
                           </Button>
-                          <Button size="sm" variant="destructive">
+                          <Button size="sm" variant="destructive" onClick={() => handleRemoveAvailability(slot.id)}>
                             Remove
                           </Button>
                         </div>
@@ -680,6 +711,15 @@ export default function InstructorDashboardPage() {
           </Tabs>
         </div>
       </main>
+
+      {selectedCoverRequest && (
+        <CoverRequestDialog
+          request={selectedCoverRequest}
+          open={coverDialogOpen}
+          onOpenChange={setCoverDialogOpen}
+          onAccept={handleAcceptCover}
+        />
+      )}
 
       <SiteFooter />
     </div>
