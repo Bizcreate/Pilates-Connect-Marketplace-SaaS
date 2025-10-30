@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import "./globals.css"
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react"
 import { Analytics } from "@/components/analytics"
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         {children}
-        <Analytics />
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
         <VercelAnalytics />
       </body>
     </html>

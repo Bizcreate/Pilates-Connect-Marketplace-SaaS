@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createBrowserClient } from "@/lib/supabase/client"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState("")
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
       console.log("[v0] Login: User signed in successfully:", data.user.id)
 
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       console.log("[v0] Login: Fetching user profile...")
 
@@ -83,8 +83,7 @@ export default function LoginPage() {
 
       console.log("[v0] Login: Redirecting to:", redirectPath)
 
-      router.push(redirectPath)
-      router.refresh()
+      window.location.href = redirectPath
     } catch (err) {
       console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
@@ -143,5 +142,26 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen w-full items-center justify-center p-6">
+          <div className="w-full max-w-sm">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">Welcome back</CardTitle>
+                <CardDescription>Loading...</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

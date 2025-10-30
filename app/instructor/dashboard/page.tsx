@@ -53,25 +53,27 @@ export default function InstructorDashboardPage() {
 
       console.log("[v0] Dashboard: Checking auth...")
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // Check auth
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
 
-      console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
+      console.log(
+        "[v0] Dashboard: Session result:",
+        session ? `Found session for ${session.user.id}` : "No session found",
+      )
 
-      if (userError) {
-        console.error("[v0] Dashboard: User error:", userError)
+      if (sessionError) {
+        console.error("[v0] Dashboard: Session error:", sessionError)
       }
 
-      if (!user) {
-        console.log("[v0] Dashboard: No user, redirecting to login")
+      if (!session?.user) {
+        console.log("[v0] Dashboard: No session, redirecting to login")
         router.replace("/auth/login")
         return
       }
+
+      const user = session.user
 
       if (user.user_metadata.user_type !== "instructor") {
         console.log("[v0] Dashboard: Wrong user type, redirecting to studio dashboard")
