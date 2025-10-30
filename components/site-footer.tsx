@@ -72,6 +72,11 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/help" className="hover:text-foreground transition-colors">
+                  Help & FAQ
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className="hover:text-foreground transition-colors">
                   Privacy
                 </Link>

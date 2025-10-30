@@ -34,6 +34,7 @@ import {
   mockApplications,
   mockMessages,
 } from "@/lib/mock-data"
+import { acceptCoverRequest, removeAvailability } from "@/app/actions/dashboard"
 
 export default function InstructorDashboardPage() {
   const router = useRouter()
@@ -52,15 +53,19 @@ export default function InstructorDashboardPage() {
 
       console.log("[v0] Dashboard: Checking auth...")
 
-      const storedSession = localStorage.getItem("supabase.auth.token")
-      console.log("[v0] Dashboard: Session in localStorage:", !!storedSession)
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Check auth
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser()
 
       console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
+
+      if (userError) {
+        console.error("[v0] Dashboard: User error:", userError)
+      }
 
       if (!user) {
         console.log("[v0] Dashboard: No user, redirecting to login")
@@ -68,31 +73,13 @@ export default function InstructorDashboardPage() {
         return
       }
 
-      // Load profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("user_type, display_name, email")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      console.log(
-        "[v0] Dashboard: Profile result:",
-        profileData ? `Found profile, type: ${profileData.user_type}` : "No profile found",
-      )
-
-      if (!profileData) {
-        console.log("[v0] Dashboard: No profile, redirecting to login")
-        router.replace("/auth/login")
-        return
-      }
-
-      if (profileData.user_type !== "instructor") {
+      if (user.user_metadata.user_type !== "instructor") {
         console.log("[v0] Dashboard: Wrong user type, redirecting to studio dashboard")
         router.replace("/studio/dashboard")
         return
       }
 
-      setProfile(profileData)
+      setProfile(user.user_metadata)
 
       const { data: slotsData } = await supabase
         .from("availability_slots")
@@ -161,16 +148,29 @@ export default function InstructorDashboardPage() {
   }, [router])
 
   const handleAcceptCover = async () => {
-    console.log("Accepting cover request:", selectedCoverRequest.id)
-    // TODO: Implement actual API call to accept cover
-    alert("Cover request accepted! The studio will be notified.")
+    if (!selectedCoverRequest) return
+
+    const result = await acceptCoverRequest(selectedCoverRequest.id)
+
+    if (result.success) {
+      alert("Cover request accepted! The studio will be notified.")
+      setCoverDialogOpen(false)
+      window.location.reload()
+    } else {
+      alert("Failed to accept cover request: " + result.error)
+    }
   }
 
   const handleRemoveAvailability = async (slotId: string) => {
     if (!confirm("Are you sure you want to remove this availability slot?")) return
-    console.log("Removing availability slot:", slotId)
-    // TODO: Implement actual API call to remove availability
-    setAvailabilitySlots(availabilitySlots.filter((slot) => slot.id !== slotId))
+
+    const result = await removeAvailability(slotId)
+
+    if (result.success) {
+      setAvailabilitySlots(availabilitySlots.filter((slot) => slot.id !== slotId))
+    } else {
+      alert("Failed to remove availability: " + result.error)
+    }
   }
 
   if (loading) {

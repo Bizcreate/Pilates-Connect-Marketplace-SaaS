@@ -24,6 +24,8 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
+    console.log("[v0] Login: Starting login process...")
+
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get("email") as string
@@ -31,24 +33,44 @@ export default function LoginPage() {
 
       const supabase = createBrowserClient()
 
+      console.log("[v0] Login: Attempting sign in...")
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
+        console.error("[v0] Login: Sign in error:", signInError)
         setError(signInError.message)
         setLoading(false)
         return
       }
 
       if (!data.user) {
+        console.error("[v0] Login: No user returned")
         setError("Login failed. Please try again.")
         setLoading(false)
         return
       }
 
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).maybeSingle()
+      console.log("[v0] Login: User signed in successfully:", data.user.id)
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      console.log("[v0] Login: Fetching user profile...")
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error("[v0] Login: Profile fetch error:", profileError)
+      }
+
+      console.log("[v0] Login: Profile fetched:", profile)
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -59,7 +81,10 @@ export default function LoginPage() {
               ? "/admin/dashboard"
               : "/"
 
-      window.location.href = redirectPath
+      console.log("[v0] Login: Redirecting to:", redirectPath)
+
+      router.push(redirectPath)
+      router.refresh()
     } catch (err) {
       console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")

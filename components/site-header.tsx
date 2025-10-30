@@ -97,6 +97,13 @@ export function SiteHeader() {
       >
         Referrals
       </Link>
+      <Link
+        href="/help"
+        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Help
+      </Link>
     </>
   )
 
