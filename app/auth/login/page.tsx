@@ -47,8 +47,8 @@ function LoginForm() {
         return
       }
 
-      if (!data.user) {
-        console.error("[v0] Login: No user returned")
+      if (!data.user || !data.session) {
+        console.error("[v0] Login: No user or session returned")
         setError("Login failed. Please try again.")
         setLoading(false)
         return
@@ -56,7 +56,24 @@ function LoginForm() {
 
       console.log("[v0] Login: User signed in successfully:", data.user.id)
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      console.log("[v0] Login: Setting server-side session...")
+      const sessionResponse = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        }),
+      })
+
+      if (!sessionResponse.ok) {
+        console.error("[v0] Login: Failed to set server session")
+        setError("Failed to establish session. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      console.log("[v0] Login: Server session established")
 
       console.log("[v0] Login: Fetching user profile...")
 

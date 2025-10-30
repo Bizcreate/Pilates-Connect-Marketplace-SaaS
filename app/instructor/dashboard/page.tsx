@@ -54,34 +54,39 @@ export default function InstructorDashboardPage() {
       console.log("[v0] Dashboard: Checking auth...")
 
       const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
 
-      console.log(
-        "[v0] Dashboard: Session result:",
-        session ? `Found session for ${session.user.id}` : "No session found",
-      )
+      console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
 
-      if (sessionError) {
-        console.error("[v0] Dashboard: Session error:", sessionError)
+      if (userError) {
+        console.error("[v0] Dashboard: User error:", userError)
       }
 
-      if (!session?.user) {
-        console.log("[v0] Dashboard: No session, redirecting to login")
+      if (!user) {
+        console.log("[v0] Dashboard: No user, redirecting to login")
         router.replace("/auth/login")
         return
       }
 
-      const user = session.user
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type, display_name")
+        .eq("id", user.id)
+        .maybeSingle()
 
-      if (user.user_metadata.user_type !== "instructor") {
+      if (profileError) {
+        console.error("[v0] Dashboard: Profile error:", profileError)
+      }
+
+      if (profileData?.user_type !== "instructor") {
         console.log("[v0] Dashboard: Wrong user type, redirecting to studio dashboard")
         router.replace("/studio/dashboard")
         return
       }
 
-      setProfile(user.user_metadata)
+      setProfile(profileData)
 
       const { data: slotsData } = await supabase
         .from("availability_slots")
@@ -108,7 +113,6 @@ export default function InstructorDashboardPage() {
 
       setCoverRequests(coverRequestsData || [])
 
-      // Load applications
       const { data: appsData } = await supabase
         .from("applications")
         .select(`
@@ -129,7 +133,6 @@ export default function InstructorDashboardPage() {
 
       setApplications(appsData || [])
 
-      // Load available jobs
       const appliedJobIds = appsData?.map((a) => a.job_id) || []
       const { data: jobsData } = await supabase
         .from("jobs")
