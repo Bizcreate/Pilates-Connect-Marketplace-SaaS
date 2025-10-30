@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, Settings } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/ssr"
 
@@ -22,7 +22,7 @@ interface UserMenuProps {
 
 export function UserMenu({ user, userType }: UserMenuProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = createBrowserClient()
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
