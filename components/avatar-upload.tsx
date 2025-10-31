@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Camera, Loader2 } from "lucide-react"
@@ -37,34 +36,30 @@ export function AvatarUpload({ userId, currentAvatarUrl, userType, onUploadCompl
     setUploading(true)
 
     try {
-      const supabase = createBrowserClient()
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", `avatars/${userId}`)
 
-      // Upload to Supabase Storage
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: true,
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      if (uploadError) throw uploadError
+      if (!response.ok) throw new Error("Upload failed")
 
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName)
+      const { url } = await response.json()
 
-      // Update profile
+      // Update profile in database
+      const supabase = createBrowserClient()
       const table = userType === "instructor" ? "instructor_profiles" : "studio_profiles"
-      const { error: updateError } = await supabase.from(table).update({ avatar_url: publicUrl }).eq("id", userId)
+      const { error: updateError } = await supabase.from(table).update({ avatar_url: url }).eq("id", userId)
 
       if (updateError) throw updateError
 
-      setAvatarUrl(publicUrl)
-      onUploadComplete?.(publicUrl)
+      setAvatarUrl(url)
+      onUploadComplete?.(url)
     } catch (error: any) {
-      console.error("[v0] Avatar upload error:", error)
+      console.error("Avatar upload error:", error)
       alert("Upload failed: " + error.message)
     } finally {
       setUploading(false)

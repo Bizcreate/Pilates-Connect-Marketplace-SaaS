@@ -24,8 +24,6 @@ function LoginForm() {
     setError("")
     setLoading(true)
 
-    console.log("[v0] Login: Starting login process...")
-
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get("email") as string
@@ -33,30 +31,23 @@ function LoginForm() {
 
       const supabase = createBrowserClient()
 
-      console.log("[v0] Login: Attempting sign in...")
-
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        console.error("[v0] Login: Sign in error:", signInError)
         setError(signInError.message)
         setLoading(false)
         return
       }
 
       if (!data.user || !data.session) {
-        console.error("[v0] Login: No user or session returned")
         setError("Login failed. Please try again.")
         setLoading(false)
         return
       }
 
-      console.log("[v0] Login: User signed in successfully:", data.user.id)
-
-      console.log("[v0] Login: Setting server-side session...")
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,27 +58,12 @@ function LoginForm() {
       })
 
       if (!sessionResponse.ok) {
-        console.error("[v0] Login: Failed to set server session")
         setError("Failed to establish session. Please try again.")
         setLoading(false)
         return
       }
 
-      console.log("[v0] Login: Server session established")
-
-      console.log("[v0] Login: Fetching user profile...")
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .maybeSingle()
-
-      if (profileError) {
-        console.error("[v0] Login: Profile fetch error:", profileError)
-      }
-
-      console.log("[v0] Login: Profile fetched:", profile)
+      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).maybeSingle()
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -98,11 +74,9 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
-      console.log("[v0] Login: Redirecting to:", redirectPath)
-
       window.location.href = redirectPath
     } catch (err) {
-      console.error("[v0] Login error:", err)
+      console.error("Login error:", err)
       setError("An unexpected error occurred. Please try again.")
       setLoading(false)
     }
