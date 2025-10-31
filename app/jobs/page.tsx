@@ -173,74 +173,81 @@ export default function JobsPage() {
 
   useEffect(() => {
     async function fetchData() {
+      setIsLoading(true)
       const supabase = createBrowserClient()
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUserId(user?.id || null)
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        setUserId(user?.id || null)
 
-      const [jobsResult, coversResult] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select(
-            `
-          *,
-          studio:profiles!jobs_studio_id_fkey(
-            display_name,
-            studio_profiles(studio_name)
-          )
-        `,
-          )
-          .eq("status", "open")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("cover_requests")
-          .select(
-            `
-          *,
-          studio:profiles!cover_requests_studio_id_fkey(
-            display_name,
-            studio_profiles(studio_name)
-          )
-        `,
-          )
-          .eq("status", "open")
-          .gte("date", new Date().toISOString().split("T")[0])
-          .order("date", { ascending: true })
-          .limit(20),
-      ])
+        const [jobsResult, coversResult] = await Promise.all([
+          supabase
+            .from("jobs")
+            .select(
+              `
+            *,
+            studio:profiles!jobs_studio_id_fkey(
+              display_name,
+              studio_profiles(studio_name)
+            )
+          `,
+            )
+            .eq("status", "open")
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("cover_requests")
+            .select(
+              `
+            *,
+            studio:profiles!cover_requests_studio_id_fkey(
+              display_name,
+              studio_profiles(studio_name)
+            )
+          `,
+            )
+            .eq("status", "open")
+            .gte("date", new Date().toISOString().split("T")[0])
+            .order("date", { ascending: true })
+            .limit(20),
+        ])
 
-      let jobsToDisplay: Job[] = []
+        let jobsToDisplay: Job[] = []
 
-      if (jobsResult.error) {
-        console.error("[v0] Error fetching jobs:", jobsResult.error)
-        jobsToDisplay = MOCK_JOBS
-      } else if (jobsResult.data && jobsResult.data.length > 0) {
-        if (user) {
-          const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
+        if (jobsResult.error) {
+          console.error("[v0] Error fetching jobs:", jobsResult.error)
+          jobsToDisplay = MOCK_JOBS
+        } else if (jobsResult.data && jobsResult.data.length > 0) {
+          if (user) {
+            const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
 
-          const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
-          jobsToDisplay = jobsResult.data.map((job) => ({
-            ...job,
-            is_saved: savedJobIds.has(job.id),
-          }))
+            const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
+            jobsToDisplay = jobsResult.data.map((job) => ({
+              ...job,
+              is_saved: savedJobIds.has(job.id),
+            }))
+          } else {
+            jobsToDisplay = jobsResult.data
+          }
         } else {
-          jobsToDisplay = jobsResult.data
+          jobsToDisplay = MOCK_JOBS
         }
-      } else {
-        jobsToDisplay = MOCK_JOBS
-      }
 
-      setJobs(jobsToDisplay)
+        setJobs(jobsToDisplay)
 
-      if (coversResult.error || !coversResult.data || coversResult.data.length === 0) {
+        if (coversResult.error || !coversResult.data || coversResult.data.length === 0) {
+          setCoverRequests(MOCK_COVER_REQUESTS)
+        } else if (coversResult.data && coversResult.data.length > 0) {
+          setCoverRequests(coversResult.data)
+        }
+      } catch (error) {
+        console.error("[v0] Error in fetchData:", error)
+        setJobs(MOCK_JOBS)
         setCoverRequests(MOCK_COVER_REQUESTS)
-      } else if (coversResult.data && coversResult.data.length > 0) {
-        setCoverRequests(coversResult.data)
+      } finally {
+        setIsLoading(false)
       }
-
-      setIsLoading(false)
     }
 
     fetchData()

@@ -26,8 +26,13 @@ export function UserMenu({ user, userType }: UserMenuProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
+    // Clear any local storage
+    if (typeof window !== "undefined") {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+    // Force a full page reload to clear all state
+    window.location.href = "/"
   }
 
   const initials = user.email?.substring(0, 2).toUpperCase() || "U"

@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Upload, CheckCircle, Plus, Instagram, Facebook, Linkedin, Globe } from "lucide-react"
+import { Upload, CheckCircle, Instagram, Facebook, Linkedin, Globe } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { AvatarUpload } from "@/components/avatar-upload"
+import { GalleryUpload } from "@/components/gallery-upload"
 
 export default function InstructorProfilePage() {
   const [loading, setLoading] = useState(false)
@@ -45,7 +47,7 @@ export default function InstructorProfilePage() {
     loadProfile()
   }, [router])
 
-  async function handleFileUpload(file: File, type: "cv" | "insurance" | "video" | "image") {
+  async function handleFileUpload(file: File, type: "cv" | "insurance") {
     setUploading(true)
     try {
       const supabase = createBrowserClient()
@@ -55,38 +57,30 @@ export default function InstructorProfilePage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", `instructor/${user.id}/documents`)
 
-      const { error } = await supabase.storage.from("instructor-documents").upload(fileName, file)
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error("Upload failed")
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("instructor-documents").getPublicUrl(fileName)
+      const { url } = await response.json()
 
       // Update profile based on type
-      if (type === "cv" || type === "insurance") {
-        const updateField = type === "cv" ? "cv_url" : "insurance_url"
-        await supabase
-          .from("instructor_profiles")
-          .update({ [updateField]: publicUrl })
-          .eq("id", user.id)
-      } else if (type === "video") {
-        const videos = profile.video_urls || []
-        videos.push(publicUrl)
-        await supabase.from("instructor_profiles").update({ video_urls: videos }).eq("id", user.id)
-      } else if (type === "image") {
-        const images = profile.image_gallery || []
-        images.push(publicUrl)
-        await supabase.from("instructor_profiles").update({ image_gallery: images }).eq("id", user.id)
-      }
+      const updateField = type === "cv" ? "cv_url" : "insurance_url"
+      await supabase
+        .from("instructor_profiles")
+        .update({ [updateField]: url })
+        .eq("id", user.id)
 
       alert("Upload successful!")
       window.location.reload()
     } catch (error: any) {
-      console.error("[v0] Upload error:", error)
+      console.error("Upload error:", error)
       alert("Upload failed: " + error.message)
     } finally {
       setUploading(false)
@@ -131,13 +125,29 @@ export default function InstructorProfilePage() {
       <SiteHeader />
 
       <main className="flex-1 bg-muted/30">
-        <div className="container py-8 max-w-4xl">
+        <div className="container py-8 max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">My Profile</h1>
             <p className="text-muted-foreground">Manage your professional information, documents, and media</p>
           </div>
 
           <div className="space-y-6">
+            {/* Avatar Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Photo</CardTitle>
+                <CardDescription>Upload a professional photo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AvatarUpload
+                  userId={profile.id}
+                  currentAvatarUrl={profile.avatar_url}
+                  userType="instructor"
+                  onUploadComplete={() => window.location.reload()}
+                />
+              </CardContent>
+            </Card>
+
             {/* Documents Section */}
             <Card>
               <CardHeader>
@@ -269,66 +279,14 @@ export default function InstructorProfilePage() {
                 <CardTitle>Media Gallery</CardTitle>
                 <CardDescription>Showcase your teaching style with videos and images</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Video Gallery */}
-                <div className="space-y-2">
-                  <Label>Preview Videos</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {profile.video_urls?.map((url: string, index: number) => (
-                      <div key={index} className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                        <video src={url} controls className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => {
-                        const input = document.createElement("input")
-                        input.type = "file"
-                        input.accept = "video/*"
-                        input.onchange = (e: any) => {
-                          const file = e.target.files[0]
-                          if (file) handleFileUpload(file, "video")
-                        }
-                        input.click()
-                      }}
-                      className="aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:bg-muted/50 transition-colors"
-                    >
-                      <Plus className="h-8 w-8 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">Add Video</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Image Gallery */}
-                <div className="space-y-2">
-                  <Label>Image Gallery</Label>
-                  <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-                    {profile.image_gallery?.map((url: string, index: number) => (
-                      <div key={index} className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-                        <img
-                          src={url || "/placeholder.svg"}
-                          alt={`Gallery ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => {
-                        const input = document.createElement("input")
-                        input.type = "file"
-                        input.accept = "image/*"
-                        input.onchange = (e: any) => {
-                          const file = e.target.files[0]
-                          if (file) handleFileUpload(file, "image")
-                        }
-                        input.click()
-                      }}
-                      className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:bg-muted/50 transition-colors"
-                    >
-                      <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Add Image</span>
-                    </button>
-                  </div>
-                </div>
+              <CardContent>
+                <GalleryUpload
+                  userId={profile.id}
+                  userType="instructor"
+                  currentImages={profile.image_gallery || []}
+                  currentVideos={profile.video_urls || []}
+                  onUpdate={() => window.location.reload()}
+                />
               </CardContent>
             </Card>
 

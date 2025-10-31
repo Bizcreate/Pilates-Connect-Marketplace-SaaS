@@ -1,4 +1,7 @@
 import "server-only"
+import { Resend } from "resend"
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Email service configuration
 // In production, you would use a service like Resend, SendGrid, or AWS SES
@@ -12,23 +15,26 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions) {
-  console.log("[v0] Email would be sent:", {
-    to: options.to,
-    subject: options.subject,
-    preview: options.text?.substring(0, 100) || options.html.substring(0, 100),
-  })
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "Pilates Connect <noreply@pilatesconnect.com.au>",
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    })
 
-  // TODO: Integrate with actual email service
-  // Example with Resend:
-  // const resend = new Resend(process.env.RESEND_API_KEY)
-  // await resend.emails.send({
-  //   from: 'Pilates Connect <noreply@pilatesconnect.com.au>',
-  //   to: options.to,
-  //   subject: options.subject,
-  //   html: options.html,
-  // })
+    if (error) {
+      console.error("[v0] Email send error:", error)
+      return { success: false, error }
+    }
 
-  return { success: true }
+    console.log("[v0] Email sent successfully:", data)
+    return { success: true, data }
+  } catch (error) {
+    console.error("[v0] Email send exception:", error)
+    return { success: false, error }
+  }
 }
 
 // Email templates
@@ -129,7 +135,7 @@ export const emailTemplates = {
   referralEarned: (referrerName: string, amount: number) => ({
     subject: "You've Earned a Referral Reward!",
     html: `
-      <div style="font-family: Arial, sans-serif; max-w-600px; margin: 0 auto;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #8B4513;">Congratulations, ${referrerName}!</h1>
         <p>You've earned a referral reward of <strong>$${amount}</strong>!</p>
         <p>Your referral has successfully signed up and completed their profile.</p>
