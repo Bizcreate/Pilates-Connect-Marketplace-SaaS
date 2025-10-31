@@ -18,10 +18,6 @@ export function SiteHeader() {
   useEffect(() => {
     const supabase = createBrowserClient()
 
-    const timeout = setTimeout(() => {
-      setLoading(false)
-    }, 3000)
-
     const getUser = async () => {
       try {
         const {
@@ -39,11 +35,10 @@ export function SiteHeader() {
           setUserType(profile?.user_type || null)
         }
       } catch (error) {
-        console.error("SiteHeader: Auth error:", error)
+        console.error("[v0] SiteHeader: Auth error:", error)
         setUser(null)
         setUserType(null)
       } finally {
-        clearTimeout(timeout)
         setLoading(false)
       }
     }
@@ -68,7 +63,6 @@ export function SiteHeader() {
     })
 
     return () => {
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
@@ -121,14 +115,16 @@ export function SiteHeader() {
           <span className="text-xl font-semibold">Pilates Connect</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks />
         </nav>
 
+        {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center gap-3 min-w-[200px] justify-end">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
-          ) : user && userType ? (
+          ) : user ? (
             <>
               <Button variant="ghost" asChild>
                 <Link href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}>Dashboard</Link>
@@ -148,7 +144,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex md:hidden items-center gap-2">
-          {!loading && user && userType && <UserMenu user={user} userType={userType} />}
+          {!loading && user && <UserMenu user={user} userType={userType} />}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -162,7 +158,7 @@ export function SiteHeader() {
                 <div className="border-t pt-4 mt-4 space-y-2">
                   {loading ? (
                     <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
-                  ) : user && userType ? (
+                  ) : user ? (
                     <Button variant="outline" asChild className="w-full bg-transparent">
                       <Link
                         href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}
