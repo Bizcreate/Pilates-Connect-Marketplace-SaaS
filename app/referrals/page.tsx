@@ -26,7 +26,7 @@ export default function ReferralsPage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-gradient-to-b from-primary/10 to-background py-20">
-          <div className="container max-w-4xl">
+          <div className="container max-w-4xl mx-auto">
             <div className="flex flex-col items-center text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
                 <Gift className="h-8 w-8 text-primary" />
@@ -49,7 +49,7 @@ export default function ReferralsPage() {
 
         {/* How It Works */}
         <section className="py-20 bg-muted/30">
-          <div className="container max-w-6xl">
+          <div className="container max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">How It Works</h2>
               <p className="text-muted-foreground">Three simple steps to start earning</p>
@@ -103,7 +103,7 @@ export default function ReferralsPage() {
 
         {/* Rewards Tiers */}
         <section className="py-20">
-          <div className="container max-w-6xl">
+          <div className="container max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Referral Tiers</h2>
               <p className="text-muted-foreground">Unlock bigger rewards as you refer more people</p>
@@ -195,7 +195,7 @@ export default function ReferralsPage() {
 
         {/* Benefits */}
         <section className="py-20 bg-muted/30">
-          <div className="container max-w-6xl">
+          <div className="container max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Why Refer?</h2>
               <p className="text-muted-foreground">Benefits for you and your referrals</p>
@@ -271,7 +271,7 @@ export default function ReferralsPage() {
 
         {/* CTA */}
         <section className="py-20">
-          <div className="container max-w-4xl">
+          <div className="container max-w-4xl mx-auto">
             <div className="flex flex-col items-center text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-6">
                 <TrendingUp className="h-8 w-8 text-primary" />

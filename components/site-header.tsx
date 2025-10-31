@@ -121,7 +121,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 min-w-[200px] justify-end">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
           ) : user ? (

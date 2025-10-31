@@ -19,8 +19,8 @@ export default function HelpPage() {
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
 
-      <main className="flex-1 bg-muted/30">
-        <div className="container py-12 max-w-4xl">
+      <main className="flex-1">
+        <div className="container py-12 max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Help & FAQ</h1>
             <p className="text-xl text-muted-foreground">
@@ -29,7 +29,7 @@ export default function HelpPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3 mb-12">
-            <Card>
+            <Card className="bg-muted/30">
               <CardHeader>
                 <MessageSquare className="h-8 w-8 text-primary mb-2" />
                 <CardTitle className="text-lg">Live Chat</CardTitle>
@@ -40,7 +40,7 @@ export default function HelpPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-muted/30">
               <CardHeader>
                 <Mail className="h-8 w-8 text-primary mb-2" />
                 <CardTitle className="text-lg">Email Support</CardTitle>
@@ -53,7 +53,7 @@ export default function HelpPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-muted/30">
               <CardHeader>
                 <Phone className="h-8 w-8 text-primary mb-2" />
                 <CardTitle className="text-lg">Phone Support</CardTitle>
@@ -68,7 +68,7 @@ export default function HelpPage() {
           </div>
 
           <div className="space-y-8">
-            <section>
+            <section className="bg-muted/30 p-6 rounded-lg">
               <h2 className="text-2xl font-bold mb-4">For Instructors</h2>
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
@@ -146,7 +146,7 @@ export default function HelpPage() {
               </Accordion>
             </section>
 
-            <section>
+            <section className="bg-muted/30 p-6 rounded-lg">
               <h2 className="text-2xl font-bold mb-4">For Studios</h2>
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="studio-1">
@@ -232,7 +232,7 @@ export default function HelpPage() {
               </Accordion>
             </section>
 
-            <section>
+            <section className="bg-muted/30 p-6 rounded-lg">
               <h2 className="text-2xl font-bold mb-4">Account & Billing</h2>
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="billing-1">
@@ -290,7 +290,7 @@ export default function HelpPage() {
               </Accordion>
             </section>
 
-            <section>
+            <section className="bg-muted/30 p-6 rounded-lg">
               <h2 className="text-2xl font-bold mb-4">Technical Support</h2>
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="tech-1">
@@ -341,7 +341,7 @@ export default function HelpPage() {
             </section>
           </div>
 
-          <Card className="mt-12">
+          <Card className="mt-12 bg-muted/30">
             <CardHeader>
               <CardTitle>Still need help?</CardTitle>
               <CardDescription>Our support team is here to assist you</CardDescription>
