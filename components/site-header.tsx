@@ -35,6 +35,7 @@ export function SiteHeader() {
           setUserType(profile?.user_type || null)
         }
       } catch (error) {
+        console.error("[v0] SiteHeader: Auth error:", error)
         setUser(null)
         setUserType(null)
       } finally {
@@ -46,7 +47,7 @@ export function SiteHeader() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         const { data: profile } = await supabase
@@ -96,13 +97,6 @@ export function SiteHeader() {
       >
         Referrals
       </Link>
-      <Link
-        href="/help"
-        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
-        onClick={() => setMobileMenuOpen(false)}
-      >
-        Help
-      </Link>
     </>
   )
 
@@ -114,6 +108,7 @@ export function SiteHeader() {
           <span className="text-xl font-semibold">Pilates Connect</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks />
         </nav>
@@ -121,7 +116,7 @@ export function SiteHeader() {
         <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
-          ) : user && userType ? (
+          ) : user ? (
             <>
               <Button variant="ghost" asChild>
                 <Link href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}>Dashboard</Link>
@@ -141,7 +136,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex md:hidden items-center gap-2">
-          {!loading && user && userType && <UserMenu user={user} userType={userType} />}
+          {!loading && user && <UserMenu user={user} userType={userType} />}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -155,7 +150,7 @@ export function SiteHeader() {
                 <div className="border-t pt-4 mt-4 space-y-2">
                   {loading ? (
                     <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
-                  ) : user && userType ? (
+                  ) : user ? (
                     <Button variant="outline" asChild className="w-full bg-transparent">
                       <Link
                         href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}
