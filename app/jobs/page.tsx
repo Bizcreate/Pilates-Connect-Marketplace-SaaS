@@ -15,6 +15,7 @@ import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookma
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { mockCoverRequests } from "@/lib/mock-data"
+import { toast } from "@/components/ui/use-toast"
 
 type Job = {
   id: string
@@ -279,13 +280,29 @@ export default function JobsPage() {
 
     const supabase = createClient()
 
-    if (currentlySaved) {
-      await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", jobId)
-    } else {
-      await supabase.from("saved_jobs").insert({ user_id: userId, job_id: jobId })
-    }
+    try {
+      if (currentlySaved) {
+        const { error } = await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", jobId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from("saved_jobs").insert({ user_id: userId, job_id: jobId })
+        if (error) throw error
+      }
 
-    setJobs(jobs.map((job) => (job.id === jobId ? { ...job, is_saved: !currentlySaved } : job)))
+      setJobs(jobs.map((job) => (job.id === jobId ? { ...job, is_saved: !currentlySaved } : job)))
+
+      toast({
+        title: currentlySaved ? "Job unsaved" : "Job saved!",
+        description: currentlySaved ? "Job removed from your saved list" : "Job added to your saved list",
+      })
+    } catch (error) {
+      console.error("Error saving job:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save job",
+        variant: "destructive",
+      })
+    }
   }
 
   const jobTypes = ["Full-time", "Part-time", "Casual", "Contract"]

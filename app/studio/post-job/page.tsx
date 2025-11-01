@@ -83,14 +83,18 @@ export default function PostJobPage() {
         description: formData.get("description") as string,
         job_type: formData.get("job-type") as string,
         location: formData.get("location") as string,
-        equipment_provided: selectedEquipment, // Changed from 'equipment'
-        required_certifications: selectedCertifications, // Changed from 'certifications_required'
+        suburb: (formData.get("suburb") as string) || null,
+        state: (formData.get("state") as string) || null,
+        equipment_provided: selectedEquipment,
+        required_certifications: selectedCertifications,
         class_types: selectedClassTypes,
-        hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null, // Changed from 'compensation_min'
-        hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null, // Changed from 'compensation_max'
+        hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null,
+        hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null,
         schedule_details: (formData.get("schedule") as string) || null,
         schedule_blocks: scheduleBlocks,
         start_date: (formData.get("start-date") as string) || null,
+        end_date: (formData.get("end-date") as string) || null,
+        required_experience: null,
         status,
       }
 
@@ -108,7 +112,7 @@ export default function PostJobPage() {
 
       router.push("/studio/dashboard")
     } catch (error) {
-      console.error("[v0] Error posting job:", error)
+      console.error("Error posting job:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to post job",
@@ -170,6 +174,18 @@ export default function PostJobPage() {
                   <div className="space-y-2">
                     <Label htmlFor="location">Location *</Label>
                     <Input id="location" name="location" placeholder="e.g., Bondi, NSW" required />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="suburb">Suburb</Label>
+                    <Input id="suburb" name="suburb" placeholder="e.g., Bondi" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state" name="state" placeholder="e.g., NSW" />
                   </div>
                 </div>
 
@@ -303,9 +319,16 @@ export default function PostJobPage() {
                 <CardDescription>When do you need the instructor?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start-date">Start Date</Label>
-                  <Input id="start-date" name="start-date" type="date" />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start-date">Start Date</Label>
+                    <Input id="start-date" name="start-date" type="date" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="end-date">End Date</Label>
+                    <Input id="end-date" name="end-date" type="date" />
+                  </div>
                 </div>
 
                 <div className="space-y-3">
