@@ -120,6 +120,16 @@ export default function PostJobPage() {
     }
   }
 
+  const handleSaveDraft = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget.closest("form")
+    if (form) {
+      const formEvent = new Event("submit", { bubbles: true, cancelable: true }) as any
+      formEvent.preventDefault = () => {}
+      await handleSubmit({ ...formEvent, currentTarget: form } as React.FormEvent<HTMLFormElement>, "draft")
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -377,20 +387,7 @@ export default function PostJobPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={(e) => {
-                  const form = e.currentTarget.closest("form")
-                  if (form) {
-                    const submitEvent = new Event("submit", { bubbles: true, cancelable: true })
-                    Object.defineProperty(submitEvent, "target", { value: form, enumerable: true })
-                    handleSubmit(submitEvent as any, "draft")
-                  }
-                }}
-                disabled={isLoading}
-              >
+              <Button type="button" variant="outline" size="lg" onClick={handleSaveDraft} disabled={isLoading}>
                 <Save className="h-4 w-4 mr-2" />
                 Save as Draft
               </Button>

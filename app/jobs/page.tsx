@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookmark, Calendar } from "lucide-react"
-import { createBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { mockCoverRequests } from "@/lib/mock-data"
 
@@ -175,7 +175,7 @@ export default function JobsPage() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true)
-      const supabase = createBrowserClient()
+      const supabase = createClient()
 
       try {
         const {
@@ -277,7 +277,7 @@ export default function JobsPage() {
       return
     }
 
-    const supabase = createBrowserClient()
+    const supabase = createClient()
 
     if (currentlySaved) {
       await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", jobId)

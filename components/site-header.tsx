@@ -19,22 +19,32 @@ export function SiteHeader() {
     const supabase = createClient()
 
     const checkAuth = async () => {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+      try {
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser()
 
-      if (authUser) {
-        setUser(authUser)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", authUser.id)
-          .maybeSingle()
-        setUserType(profile?.user_type || null)
+        if (authUser) {
+          setUser(authUser)
+          // Fetch user profile to get user_type
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", authUser.id)
+            .maybeSingle()
+
+          if (profile?.user_type) {
+            setUserType(profile.user_type)
+          }
+        }
+      } catch (error) {
+        console.error("[v0] Header auth check error:", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
+    // Check auth immediately
     checkAuth()
 
     // Subscribe to auth changes
@@ -113,7 +123,7 @@ export function SiteHeader() {
           <NavLinks />
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 min-w-[200px] justify-end">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
           ) : user && userType ? (
