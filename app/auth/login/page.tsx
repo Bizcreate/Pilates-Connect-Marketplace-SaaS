@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, Suspense } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { createBrowserClient } from "@/lib/supabase/client"
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -24,13 +23,17 @@ function LoginForm() {
     setError("")
     setLoading(true)
 
+    console.log("[v0] Login started")
+
     try {
       const formData = new FormData(e.currentTarget)
       const email = formData.get("email") as string
       const password = formData.get("password") as string
 
+      console.log("[v0] Creating Supabase client")
       const supabase = createBrowserClient()
 
+      console.log("[v0] Calling signInWithPassword")
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -50,11 +53,23 @@ function LoginForm() {
         return
       }
 
-      console.log("[v0] User signed in:", data.user.id)
+      console.log("[v0] User signed in successfully:", data.user.id)
 
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
+      console.log("[v0] Fetching profile")
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .single()
 
-      console.log("[v0] Profile:", profile)
+      if (profileError) {
+        console.log("[v0] Profile fetch error:", profileError)
+        // Default to home if profile fetch fails
+        window.location.href = "/"
+        return
+      }
+
+      console.log("[v0] Profile fetched:", profile)
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -67,10 +82,10 @@ function LoginForm() {
 
       console.log("[v0] Redirecting to:", redirectPath)
 
-      router.push(redirectPath)
-      router.refresh()
+      // Use window.location.href for a full page reload which ensures session is recognized
+      window.location.href = redirectPath
     } catch (err) {
-      console.error("[v0] Login error:", err)
+      console.error("[v0] Unexpected login error:", err)
       setError("An unexpected error occurred. Please try again.")
       setLoading(false)
     }
