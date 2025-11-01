@@ -6,8 +6,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Activity, Menu } from "lucide-react"
 import { UserMenu } from "@/components/user-menu"
 import { useEffect, useState } from "react"
-import { createBrowserClient } from "@/lib/supabase/client"
-import type { User } from "@supabase/ssr"
+import { createClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 export function SiteHeader() {
   const [user, setUser] = useState<User | null>(null)
@@ -16,40 +16,33 @@ export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
-    const supabase = createBrowserClient()
+    const supabase = createClient()
 
-    const getUser = async () => {
-      try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser()
+    const checkAuth = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
 
+      if (authUser) {
         setUser(authUser)
-
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("user_type")
-            .eq("id", authUser.id)
-            .maybeSingle()
-          setUserType(profile?.user_type || null)
-        }
-      } catch (error) {
-        console.error("[v0] SiteHeader: Auth error:", error)
-        setUser(null)
-        setUserType(null)
-      } finally {
-        setLoading(false)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_type")
+          .eq("id", authUser.id)
+          .maybeSingle()
+        setUserType(profile?.user_type || null)
       }
+      setLoading(false)
     }
 
-    getUser()
+    checkAuth()
 
+    // Subscribe to auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
       if (session?.user) {
+        setUser(session.user)
         const { data: profile } = await supabase
           .from("profiles")
           .select("user_type")
@@ -57,6 +50,7 @@ export function SiteHeader() {
           .maybeSingle()
         setUserType(profile?.user_type || null)
       } else {
+        setUser(null)
         setUserType(null)
       }
       setLoading(false)
@@ -97,6 +91,13 @@ export function SiteHeader() {
       >
         Referrals
       </Link>
+      <Link
+        href="/help"
+        className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Help
+      </Link>
     </>
   )
 
@@ -108,7 +109,6 @@ export function SiteHeader() {
           <span className="text-xl font-semibold">Pilates Connect</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks />
         </nav>
@@ -116,7 +116,7 @@ export function SiteHeader() {
         <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
-          ) : user ? (
+          ) : user && userType ? (
             <>
               <Button variant="ghost" asChild>
                 <Link href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}>Dashboard</Link>
@@ -136,7 +136,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex md:hidden items-center gap-2">
-          {!loading && user && <UserMenu user={user} userType={userType} />}
+          {!loading && user && userType && <UserMenu user={user} userType={userType} />}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -150,7 +150,7 @@ export function SiteHeader() {
                 <div className="border-t pt-4 mt-4 space-y-2">
                   {loading ? (
                     <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
-                  ) : user ? (
+                  ) : user && userType ? (
                     <Button variant="outline" asChild className="w-full bg-transparent">
                       <Link
                         href={userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"}
