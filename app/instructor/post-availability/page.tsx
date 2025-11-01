@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ArrowLeft, Plus, X, Calendar } from "lucide-react"
-import { createBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
 type AvailabilitySlot = {
@@ -105,7 +105,7 @@ export default function PostAvailabilityPage() {
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
-      const supabase = createBrowserClient()
+      const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()

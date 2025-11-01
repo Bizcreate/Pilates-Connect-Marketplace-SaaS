@@ -83,12 +83,11 @@ export default function PostJobPage() {
         description: formData.get("description") as string,
         job_type: formData.get("job-type") as string,
         location: formData.get("location") as string,
-        equipment: selectedEquipment,
-        certifications_required: selectedCertifications,
+        equipment_provided: selectedEquipment, // Changed from 'equipment'
+        required_certifications: selectedCertifications, // Changed from 'certifications_required'
         class_types: selectedClassTypes,
-        compensation_type: formData.get("rate-type") as string,
-        compensation_min: Number.parseInt(formData.get("rate-min") as string) || null,
-        compensation_max: Number.parseInt(formData.get("rate-max") as string) || null,
+        hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null, // Changed from 'compensation_min'
+        hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null, // Changed from 'compensation_max'
         schedule_details: (formData.get("schedule") as string) || null,
         schedule_blocks: scheduleBlocks,
         start_date: (formData.get("start-date") as string) || null,
