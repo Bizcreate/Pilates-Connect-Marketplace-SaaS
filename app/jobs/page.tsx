@@ -169,6 +169,7 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<"jobs" | "covers">("jobs")
   const [isLoading, setIsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [userType, setUserType] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -181,6 +182,11 @@ export default function JobsPage() {
           data: { user },
         } = await supabase.auth.getUser()
         setUserId(user?.id || null)
+
+        if (user) {
+          const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle()
+          setUserType(profile?.user_type || null)
+        }
 
         const [jobsResult, coversResult] = await Promise.all([
           supabase
@@ -219,7 +225,7 @@ export default function JobsPage() {
           console.error("[v0] Error fetching jobs:", jobsResult.error)
           jobsToDisplay = MOCK_JOBS
         } else if (jobsResult.data && jobsResult.data.length > 0) {
-          if (user) {
+          if (user && userType === "instructor") {
             const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
 
             const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
@@ -263,6 +269,11 @@ export default function JobsPage() {
 
     if (!userId) {
       router.push("/auth/login")
+      return
+    }
+
+    if (userType !== "instructor") {
+      alert("Only instructors can save jobs. Studios can post jobs from their dashboard.")
       return
     }
 
