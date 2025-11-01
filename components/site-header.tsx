@@ -19,15 +19,18 @@ export function SiteHeader() {
     const supabase = createBrowserClient()
 
     const timeout = setTimeout(() => {
+      console.log("[v0] SiteHeader: Auth check timeout")
       setLoading(false)
     }, 3000)
 
     const getUser = async () => {
       try {
+        console.log("[v0] SiteHeader: Checking auth...")
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser()
 
+        console.log("[v0] SiteHeader: User:", authUser?.id || "none")
         setUser(authUser)
 
         if (authUser) {
@@ -36,10 +39,11 @@ export function SiteHeader() {
             .select("user_type")
             .eq("id", authUser.id)
             .maybeSingle()
+          console.log("[v0] SiteHeader: User type:", profile?.user_type || "none")
           setUserType(profile?.user_type || null)
         }
       } catch (error) {
-        console.error("SiteHeader: Auth error:", error)
+        console.error("[v0] SiteHeader: Auth error:", error)
         setUser(null)
         setUserType(null)
       } finally {
@@ -52,7 +56,8 @@ export function SiteHeader() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[v0] SiteHeader: Auth state changed:", event)
       setUser(session?.user ?? null)
       if (session?.user) {
         const { data: profile } = await supabase

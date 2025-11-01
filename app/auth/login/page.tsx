@@ -37,16 +37,20 @@ function LoginForm() {
       })
 
       if (signInError) {
+        console.log("[v0] Sign in error:", signInError)
         setError(signInError.message)
         setLoading(false)
         return
       }
 
       if (!data.user || !data.session) {
+        console.log("[v0] No user or session returned")
         setError("Login failed. Please try again.")
         setLoading(false)
         return
       }
+
+      console.log("[v0] User signed in:", data.user.id)
 
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
@@ -59,20 +63,37 @@ function LoginForm() {
 
       if (!sessionResponse.ok) {
         const errorData = await sessionResponse.json()
+        console.log("[v0] Session API error:", errorData)
         setError(errorData.error || "Failed to establish session. Please try again.")
         setLoading(false)
         return
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .maybeSingle()
+      console.log("[v0] Server session established")
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError)
+      let profile = null
+      let retries = 3
+
+      while (retries > 0 && !profile) {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_type")
+          .eq("id", data.user.id)
+          .maybeSingle()
+
+        if (profileError) {
+          console.log("[v0] Profile fetch error:", profileError)
+          retries--
+          if (retries > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 500))
+          }
+        } else {
+          profile = profileData
+          break
+        }
       }
+
+      console.log("[v0] Profile:", profile)
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -83,9 +104,13 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
+      console.log("[v0] Redirecting to:", redirectPath)
+
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       window.location.href = redirectPath
     } catch (err) {
-      console.error("Login error:", err)
+      console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
       setLoading(false)
     }
