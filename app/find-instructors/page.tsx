@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,7 +14,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { MapPin, Star, Award, Lock, Calendar, Clock, DollarSign } from "lucide-react"
+import { MapPin, Star, Award, Lock, Calendar, Clock, DollarSign, Filter } from "lucide-react"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -122,9 +124,149 @@ const MOCK_COVER_REQUESTS = [
 ]
 
 export default function FindInstructorsPage() {
+  const searchParams = useSearchParams()
   const [sortBy, setSortBy] = useState("rating")
   const [maxRate, setMaxRate] = useState([100])
   const [activeTab, setActiveTab] = useState("all")
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
+  const [locationQuery, setLocationQuery] = useState(searchParams.get("location") || "")
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") || "")
+    setLocationQuery(searchParams.get("location") || "")
+  }, [searchParams])
+
+  const FilterContent = () => (
+    <div className="space-y-6">
+      <div>
+        <Label>Location</Label>
+        <Input
+          placeholder="Enter suburb..."
+          className="mt-2"
+          value={locationQuery}
+          onChange={(e) => setLocationQuery(e.target.value)}
+        />
+      </div>
+
+      {activeTab === "all" && (
+        <>
+          <div>
+            <Label>Experience Level</Label>
+            <Select>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Any experience" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="beginner">0-3 years</SelectItem>
+                <SelectItem value="intermediate">4-7 years</SelectItem>
+                <SelectItem value="advanced">8-12 years</SelectItem>
+                <SelectItem value="expert">12+ years</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Availability</Label>
+            <Select>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Any time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Available Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
+
+      {activeTab === "covers" && (
+        <div>
+          <Label>Urgency</Label>
+          <Select>
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="All urgencies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="urgent">Very Urgent</SelectItem>
+              <SelectItem value="moderate">Urgent</SelectItem>
+              <SelectItem value="low">Moderate</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div>
+        <Label className="mb-3 block">Certifications</Label>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox id="reformer" />
+            <label htmlFor="reformer" className="text-sm cursor-pointer">
+              Reformer
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="mat" />
+            <label htmlFor="mat" className="text-sm cursor-pointer">
+              Mat
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="cadillac" />
+            <label htmlFor="cadillac" className="text-sm cursor-pointer">
+              Cadillac
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="prenatal" />
+            <label htmlFor="prenatal" className="text-sm cursor-pointer">
+              Prenatal
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="sports" />
+            <label htmlFor="sports" className="text-sm cursor-pointer">
+              Sports
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label className="mb-3 block">Specializations</Label>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox id="rehab" />
+            <label htmlFor="rehab" className="text-sm cursor-pointer">
+              Rehabilitation
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="classical" />
+            <label htmlFor="classical" className="text-sm cursor-pointer">
+              Classical
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="athletic" />
+            <label htmlFor="athletic" className="text-sm cursor-pointer">
+              Athletic
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label>Max Rate: ${maxRate[0]}+</Label>
+        <Slider value={maxRate} onValueChange={setMaxRate} max={150} step={5} className="mt-4" />
+      </div>
+
+      <Button variant="outline" className="w-full bg-transparent">
+        Clear Filters
+      </Button>
+    </div>
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -144,141 +286,13 @@ export default function FindInstructorsPage() {
           </div>
 
           <div className="grid lg:grid-cols-4 gap-6">
-            {/* Filters Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="hidden lg:block lg:col-span-1">
               <Card className="p-6 sticky top-6">
                 <h2 className="font-semibold mb-4">Filters</h2>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Location</Label>
-                    <Input placeholder="Enter suburb..." className="mt-2" />
-                  </div>
-
-                  {activeTab === "all" && (
-                    <>
-                      <div className="col-span-2 sm:col-span-1">
-                        <Label>Experience Level</Label>
-                        <Select>
-                          <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Any experience" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="beginner">0-3 years</SelectItem>
-                            <SelectItem value="intermediate">4-7 years</SelectItem>
-                            <SelectItem value="advanced">8-12 years</SelectItem>
-                            <SelectItem value="expert">12+ years</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="col-span-2 sm:col-span-1">
-                        <Label>Availability</Label>
-                        <Select>
-                          <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Any time" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="today">Available Today</SelectItem>
-                            <SelectItem value="week">This Week</SelectItem>
-                            <SelectItem value="month">This Month</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-
-                  {activeTab === "covers" && (
-                    <div className="col-span-2">
-                      <Label>Urgency</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="All urgencies" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="urgent">Very Urgent</SelectItem>
-                          <SelectItem value="moderate">Urgent</SelectItem>
-                          <SelectItem value="low">Moderate</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label className="mb-3 block">Certifications</Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="reformer" />
-                        <label htmlFor="reformer" className="text-sm cursor-pointer">
-                          Reformer
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="mat" />
-                        <label htmlFor="mat" className="text-sm cursor-pointer">
-                          Mat
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="cadillac" />
-                        <label htmlFor="cadillac" className="text-sm cursor-pointer">
-                          Cadillac
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="prenatal" />
-                        <label htmlFor="prenatal" className="text-sm cursor-pointer">
-                          Prenatal
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="sports" />
-                        <label htmlFor="sports" className="text-sm cursor-pointer">
-                          Sports
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label className="mb-3 block">Specializations</Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="rehab" />
-                        <label htmlFor="rehab" className="text-sm cursor-pointer">
-                          Rehabilitation
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="classical" />
-                        <label htmlFor="classical" className="text-sm cursor-pointer">
-                          Classical
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="athletic" />
-                        <label htmlFor="athletic" className="text-sm cursor-pointer">
-                          Athletic
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label>Max Rate: ${maxRate[0]}+</Label>
-                    <Slider value={maxRate} onValueChange={setMaxRate} max={150} step={5} className="mt-4" />
-                  </div>
-
-                  <div className="col-span-2">
-                    <Button variant="outline" className="w-full bg-transparent">
-                      Clear Filters
-                    </Button>
-                  </div>
-                </div>
+                <FilterContent />
               </Card>
             </div>
 
-            {/* Main Content */}
             <div className="lg:col-span-3">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
                 <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -287,32 +301,52 @@ export default function FindInstructorsPage() {
                 </TabsList>
               </Tabs>
 
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 gap-4">
                 <p className="text-muted-foreground">
                   {activeTab === "covers"
                     ? `${MOCK_COVER_REQUESTS.length} cover requests found`
                     : `${MOCK_INSTRUCTORS.length} instructors found`}
                 </p>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeTab === "all" ? (
-                      <>
-                        <SelectItem value="rating">Highest Rated</SelectItem>
-                        <SelectItem value="experience">Most Experience</SelectItem>
-                        <SelectItem value="rate">Lowest Rate</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="urgency">Most Urgent</SelectItem>
-                        <SelectItem value="rate">Highest Rate</SelectItem>
-                        <SelectItem value="date">Soonest Date</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
+
+                <div className="flex items-center gap-2">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="lg:hidden bg-transparent">
+                        <Filter className="h-4 w-4 mr-2" />
+                        Filters
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] overflow-y-auto">
+                      <SheetHeader>
+                        <SheetTitle>Filters</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-6">
+                        <FilterContent />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeTab === "all" ? (
+                        <>
+                          <SelectItem value="rating">Highest Rated</SelectItem>
+                          <SelectItem value="experience">Most Experience</SelectItem>
+                          <SelectItem value="rate">Lowest Rate</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="urgency">Most Urgent</SelectItem>
+                          <SelectItem value="rate">Highest Rate</SelectItem>
+                          <SelectItem value="date">Soonest Date</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {activeTab === "all" ? (

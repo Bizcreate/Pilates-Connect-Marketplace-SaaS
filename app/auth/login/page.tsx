@@ -58,12 +58,21 @@ function LoginForm() {
       })
 
       if (!sessionResponse.ok) {
-        setError("Failed to establish session. Please try again.")
+        const errorData = await sessionResponse.json()
+        setError(errorData.error || "Failed to establish session. Please try again.")
         setLoading(false)
         return
       }
 
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).maybeSingle()
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError)
+      }
 
       const redirectPath =
         profile?.user_type === "instructor"
