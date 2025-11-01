@@ -186,20 +186,3 @@ NEXT_PUBLIC_SITE_URL=https://pilatesconnect.vercel.app
 3. Content marketing (blog, SEO)
 4. Partnership with Pilates organizations
 5. Event sponsorships
-
-## 📞 Support & Contact
-
-**For Technical Issues:**
-- Email: support@pilatesconnect.com.au
-- Response time: 24 hours
-
-**For Business Inquiries:**
-- Email: hello@pilatesconnect.com.au
-
-**For Legal/Privacy:**
-- Email: legal@pilatesconnect.com.au
-
----
-
-**Last Updated:** January 2025
-**Status:** Ready for Launch 🚀
