@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { sendEmail, emailTemplates } from "@/lib/email"
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-
-  console.log("[v0] Auth callback triggered with code:", code ? "present" : "missing")
 
   if (code) {
     const supabase = await createClient()
@@ -13,21 +12,15 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      console.error("[v0] Error exchanging code for session:", error)
       return NextResponse.redirect(new URL("/auth/error", requestUrl.origin))
     }
 
     if (!data.user) {
-      console.error("[v0] No user data after exchange")
       return NextResponse.redirect(new URL("/auth/error", requestUrl.origin))
     }
 
-    console.log("[v0] User authenticated:", data.user.id)
-
     const metadata = data.user.user_metadata
     const userType = metadata.user_type
-
-    console.log("[v0] Creating profile for user type:", userType)
 
     try {
       const { error: profileError } = await supabase.from("profiles").upsert(
@@ -45,12 +38,7 @@ export async function GET(request: Request) {
         },
       )
 
-      if (profileError) {
-        console.error("[v0] Profile creation error:", profileError)
-        throw profileError
-      }
-
-      console.log("[v0] Main profile created successfully")
+      if (profileError) throw profileError
 
       if (userType === "studio") {
         const { error: studioError } = await supabase.from("studio_profiles").upsert(
@@ -59,19 +47,19 @@ export async function GET(request: Request) {
             studio_name: metadata.studio_name,
             website: metadata.website,
             instagram: metadata.instagram,
-            equipment: metadata.equipment || [],
+            equipment_available: metadata.equipment || [],
           },
           {
             onConflict: "id",
           },
         )
 
-        if (studioError) {
-          console.error("[v0] Studio profile error:", studioError)
-          throw studioError
-        }
+        if (studioError) throw studioError
 
-        console.log("[v0] Studio profile created successfully")
+        await sendEmail({
+          to: data.user.email!,
+          ...emailTemplates.welcomeStudio(metadata.display_name || metadata.studio_name || "there"),
+        })
       } else if (userType === "instructor") {
         const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
           {
@@ -87,23 +75,20 @@ export async function GET(request: Request) {
           },
         )
 
-        if (instructorError) {
-          console.error("[v0] Instructor profile error:", instructorError)
-          throw instructorError
-        }
+        if (instructorError) throw instructorError
 
-        console.log("[v0] Instructor profile created successfully")
+        await sendEmail({
+          to: data.user.email!,
+          ...emailTemplates.welcomeInstructor(metadata.display_name || "there"),
+        })
       }
 
       const redirectPath = userType === "studio" ? "/studio/dashboard" : "/instructor/dashboard"
-      console.log("[v0] Redirecting to:", redirectPath)
       return NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
     } catch (err) {
-      console.error("[v0] Profile creation failed:", err)
       return NextResponse.redirect(new URL("/auth/error", requestUrl.origin))
     }
   }
 
-  console.log("[v0] No code provided, redirecting to error")
   return NextResponse.redirect(new URL("/auth/error", requestUrl.origin))
 }

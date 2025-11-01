@@ -3,10 +3,6 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Email service configuration
-// In production, you would use a service like Resend, SendGrid, or AWS SES
-// For now, this is a placeholder that logs emails
-
 export interface EmailOptions {
   to: string
   subject: string
@@ -25,14 +21,13 @@ export async function sendEmail(options: EmailOptions) {
     })
 
     if (error) {
-      console.error("[v0] Email send error:", error)
+      console.error("Email send error:", error)
       return { success: false, error }
     }
 
-    console.log("[v0] Email sent successfully:", data)
     return { success: true, data }
   } catch (error) {
-    console.error("[v0] Email send exception:", error)
+    console.error("Email send exception:", error)
     return { success: false, error }
   }
 }

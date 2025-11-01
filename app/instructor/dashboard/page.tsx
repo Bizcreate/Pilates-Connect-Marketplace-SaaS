@@ -60,12 +60,7 @@ export default function InstructorDashboardPage() {
 
       console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
 
-      if (userError) {
-        console.error("[v0] Dashboard: User error:", userError)
-      }
-
-      if (!user) {
-        console.log("[v0] Dashboard: No user, redirecting to login")
+      if (userError || !user) {
         router.replace("/auth/login")
         return
       }
@@ -77,11 +72,10 @@ export default function InstructorDashboardPage() {
         .maybeSingle()
 
       if (profileError) {
-        console.error("[v0] Dashboard: Profile error:", profileError)
+        console.error("Profile error:", profileError)
       }
 
       if (profileData?.user_type !== "instructor") {
-        console.log("[v0] Dashboard: Wrong user type, redirecting to studio dashboard")
         router.replace("/studio/dashboard")
         return
       }

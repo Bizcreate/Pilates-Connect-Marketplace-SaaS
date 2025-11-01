@@ -17,15 +17,11 @@ export async function POST(request: Request) {
     })
 
     if (error) {
-      console.error("[v0] Error setting session:", error)
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    console.log("[v0] Session set successfully for user:", data.user?.id)
-
     return NextResponse.json({ success: true, user: data.user })
   } catch (error) {
-    console.error("[v0] Session route error:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 },
