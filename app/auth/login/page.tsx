@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, Suspense } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,10 +12,12 @@ import { createBrowserClient } from "@/lib/supabase/client"
 
 function LoginForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState(searchParams.get("email") || "")
+  const [password, setPassword] = useState("")
 
-  const email = searchParams.get("email") || ""
   const successMessage = searchParams.get("message") || null
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -23,53 +25,25 @@ function LoginForm() {
     setError("")
     setLoading(true)
 
-    console.log("[v0] Login started")
-
     try {
-      const formData = new FormData(e.currentTarget)
-      const email = formData.get("email") as string
-      const password = formData.get("password") as string
-
-      console.log("[v0] Creating Supabase client")
       const supabase = createBrowserClient()
 
-      console.log("[v0] Calling signInWithPassword")
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        console.log("[v0] Sign in error:", signInError)
         setError(signInError.message)
-        setLoading(false)
         return
       }
 
       if (!data.user) {
-        console.log("[v0] No user returned")
         setError("Login failed. Please try again.")
-        setLoading(false)
         return
       }
 
-      console.log("[v0] User signed in successfully:", data.user.id)
-
-      console.log("[v0] Fetching profile")
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .single()
-
-      if (profileError) {
-        console.log("[v0] Profile fetch error:", profileError)
-        // Default to home if profile fetch fails
-        window.location.href = "/"
-        return
-      }
-
-      console.log("[v0] Profile fetched:", profile)
+      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -80,13 +54,12 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
-      console.log("[v0] Redirecting to:", redirectPath)
-
-      // Use window.location.href for a full page reload which ensures session is recognized
-      window.location.href = redirectPath
+      router.push(redirectPath)
+      router.refresh()
     } catch (err) {
-      console.error("[v0] Unexpected login error:", err)
+      console.error("Login error:", err)
       setError("An unexpected error occurred. Please try again.")
+    } finally {
       setLoading(false)
     }
   }
@@ -120,12 +93,20 @@ function LoginForm() {
                     type="email"
                     placeholder="you@example.com"
                     required
-                    defaultValue={email}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" required />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Signing in..." : "Sign in"}
