@@ -28,22 +28,42 @@ function LoginForm() {
     try {
       const supabase = createBrowserClient()
 
+      console.log("[v0] Starting login process...")
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
+        console.error("[v0] Sign in error:", signInError)
         setError(signInError.message)
         return
       }
 
       if (!data.user) {
+        console.error("[v0] No user data returned")
         setError("Login failed. Please try again.")
         return
       }
 
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
+      console.log("[v0] User signed in successfully:", data.user.id)
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .single()
+
+      if (profileError) {
+        console.error("[v0] Profile fetch error:", profileError)
+        // If profile doesn't exist, redirect to home and let them complete setup
+        setError("Profile not found. Please complete your profile setup.")
+        router.push("/")
+        router.refresh()
+        return
+      }
+
+      console.log("[v0] Profile fetched:", profile)
 
       const redirectPath =
         profile?.user_type === "instructor"
@@ -54,10 +74,11 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
+      console.log("[v0] Redirecting to:", redirectPath)
       router.push(redirectPath)
       router.refresh()
     } catch (err) {
-      console.error("Login error:", err)
+      console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
