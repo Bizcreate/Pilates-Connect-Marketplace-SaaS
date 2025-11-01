@@ -43,8 +43,8 @@ function LoginForm() {
         return
       }
 
-      if (!data.user || !data.session) {
-        console.log("[v0] No user or session returned")
+      if (!data.user) {
+        console.log("[v0] No user returned")
         setError("Login failed. Please try again.")
         setLoading(false)
         return
@@ -52,46 +52,7 @@ function LoginForm() {
 
       console.log("[v0] User signed in:", data.user.id)
 
-      const sessionResponse = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        }),
-      })
-
-      if (!sessionResponse.ok) {
-        const errorData = await sessionResponse.json()
-        console.log("[v0] Session API error:", errorData)
-        setError(errorData.error || "Failed to establish session. Please try again.")
-        setLoading(false)
-        return
-      }
-
-      console.log("[v0] Server session established")
-
-      let profile = null
-      let retries = 3
-
-      while (retries > 0 && !profile) {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", data.user.id)
-          .maybeSingle()
-
-        if (profileError) {
-          console.log("[v0] Profile fetch error:", profileError)
-          retries--
-          if (retries > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 500))
-          }
-        } else {
-          profile = profileData
-          break
-        }
-      }
+      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", data.user.id).single()
 
       console.log("[v0] Profile:", profile)
 
@@ -106,9 +67,8 @@ function LoginForm() {
 
       console.log("[v0] Redirecting to:", redirectPath)
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      window.location.href = redirectPath
+      router.push(redirectPath)
+      router.refresh()
     } catch (err) {
       console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
