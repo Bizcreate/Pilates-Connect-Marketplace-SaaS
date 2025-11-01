@@ -118,7 +118,7 @@ export function SiteHeader() {
           <NavLinks />
         </nav>
 
-        <div className="hidden md:flex items-center gap-3 min-w-[200px] justify-end">
+        <div className="hidden md:flex items-center gap-3">
           {loading ? (
             <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
           ) : user && userType ? (
