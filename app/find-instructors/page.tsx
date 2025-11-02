@@ -149,10 +149,12 @@ export default function FindInstructorsPage() {
           id,
           display_name,
           location,
+          bio,
+          avatar_url,
           instructor_profiles (
-            bio,
-            experience_years,
-            hourly_rate,
+            years_experience,
+            hourly_rate_min,
+            hourly_rate_max,
             certifications,
             specializations,
             availability_status
@@ -163,7 +165,7 @@ export default function FindInstructorsPage() {
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("[v0] Error fetching instructors:", error)
+        console.error("[v0] Error fetching instructors:", error.message)
         setInstructors(MOCK_INSTRUCTORS)
       } else if (data && data.length > 0) {
         setInstructors(data)
@@ -399,15 +401,19 @@ export default function FindInstructorsPage() {
                   {(isLoading ? [] : instructors.length > 0 ? instructors : MOCK_INSTRUCTORS).map((instructor) => {
                     const profile = instructor.instructor_profiles?.[0] || instructor.instructor_profiles
                     const displayName = instructor.display_name || instructor.name
-                    const bio = profile?.bio || instructor.bio
-                    const experience = profile?.experience_years
-                      ? `${profile.experience_years} years`
+                    const bio = instructor.bio || profile?.bio
+                    const experience = profile?.years_experience
+                      ? `${profile.years_experience} years`
                       : instructor.experience
-                    const hourlyRate = profile?.hourly_rate || instructor.hourlyRate
+                    const hourlyRate =
+                      profile?.hourly_rate_min && profile?.hourly_rate_max
+                        ? `${profile.hourly_rate_min}-${profile.hourly_rate_max}`
+                        : profile?.hourly_rate_min || instructor.hourlyRate
                     const certifications = profile?.certifications || instructor.certifications || []
                     const location = instructor.location
                     const rating = instructor.rating || 4.8
                     const reviewCount = instructor.reviewCount || 0
+                    const avatarUrl = instructor.avatar_url || instructor.image || "/placeholder.svg?height=80&width=80"
 
                     return (
                       <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -415,7 +421,7 @@ export default function FindInstructorsPage() {
                           <div className="p-6">
                             <div className="flex gap-4 mb-4">
                               <img
-                                src={instructor.image || "/placeholder.svg?height=80&width=80"}
+                                src={avatarUrl || "/placeholder.svg"}
                                 alt={displayName}
                                 className="h-20 w-20 rounded-full object-cover"
                               />
