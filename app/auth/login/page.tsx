@@ -58,25 +58,8 @@ function LoginForm() {
         .single()
 
       if (profileError || !profile) {
-        console.log("[v0] Login: No profile found, checking metadata")
-        const userType = data.user.user_metadata?.user_type
-
-        if (userType === "instructor") {
-          console.log("[v0] Login: Redirecting to instructor onboarding")
-          router.push("/onboarding/instructor")
-          router.refresh()
-          return
-        } else if (userType === "studio") {
-          console.log("[v0] Login: Redirecting to studio onboarding")
-          router.push("/onboarding/studio")
-          router.refresh()
-          return
-        } else {
-          setError(
-            "Your account setup is incomplete. Please contact support at support@pilatesconnect.com or sign up again.",
-          )
-          return
-        }
+        setError("Profile not found. Please contact support.")
+        return
       }
 
       const redirectPath =
