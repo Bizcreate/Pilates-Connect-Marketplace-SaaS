@@ -1,146 +1,169 @@
-import "server-only"
 import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-export interface EmailOptions {
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
   to: string
   subject: string
   html: string
-  text?: string
-}
-
-export async function sendEmail(options: EmailOptions) {
+  text: string
+}) {
   try {
     const { data, error } = await resend.emails.send({
-      from: "Pilates Connect <noreply@pilatesconnect.com.au>",
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text,
+      from: "PilatesConnect <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+      text,
     })
 
     if (error) {
-      console.error("Email send error:", error)
+      console.error("[v0] Error sending email:", error)
       return { success: false, error }
     }
 
     return { success: true, data }
   } catch (error) {
-    console.error("Email send exception:", error)
+    console.error("[v0] Error sending email:", error)
     return { success: false, error }
   }
 }
 
-// Email templates
 export const emailTemplates = {
-  welcomeInstructor: (name: string) => ({
-    subject: "Welcome to Pilates Connect!",
+  welcome: (userName: string) => ({
+    subject: "Welcome to PilatesConnect!",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">Welcome to Pilates Connect, ${name}!</h1>
-        <p>Thank you for joining Australia's premier marketplace for Pilates instructors and studios.</p>
-        <p>Here's what you can do next:</p>
-        <ul>
-          <li>Complete your instructor profile</li>
-          <li>Browse available job opportunities</li>
-          <li>Set your availability for cover requests</li>
-        </ul>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/instructor/profile" 
+        <h1 style="color: #8B4513;">Welcome to PilatesConnect!</h1>
+        <p>Hi ${userName},</p>
+        <p>Thank you for joining PilatesConnect, the marketplace connecting Pilates studios and instructors.</p>
+        <p>Get started by completing your profile and exploring opportunities in your area.</p>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/profile" 
            style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
           Complete Your Profile
         </a>
       </div>
     `,
-    text: `Welcome to Pilates Connect, ${name}! Complete your profile to start finding opportunities.`,
+    text: `Welcome to PilatesConnect! Hi ${userName}, thank you for joining PilatesConnect. Get started by completing your profile.`,
   }),
 
-  welcomeStudio: (name: string) => ({
-    subject: "Welcome to Pilates Connect!",
+  coverRequestPosted: (studioName: string, date: string, location: string, rate: number) => ({
+    subject: `New Cover Request: ${studioName} - ${date}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">Welcome to Pilates Connect, ${name}!</h1>
-        <p>Thank you for joining Australia's premier marketplace for Pilates instructors and studios.</p>
-        <p>Here's what you can do next:</p>
-        <ul>
-          <li>Post your first job opening</li>
-          <li>Browse qualified instructors</li>
-          <li>Request cover for urgent needs</li>
-        </ul>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/studio/post-job" 
+        <h1 style="color: #8B4513;">New Cover Request Available</h1>
+        <p>A new cover request has been posted that matches your profile:</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p><strong>Studio:</strong> ${studioName}</p>
+          <p><strong>Date:</strong> ${date}</p>
+          <p><strong>Location:</strong> ${location}</p>
+          <p><strong>Rate:</strong> $${rate}/hour</p>
+        </div>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/instructor/dashboard" 
            style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-          Post Your First Job
+          View Request
         </a>
       </div>
     `,
-    text: `Welcome to Pilates Connect, ${name}! Post your first job to start finding instructors.`,
-  }),
-
-  jobApplication: (instructorName: string, jobTitle: string, studioName: string) => ({
-    subject: `New Application: ${instructorName} applied to ${jobTitle}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">New Job Application</h1>
-        <p><strong>${instructorName}</strong> has applied to your job posting:</p>
-        <p style="font-size: 18px; font-weight: bold;">${jobTitle}</p>
-        <p>Review their application and profile in your dashboard.</p>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/studio/dashboard" 
-           style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-          View Application
-        </a>
-      </div>
-    `,
-    text: `${instructorName} applied to ${jobTitle}. View their application in your dashboard.`,
+    text: `New cover request from ${studioName} on ${date} at ${location}. Rate: $${rate}/hour. View it on your dashboard.`,
   }),
 
   coverRequestAccepted: (instructorName: string, date: string, studioName: string) => ({
-    subject: `Cover Request Accepted by ${instructorName}`,
+    subject: `Cover Request Accepted - ${date}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">Cover Request Accepted!</h1>
-        <p><strong>${instructorName}</strong> has accepted your cover request for ${date}.</p>
-        <p>You can now coordinate details through the messaging system.</p>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/messages" 
+        <h1 style="color: #8B4513;">Your Cover Request Has Been Filled!</h1>
+        <p>Great news! ${instructorName} has accepted your cover request.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p><strong>Instructor:</strong> ${instructorName}</p>
+          <p><strong>Date:</strong> ${date}</p>
+          <p><strong>Studio:</strong> ${studioName}</p>
+        </div>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/studio/dashboard" 
            style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-          Send Message
+          View Dashboard
         </a>
       </div>
     `,
-    text: `${instructorName} accepted your cover request for ${date}. Message them to coordinate details.`,
+    text: `${instructorName} has accepted your cover request for ${date} at ${studioName}.`,
   }),
 
-  newMessage: (senderName: string, preview: string) => ({
-    subject: `New message from ${senderName}`,
+  jobPosted: (jobTitle: string, studioName: string, location: string, salary: string) => ({
+    subject: `New Job Opportunity: ${jobTitle} at ${studioName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">New Message</h1>
-        <p>You have a new message from <strong>${senderName}</strong>:</p>
-        <p style="background: #f5f5f5; padding: 16px; border-radius: 6px; font-style: italic;">
-          ${preview}...
-        </p>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/messages" 
+        <h1 style="color: #8B4513;">New Job Opportunity</h1>
+        <p>A new job has been posted that matches your profile:</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p><strong>Position:</strong> ${jobTitle}</p>
+          <p><strong>Studio:</strong> ${studioName}</p>
+          <p><strong>Location:</strong> ${location}</p>
+          <p><strong>Salary:</strong> ${salary}</p>
+        </div>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/instructor/jobs" 
            style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-          View Message
+          View Job Details
         </a>
       </div>
     `,
-    text: `New message from ${senderName}: ${preview}`,
+    text: `New job opportunity: ${jobTitle} at ${studioName} in ${location}. Salary: ${salary}. View details on the jobs page.`,
   }),
 
-  referralEarned: (referrerName: string, amount: number) => ({
-    subject: "You've Earned a Referral Reward!",
+  applicationReceived: (instructorName: string, jobTitle: string, studioName: string) => ({
+    subject: `New Application: ${jobTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #8B4513;">Congratulations, ${referrerName}!</h1>
-        <p>You've earned a referral reward of <strong>$${amount}</strong>!</p>
-        <p>Your referral has successfully signed up and completed their profile.</p>
-        <p>Keep sharing Pilates Connect to earn more rewards!</p>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/referrals" 
+        <h1 style="color: #8B4513;">New Job Application</h1>
+        <p>You have received a new application for your job posting:</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p><strong>Applicant:</strong> ${instructorName}</p>
+          <p><strong>Position:</strong> ${jobTitle}</p>
+          <p><strong>Studio:</strong> ${studioName}</p>
+        </div>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/studio/dashboard" 
            style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-          View Referral Dashboard
+          Review Application
         </a>
       </div>
     `,
-    text: `Congratulations! You've earned $${amount} from your referral.`,
+    text: `${instructorName} has applied for ${jobTitle} at ${studioName}. Review the application on your dashboard.`,
+  }),
+
+  applicationStatusUpdate: (
+    instructorName: string,
+    jobTitle: string,
+    studioName: string,
+    status: "accepted" | "rejected",
+  ) => ({
+    subject: `Application Update: ${jobTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #8B4513;">Application Status Update</h1>
+        <p>Hi ${instructorName},</p>
+        ${
+          status === "accepted"
+            ? `<p>Congratulations! Your application for <strong>${jobTitle}</strong> at ${studioName} has been accepted.</p>`
+            : `<p>Thank you for your interest in <strong>${jobTitle}</strong> at ${studioName}. Unfortunately, we've decided to move forward with other candidates at this time.</p>`
+        }
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p><strong>Position:</strong> ${jobTitle}</p>
+          <p><strong>Studio:</strong> ${studioName}</p>
+          <p><strong>Status:</strong> ${status === "accepted" ? "Accepted" : "Not Selected"}</p>
+        </div>
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/instructor/dashboard" 
+           style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
+          View Dashboard
+        </a>
+      </div>
+    `,
+    text:
+      status === "accepted"
+        ? `Congratulations! Your application for ${jobTitle} at ${studioName} has been accepted.`
+        : `Thank you for your interest in ${jobTitle} at ${studioName}. We've decided to move forward with other candidates.`,
   }),
 }

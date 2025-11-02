@@ -154,27 +154,14 @@ export async function updateApplicationStatus(applicationId: string, status: str
     if (error) throw error
 
     if (application?.instructor?.email && (status === "accepted" || status === "rejected")) {
-      const statusMessage =
-        status === "accepted"
-          ? `Congratulations! Your application for ${application.job?.title} has been accepted.`
-          : `Thank you for your interest in ${application.job?.title}. Unfortunately, we've decided to move forward with other candidates.`
-
       await sendEmail({
         to: application.instructor.email,
-        subject: `Application Update: ${application.job?.title}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #8B4513;">Application Status Update</h1>
-            <p>${statusMessage}</p>
-            <p>Job: <strong>${application.job?.title}</strong></p>
-            <p>Studio: <strong>${application.job?.studio?.display_name}</strong></p>
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://pilatesconnect.vercel.app"}/instructor/dashboard" 
-               style="display: inline-block; background: #8B4513; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">
-              View Dashboard
-            </a>
-          </div>
-        `,
-        text: statusMessage,
+        ...emailTemplates.applicationStatusUpdate(
+          application.instructor.display_name || "there",
+          application.job?.title || "the position",
+          application.job?.studio?.display_name || "the studio",
+          status as "accepted" | "rejected",
+        ),
       })
     }
 
