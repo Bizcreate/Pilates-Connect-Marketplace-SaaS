@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ArrowLeft, Send } from "lucide-react"
@@ -50,31 +49,31 @@ export default function RequestCoverPage() {
     const supabase = createBrowserClient()
 
     try {
+      console.log("[v0] Starting cover request submission...")
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
+      console.log("[v0] User:", user?.id)
+
       if (!user) throw new Error("Not authenticated")
 
       const coverData = {
         studio_id: user.id,
-        title: formData.get("title") as string,
-        description: formData.get("description") as string,
-        date_from: formData.get("date-from") as string,
-        date_to: (formData.get("date-to") as string) || null,
-        repeat_days: repeatDays,
+        date: formData.get("date-from") as string, // Single date field
         start_time: formData.get("start-time") as string,
         end_time: formData.get("end-time") as string,
-        location: formData.get("location") as string,
-        pilates_level: formData.get("pilates-level") as string,
-        equipment: selectedEquipment,
-        certifications_required: selectedCertifications,
-        compensation_min: Number.parseInt(formData.get("rate-min") as string) || null,
-        compensation_max: Number.parseInt(formData.get("rate-max") as string) || null,
-        compensation_type: formData.get("rate-type") as string,
+        class_type: formData.get("pilates-level") as string,
+        notes: formData.get("description") as string,
         status: "open",
       }
 
-      const { error } = await supabase.from("cover_requests").insert(coverData)
+      console.log("[v0] Cover request data:", coverData)
+
+      const { data, error } = await supabase.from("cover_requests").insert(coverData).select()
+
+      console.log("[v0] Insert result:", { data, error })
 
       if (error) throw error
 
@@ -122,47 +121,8 @@ export default function RequestCoverPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input id="title" name="title" placeholder="e.g., Reformer Class Cover - Morning" required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Additional details about the class, studio, or requirements..."
-                    rows={4}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date-from">Date from *</Label>
-                    <Input id="date-from" name="date-from" type="date" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date-to">Date to</Label>
-                    <Input id="date-to" name="date-to" type="date" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Repeat on</Label>
-                  <div className="flex gap-2">
-                    {weekDays.map((day) => (
-                      <Button
-                        key={day}
-                        type="button"
-                        variant={repeatDays.includes(day) ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleDay(day)}
-                        className="flex-1"
-                      >
-                        {day}
-                      </Button>
-                    ))}
-                  </div>
+                  <Label htmlFor="date-from">Date *</Label>
+                  <Input id="date-from" name="date-from" type="date" required />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -177,15 +137,10 @@ export default function RequestCoverPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <Input id="location" name="location" placeholder="e.g., Bondi, NSW" required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="pilates-level">Pilates Level *</Label>
+                  <Label htmlFor="pilates-level">Class Type *</Label>
                   <Select name="pilates-level" required>
                     <SelectTrigger id="pilates-level">
-                      <SelectValue placeholder="Select level" />
+                      <SelectValue placeholder="Select class type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mat-beginner">Mat — Beginner</SelectItem>
@@ -197,64 +152,14 @@ export default function RequestCoverPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-3">
-                  <Label>Equipment Required *</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {equipment.map((item) => (
-                      <div key={item} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`equipment-${item}`}
-                          checked={selectedEquipment.includes(item)}
-                          onCheckedChange={() => toggleEquipment(item)}
-                        />
-                        <Label htmlFor={`equipment-${item}`} className="font-normal cursor-pointer text-sm">
-                          {item}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Certifications Required</Label>
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {certifications.map((item) => (
-                      <div key={item} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`cert-${item}`}
-                          checked={selectedCertifications.includes(item)}
-                          onCheckedChange={() => toggleCertification(item)}
-                        />
-                        <Label htmlFor={`cert-${item}`} className="font-normal cursor-pointer text-sm">
-                          {item}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Rate Type *</Label>
-                  <Select name="rate-type" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select rate type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="per_class">Per Class</SelectItem>
-                      <SelectItem value="hourly">Hourly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rate-min">Minimum Rate ($) *</Label>
-                    <Input id="rate-min" name="rate-min" type="number" placeholder="60" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rate-max">Maximum Rate ($)</Label>
-                    <Input id="rate-max" name="rate-max" type="number" placeholder="100" />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Notes</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Additional details about the class, studio, or requirements..."
+                    rows={4}
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -105,10 +105,14 @@ export default function PostAvailabilityPage() {
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
+      console.log("[v0] Starting availability post submission...")
+
       const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
+      console.log("[v0] User:", user?.id)
 
       if (!user) throw new Error("Not authenticated")
 
@@ -128,7 +132,11 @@ export default function PostAvailabilityPage() {
         status: "available",
       }))
 
-      const { error } = await supabase.from("availability_slots").insert(availabilityData)
+      console.log("[v0] Availability data:", availabilityData)
+
+      const { data, error } = await supabase.from("availability_slots").insert(availabilityData).select()
+
+      console.log("[v0] Insert result:", { data, error })
 
       if (error) throw error
 

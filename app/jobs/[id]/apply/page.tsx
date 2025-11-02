@@ -29,17 +29,27 @@ export default function ApplyPage({ params }: { params: Promise<{ id: string }> 
     const supabase = createClient()
 
     try {
+      console.log("[v0] Starting job application submission...")
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
+      console.log("[v0] User:", user?.id, "Job ID:", id)
+
       if (!user) throw new Error("Not authenticated")
 
-      const { error } = await supabase.from("applications").insert({
-        job_id: id,
-        instructor_id: user.id,
-        cover_letter: coverLetter || null,
-        status: "pending",
-      })
+      const { data, error } = await supabase
+        .from("job_applications")
+        .insert({
+          job_id: id,
+          instructor_id: user.id,
+          cover_letter: coverLetter || null,
+          status: "pending",
+        })
+        .select()
+
+      console.log("[v0] Application result:", { data, error })
 
       if (error) throw error
 

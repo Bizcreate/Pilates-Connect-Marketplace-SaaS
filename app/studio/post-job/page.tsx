@@ -72,9 +72,14 @@ export default function PostJobPage() {
     const supabase = createClient()
 
     try {
+      console.log("[v0] Starting job post submission...")
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
+      console.log("[v0] User:", user?.id)
+
       if (!user) throw new Error("Not authenticated")
 
       const jobData = {
@@ -98,7 +103,11 @@ export default function PostJobPage() {
         status,
       }
 
-      const { error } = await supabase.from("jobs").insert(jobData)
+      console.log("[v0] Job data:", jobData)
+
+      const { data, error } = await supabase.from("jobs").insert(jobData).select()
+
+      console.log("[v0] Insert result:", { data, error })
 
       if (error) throw error
 
@@ -112,7 +121,7 @@ export default function PostJobPage() {
 
       router.push("/studio/dashboard")
     } catch (error) {
-      console.error("Error posting job:", error)
+      console.error("[v0] Error posting job:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to post job",
