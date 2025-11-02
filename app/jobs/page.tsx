@@ -15,6 +15,8 @@ import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookma
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
+import { acceptCoverRequest } from "@/app/actions/dashboard"
+import { CoverRequestDialog } from "@/components/cover-request-dialog"
 
 type Job = {
   id: string
@@ -62,6 +64,8 @@ export default function JobsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [userType, setUserType] = useState<string | null>(null)
+  const [selectedCoverRequest, setSelectedCoverRequest] = useState<CoverRequest | null>(null)
+  const [showCoverDialog, setShowCoverDialog] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -201,6 +205,61 @@ export default function JobsPage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save job",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAcceptCover = async () => {
+    if (!selectedCoverRequest || !userId) return
+
+    if (userType !== "instructor") {
+      toast({
+        title: "Studios cannot accept covers",
+        description: "Only instructors can accept cover requests.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const result = await acceptCoverRequest(selectedCoverRequest.id)
+      if (result.success) {
+        toast({
+          title: "Cover request accepted!",
+          description: "The studio will be notified. Check your dashboard for details.",
+        })
+        // Refresh cover requests
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("cover_requests")
+          .select(
+            `
+            *,
+            studio:profiles!cover_requests_studio_id_fkey(
+              display_name,
+              studio_profiles(studio_name)
+            )
+          `,
+          )
+          .eq("status", "open")
+          .gte("date", new Date().toISOString().split("T")[0])
+          .order("date", { ascending: true })
+          .limit(20)
+        setCoverRequests(data || [])
+        setShowCoverDialog(false)
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to accept cover request",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error accepting cover:", error)
+      toast({
+        title: "Error",
+        description: "Failed to accept cover request",
         variant: "destructive",
       })
     }
@@ -532,9 +591,21 @@ export default function JobsPage() {
                             </div>
 
                             <div className="flex md:flex-col gap-2">
-                              <Button className="flex-1 md:flex-initial" asChild>
-                                <Link href={`/cover-requests/${cover.id}`}>Accept Cover</Link>
-                              </Button>
+                              {userType === "instructor" ? (
+                                <Button
+                                  className="flex-1 md:flex-initial"
+                                  onClick={() => {
+                                    setSelectedCoverRequest(cover)
+                                    setShowCoverDialog(true)
+                                  }}
+                                >
+                                  Accept Cover
+                                </Button>
+                              ) : (
+                                <Button className="flex-1 md:flex-initial" asChild>
+                                  <Link href="/auth/sign-up">Sign Up to Accept</Link>
+                                </Button>
+                              )}
                               <Button variant="outline" className="flex-1 md:flex-initial bg-transparent">
                                 <Bookmark className="h-4 w-4 mr-2" />
                                 Save
@@ -551,6 +622,15 @@ export default function JobsPage() {
           </div>
         </div>
       </main>
+
+      {selectedCoverRequest && (
+        <CoverRequestDialog
+          request={selectedCoverRequest}
+          open={showCoverDialog}
+          onOpenChange={setShowCoverDialog}
+          onAccept={handleAcceptCover}
+        />
+      )}
 
       <SiteFooter />
     </div>

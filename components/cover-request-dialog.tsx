@@ -10,7 +10,7 @@ interface CoverRequestDialogProps {
   request: any
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAccept?: () => void
+  onAccept?: () => Promise<void>
 }
 
 export function CoverRequestDialog({ request, open, onOpenChange, onAccept }: CoverRequestDialogProps) {
@@ -18,10 +18,13 @@ export function CoverRequestDialog({ request, open, onOpenChange, onAccept }: Co
 
   const handleAccept = async () => {
     setAccepting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    onAccept?.()
-    setAccepting(false)
+    try {
+      await onAccept?.()
+    } catch (error) {
+      console.error("[v0] Error accepting cover:", error)
+    } finally {
+      setAccepting(false)
+    }
     onOpenChange(false)
   }
 
