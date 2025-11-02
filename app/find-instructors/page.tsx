@@ -17,6 +17,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { MapPin, Star, Award, Lock, Calendar, Clock, DollarSign, Filter } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { createClient } from "@/lib/supabase/client"
+import { Users } from "lucide-react"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -133,6 +134,7 @@ export default function FindInstructorsPage() {
   const [locationQuery, setLocationQuery] = useState(searchParams.get("location") || "")
   const [instructors, setInstructors] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userType, setUserType] = useState<string | null>(null)
 
   useEffect(() => {
     setSearchQuery(searchParams.get("q") || "")
@@ -143,6 +145,16 @@ export default function FindInstructorsPage() {
     async function fetchInstructors() {
       const supabase = createClient()
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle()
+        setUserType(profile?.user_type || null)
+      }
+
+      console.log("[v0] Fetching instructors...")
+
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -151,26 +163,28 @@ export default function FindInstructorsPage() {
           location,
           bio,
           avatar_url,
+          email,
           instructor_profiles (
             years_experience,
             hourly_rate_min,
             hourly_rate_max,
             certifications,
             specializations,
-            availability_status
+            availability_status,
+            equipment
           )
         `)
         .eq("user_type", "instructor")
-        .not("instructor_profiles", "is", null)
         .order("created_at", { ascending: false })
+
+      console.log("[v0] Instructors query result:", { data, error })
+      console.log("[v0] Number of instructors found:", data?.length || 0)
 
       if (error) {
         console.error("[v0] Error fetching instructors:", error.message)
-        setInstructors(MOCK_INSTRUCTORS)
-      } else if (data && data.length > 0) {
-        setInstructors(data)
+        setInstructors([])
       } else {
-        setInstructors(MOCK_INSTRUCTORS)
+        setInstructors(data || [])
       }
 
       setIsLoading(false)
@@ -350,9 +364,7 @@ export default function FindInstructorsPage() {
 
               <div className="flex items-center justify-between mb-6 gap-4">
                 <p className="text-muted-foreground">
-                  {activeTab === "covers"
-                    ? `${MOCK_COVER_REQUESTS.length} cover requests found`
-                    : `${instructors.length} instructors found`}
+                  {isLoading ? "Loading..." : `${instructors.length} instructors found`}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -397,92 +409,134 @@ export default function FindInstructorsPage() {
               </div>
 
               {activeTab === "all" ? (
-                <div className="grid md:grid-cols-2 gap-6">
-                  {(isLoading ? [] : instructors.length > 0 ? instructors : MOCK_INSTRUCTORS).map((instructor) => {
-                    const profile = instructor.instructor_profiles?.[0] || instructor.instructor_profiles
-                    const displayName = instructor.display_name || instructor.name
-                    const bio = instructor.bio || profile?.bio
-                    const experience = profile?.years_experience
-                      ? `${profile.years_experience} years`
-                      : instructor.experience
-                    const hourlyRate =
-                      profile?.hourly_rate_min && profile?.hourly_rate_max
-                        ? `${profile.hourly_rate_min}-${profile.hourly_rate_max}`
-                        : profile?.hourly_rate_min || instructor.hourlyRate
-                    const certifications = profile?.certifications || instructor.certifications || []
-                    const location = instructor.location
-                    const rating = instructor.rating || 4.8
-                    const reviewCount = instructor.reviewCount || 0
-                    const avatarUrl = instructor.avatar_url || instructor.image || "/placeholder.svg?height=80&width=80"
+                isLoading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Loading instructors...</p>
+                  </div>
+                ) : instructors.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">No instructors found</h3>
+                    <p className="text-sm text-muted-foreground">Try adjusting your filters or check back later</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {instructors.map((instructor) => {
+                      const profile = instructor.instructor_profiles?.[0] || instructor.instructor_profiles
+                      const displayName = instructor.display_name
+                      const maskedName =
+                        userType === "studio"
+                          ? displayName
+                          : displayName
+                            ? `${displayName[0]}...${displayName[displayName.length - 1]}`
+                            : "Instructor"
+                      const bio = instructor.bio
+                      const experience = profile?.years_experience ? `${profile.years_experience} years` : null
+                      const hourlyRate =
+                        profile?.hourly_rate_min && profile?.hourly_rate_max
+                          ? `${profile.hourly_rate_min}-${profile.hourly_rate_max}`
+                          : profile?.hourly_rate_min || null
+                      const certifications = profile?.certifications || []
+                      const location = instructor.location
+                      const avatarUrl = instructor.avatar_url || "/placeholder.svg?height=80&width=80"
 
-                    return (
-                      <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                        <CardContent className="p-0">
-                          <div className="p-6">
-                            <div className="flex gap-4 mb-4">
-                              <img
-                                src={avatarUrl || "/placeholder.svg"}
-                                alt={displayName}
-                                className="h-20 w-20 rounded-full object-cover"
-                              />
-                              <div className="flex-1">
-                                <div className="flex items-start justify-between mb-1">
-                                  <h3 className="font-semibold text-lg">{displayName}</h3>
-                                  <Badge variant="secondary">Available</Badge>
+                      return (
+                        <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                          <CardContent className="p-0">
+                            <div className="p-6">
+                              <div className="flex gap-4 mb-4">
+                                <div className="relative">
+                                  <img
+                                    src={avatarUrl || "/placeholder.svg"}
+                                    alt={maskedName}
+                                    className={`h-20 w-20 rounded-full object-cover ${userType !== "studio" ? "blur-sm" : ""}`}
+                                  />
+                                  {userType !== "studio" && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <Lock className="h-6 w-6 text-primary" />
+                                    </div>
+                                  )}
                                 </div>
-                                {location && (
-                                  <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                                    <MapPin className="h-3 w-3" />
-                                    {location}
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between mb-1">
+                                    <h3 className="font-semibold text-lg">{maskedName}</h3>
+                                    <Badge variant="secondary">Available</Badge>
                                   </div>
-                                )}
-                                <div className="flex items-center gap-1">
-                                  <Star className="h-4 w-4 fill-primary text-primary" />
-                                  <span className="font-semibold text-sm">{rating}</span>
-                                  <span className="text-xs text-muted-foreground">({reviewCount} reviews)</span>
+                                  {location && (
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                                      <MapPin className="h-3 w-3" />
+                                      {userType === "studio" ? location : "Location hidden"}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    <Star className="h-4 w-4 fill-primary text-primary" />
+                                    <span className="font-semibold text-sm">4.8</span>
+                                    <span className="text-xs text-muted-foreground">(0 reviews)</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {bio && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{bio}</p>}
+                              {bio && (
+                                <p
+                                  className={`text-sm text-muted-foreground mb-4 line-clamp-2 ${userType !== "studio" ? "blur-sm" : ""}`}
+                                >
+                                  {bio}
+                                </p>
+                              )}
 
-                            {experience && (
-                              <div className="flex items-center gap-2 text-sm mb-3">
-                                <Award className="h-4 w-4 text-primary" />
-                                <span className="font-medium">Experience:</span>
-                                <span className="text-muted-foreground">{experience}</span>
-                              </div>
-                            )}
-
-                            {certifications.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mb-4">
-                                {certifications.map((cert: string) => (
-                                  <Badge key={cert} variant="outline" className="text-xs">
-                                    {cert}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="bg-muted/50 p-6 border-t">
-                            <div className="flex items-center justify-between">
-                              {hourlyRate && (
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Hourly Rate</p>
-                                  <p className="text-lg font-semibold">${hourlyRate}/hr</p>
+                              {experience && (
+                                <div className="flex items-center gap-2 text-sm mb-3">
+                                  <Award className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">Experience:</span>
+                                  <span className="text-muted-foreground">{experience}</span>
                                 </div>
                               )}
-                              <Button asChild>
-                                <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
-                              </Button>
+
+                              {certifications.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-4">
+                                  {certifications.map((cert: string) => (
+                                    <Badge key={cert} variant="outline" className="text-xs">
+                                      {cert}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
+
+                            {userType !== "studio" ? (
+                              <div className="bg-muted/95 backdrop-blur-sm p-6 border-t">
+                                <div className="text-center">
+                                  <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
+                                  <h4 className="font-semibold mb-2">Studio Access Required</h4>
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                    Sign in as a studio to view full instructor profiles and contact details
+                                  </p>
+                                  <Button asChild className="w-full">
+                                    <Link href="/auth/sign-up">Create Studio Account</Link>
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-muted/50 p-6 border-t">
+                                <div className="flex items-center justify-between">
+                                  {hourlyRate && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Hourly Rate</p>
+                                      <p className="text-lg font-semibold">${hourlyRate}/hr</p>
+                                    </div>
+                                  )}
+                                  <Button asChild>
+                                    <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="grid md:grid-cols-2 gap-6">
                   {MOCK_COVER_REQUESTS.map((cover) => (

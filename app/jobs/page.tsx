@@ -14,7 +14,6 @@ import { SiteFooter } from "@/components/site-footer"
 import { Search, MapPin, Filter, Briefcase, Clock, DollarSign, Building2, Bookmark, Calendar } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { mockCoverRequests } from "@/lib/mock-data"
 import { toast } from "@/components/ui/use-toast"
 
 type Job = {
@@ -22,9 +21,8 @@ type Job = {
   title: string
   location: string
   job_type: string
-  compensation_min: number | null
-  compensation_max: number | null
-  compensation_type: string | null
+  hourly_rate_min: number | null
+  hourly_rate_max: number | null
   created_at: string
   equipment: string[]
   certifications_required: string[]
@@ -56,113 +54,6 @@ type CoverRequest = {
   } | null
 }
 
-const MOCK_JOBS: Job[] = [
-  {
-    id: "mock-1",
-    title: "Senior Reformer Instructor - Full Time",
-    location: "Melbourne CBD, VIC",
-    job_type: "full-time",
-    compensation_min: 65000,
-    compensation_max: 75000,
-    compensation_type: "salary",
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    equipment: ["Reformer", "Mat"],
-    certifications_required: ["Comprehensive Pilates Certification", "First Aid", "Insurance"],
-    description:
-      "We are seeking an experienced and passionate Senior Pilates Instructor to join our growing team. This full-time position offers the opportunity to work with a diverse clientele in our state-of-the-art studio located in the heart of Melbourne CBD.",
-    studio: {
-      display_name: "Elite Pilates Melbourne",
-      studio_profiles: {
-        studio_name: "Elite Pilates Melbourne",
-      },
-    },
-    is_mock: true,
-  },
-  {
-    id: "mock-2",
-    title: "Part-Time Pilates Instructor - Evenings & Weekends",
-    location: "Melbourne CBD, VIC",
-    job_type: "part-time",
-    compensation_min: 45,
-    compensation_max: 60,
-    compensation_type: "hourly",
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    equipment: ["Reformer", "Mat", "Chair"],
-    certifications_required: ["Mat Certification", "Reformer Certification", "Insurance"],
-    description:
-      "Elite Pilates Melbourne is looking for a qualified Pilates Instructor to teach evening and weekend classes. This is a perfect opportunity for someone looking to build their teaching hours or supplement their current schedule.",
-    studio: {
-      display_name: "Elite Pilates Melbourne",
-      studio_profiles: {
-        studio_name: "Elite Pilates Melbourne",
-      },
-    },
-    is_mock: true,
-  },
-  {
-    id: "mock-3",
-    title: "Casual Instructor - Immediate Start",
-    location: "Melbourne CBD, VIC",
-    job_type: "casual",
-    compensation_min: 50,
-    compensation_max: 70,
-    compensation_type: "per-class",
-    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    equipment: ["Reformer", "Cadillac", "Chair", "Tower", "Mat"],
-    certifications_required: ["Comprehensive Pilates Certification", "Insurance"],
-    description:
-      "We are building our casual instructor pool for class coverage and special workshops. This is an excellent opportunity for experienced instructors who want flexibility or are looking to gain more teaching experience.",
-    studio: {
-      display_name: "Elite Pilates Melbourne",
-      studio_profiles: {
-        studio_name: "Elite Pilates Melbourne",
-      },
-    },
-    is_mock: true,
-  },
-  {
-    id: "mock-4",
-    title: "Temporary Instructor - 6 Month Maternity Cover",
-    location: "Melbourne CBD, VIC",
-    job_type: "temp",
-    compensation_min: 50,
-    compensation_max: 65,
-    compensation_type: "hourly",
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    equipment: ["Reformer", "Cadillac", "Chair", "Mat", "Barrel"],
-    certifications_required: ["Comprehensive Pilates Certification", "First Aid", "Insurance"],
-    description:
-      "Elite Pilates Melbourne is seeking a qualified instructor for a 6-month temporary position to cover maternity leave. This is a fantastic opportunity to work in a premium studio with an established client base.",
-    studio: {
-      display_name: "Elite Pilates Melbourne",
-      studio_profiles: {
-        studio_name: "Elite Pilates Melbourne",
-      },
-    },
-    is_mock: true,
-  },
-]
-
-const MOCK_COVER_REQUESTS: CoverRequest[] = mockCoverRequests.map((cover) => ({
-  id: cover.id,
-  date: cover.date,
-  start_time: cover.time,
-  end_time: new Date(new Date(`${cover.date} ${cover.time}`).getTime() + 55 * 60 * 1000).toLocaleTimeString("en-AU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }),
-  class_type: cover.class_type,
-  notes: cover.description,
-  status: cover.status,
-  created_at: cover.created_at,
-  studio: {
-    display_name: cover.studio_name,
-    studio_profiles: {
-      studio_name: cover.studio_name,
-    },
-  },
-}))
-
 export default function JobsPage() {
   const [showFilters, setShowFilters] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -189,69 +80,64 @@ export default function JobsPage() {
           setUserType(profile?.user_type || null)
         }
 
-        const [jobsResult, coversResult] = await Promise.all([
-          supabase
-            .from("jobs")
-            .select(
-              `
+        const { data: jobsData, error: jobsError } = await supabase
+          .from("jobs")
+          .select(
+            `
             *,
             studio:profiles!jobs_studio_id_fkey(
               display_name,
               studio_profiles(studio_name)
             )
           `,
-            )
-            .eq("status", "open")
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("cover_requests")
-            .select(
-              `
+          )
+          .eq("status", "open")
+          .order("created_at", { ascending: false })
+
+        if (jobsError) {
+          console.error("[v0] Error fetching jobs:", jobsError)
+          setJobs([])
+        } else {
+          let jobsToDisplay: Job[] = jobsData || []
+
+          if (user && userType === "instructor") {
+            const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
+            const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
+            jobsToDisplay = jobsData.map((job) => ({
+              ...job,
+              is_saved: savedJobIds.has(job.id),
+            }))
+          }
+
+          setJobs(jobsToDisplay)
+        }
+
+        const { data: coversData, error: coversError } = await supabase
+          .from("cover_requests")
+          .select(
+            `
             *,
             studio:profiles!cover_requests_studio_id_fkey(
               display_name,
               studio_profiles(studio_name)
             )
           `,
-            )
-            .eq("status", "open")
-            .gte("date", new Date().toISOString().split("T")[0])
-            .order("date", { ascending: true })
-            .limit(20),
-        ])
+          )
+          .eq("status", "open")
+          .gte("date", new Date().toISOString().split("T")[0])
+          .order("date", { ascending: true })
+          .limit(20)
 
-        let jobsToDisplay: Job[] = []
-
-        if (jobsResult.error) {
-          console.error("[v0] Error fetching jobs:", jobsResult.error)
-          jobsToDisplay = MOCK_JOBS
-        } else if (jobsResult.data && jobsResult.data.length > 0) {
-          if (user && userType === "instructor") {
-            const { data: savedJobs } = await supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
-
-            const savedJobIds = new Set(savedJobs?.map((sj) => sj.job_id) || [])
-            jobsToDisplay = jobsResult.data.map((job) => ({
-              ...job,
-              is_saved: savedJobIds.has(job.id),
-            }))
-          } else {
-            jobsToDisplay = jobsResult.data
-          }
+        if (coversError) {
+          console.error("[v0] Error fetching covers:", coversError)
+          setCoverRequests([])
         } else {
-          jobsToDisplay = MOCK_JOBS
-        }
-
-        setJobs(jobsToDisplay)
-
-        if (coversResult.error || !coversResult.data || coversResult.data.length === 0) {
-          setCoverRequests(MOCK_COVER_REQUESTS)
-        } else if (coversResult.data && coversResult.data.length > 0) {
-          setCoverRequests(coversResult.data)
+          setCoverRequests(coversData || [])
         }
       } catch (error) {
         console.error("[v0] Error in fetchData:", error)
-        setJobs(MOCK_JOBS)
-        setCoverRequests(MOCK_COVER_REQUESTS)
+        setJobs([])
+        setCoverRequests([])
       } finally {
         setIsLoading(false)
       }
@@ -267,13 +153,11 @@ export default function JobsPage() {
     }
 
     if (userType !== "instructor") {
-      alert("Only instructors can save jobs. Studios can post jobs from their dashboard.")
-      return
-    }
-
-    const job = jobs.find((j) => j.id === jobId)
-    if (job?.is_mock) {
-      alert("This is a sample job. Real jobs will be saved to your account!")
+      toast({
+        title: "Studios cannot save jobs",
+        description: "Only instructors can save jobs. Studios can post jobs from their dashboard.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -431,7 +315,11 @@ export default function JobsPage() {
             <div className={showFilters ? "lg:col-span-3" : "lg:col-span-4"}>
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-muted-foreground">
-                  {isLoading ? "Loading..." : `${jobs.length} jobs found`}
+                  {isLoading
+                    ? "Loading..."
+                    : activeTab === "jobs"
+                      ? `${jobs.length} jobs found`
+                      : `${coverRequests.length} cover requests found`}
                 </p>
                 <Select defaultValue="recent">
                   <SelectTrigger className="w-[180px]">
@@ -447,16 +335,19 @@ export default function JobsPage() {
 
               {isLoading ? (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">Loading jobs...</p>
+                  <p className="text-muted-foreground">Loading...</p>
                 </div>
               ) : activeTab === "jobs" ? (
                 jobs.length === 0 ? (
                   <Card>
                     <CardContent className="p-12 text-center">
+                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground mb-4">No jobs found. Check back soon!</p>
-                      <Button asChild>
-                        <Link href="/studio/post-job">Post a Job</Link>
-                      </Button>
+                      {userType === "studio" && (
+                        <Button asChild>
+                          <Link href="/studio/post-job">Post a Job</Link>
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ) : (
@@ -464,10 +355,9 @@ export default function JobsPage() {
                     {jobs.map((job) => {
                       const studioName =
                         job.studio?.studio_profiles?.studio_name || job.studio?.display_name || "Studio"
-                      const rate =
-                        job.compensation_min && job.compensation_type
-                          ? `$${job.compensation_min}${job.compensation_max ? `-$${job.compensation_max}` : ""}/${job.compensation_type}`
-                          : "Rate TBD"
+                      const rate = job.hourly_rate_min
+                        ? `$${job.hourly_rate_min}${job.hourly_rate_max ? `-$${job.hourly_rate_max}` : ""}/hour`
+                        : "Rate TBD"
 
                       return (
                         <Card key={job.id} className="hover:shadow-lg transition-shadow">
@@ -534,23 +424,19 @@ export default function JobsPage() {
                               </div>
 
                               <div className="flex md:flex-col gap-2">
-                                {job.is_mock ? (
-                                  <Button className="flex-1 md:flex-initial" asChild>
-                                    <Link href="/auth/sign-up">View Details</Link>
-                                  </Button>
-                                ) : (
-                                  <Button className="flex-1 md:flex-initial" asChild>
-                                    <Link href={`/jobs/${job.id}`}>View Details</Link>
+                                <Button className="flex-1 md:flex-initial" asChild>
+                                  <Link href={`/jobs/${job.id}`}>View Details</Link>
+                                </Button>
+                                {userType === "instructor" && (
+                                  <Button
+                                    variant="outline"
+                                    className="flex-1 md:flex-initial bg-transparent"
+                                    onClick={() => handleSaveJob(job.id, job.is_saved || false)}
+                                  >
+                                    <Bookmark className={`h-4 w-4 mr-2 ${job.is_saved ? "fill-current" : ""}`} />
+                                    {job.is_saved ? "Saved" : "Save"}
                                   </Button>
                                 )}
-                                <Button
-                                  variant="outline"
-                                  className="flex-1 md:flex-initial bg-transparent"
-                                  onClick={() => handleSaveJob(job.id, job.is_saved || false)}
-                                >
-                                  <Bookmark className={`h-4 w-4 mr-2 ${job.is_saved ? "fill-current" : ""}`} />
-                                  {job.is_saved ? "Saved" : "Save"}
-                                </Button>
                               </div>
                             </div>
                           </CardContent>
@@ -559,6 +445,18 @@ export default function JobsPage() {
                     })}
                   </div>
                 )
+              ) : coverRequests.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No urgent cover requests available</p>
+                    {userType === "studio" && (
+                      <Button asChild>
+                        <Link href="/studio/request-cover">Request Cover</Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="space-y-4">
                   {coverRequests.map((cover) => {
