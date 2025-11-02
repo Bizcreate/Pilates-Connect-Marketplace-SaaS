@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { MapPin, Star, Award, Lock, Calendar, Clock, DollarSign, Filter } from "lucide-react"
+import { MapPin, Star, Award, Lock, Calendar, Clock, Filter } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { createClient } from "@/lib/supabase/client"
 import { Users } from "lucide-react"
@@ -133,6 +133,7 @@ export default function FindInstructorsPage() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
   const [locationQuery, setLocationQuery] = useState(searchParams.get("location") || "")
   const [instructors, setInstructors] = useState<any[]>([])
+  const [coverRequests, setCoverRequests] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userType, setUserType] = useState<string | null>(null)
 
@@ -142,8 +143,9 @@ export default function FindInstructorsPage() {
   }, [searchParams])
 
   useEffect(() => {
-    async function fetchInstructors() {
+    async function fetchData() {
       const supabase = createClient()
+      setIsLoading(true)
 
       const {
         data: { user },
@@ -153,48 +155,78 @@ export default function FindInstructorsPage() {
         setUserType(profile?.user_type || null)
       }
 
-      console.log("[v0] Fetching instructors...")
+      if (activeTab === "all") {
+        console.log("[v0] Find Instructors: Fetching instructors...")
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          display_name,
-          location,
-          bio,
-          avatar_url,
-          email,
-          instructor_profiles (
-            years_experience,
-            hourly_rate_min,
-            hourly_rate_max,
-            certifications,
-            specializations,
-            availability_status,
-            equipment
-          )
-        `)
-        .eq("user_type", "instructor")
-        .order("created_at", { ascending: false })
+        const { data, error } = await supabase
+          .from("profiles")
+          .select(`
+            id,
+            display_name,
+            location,
+            bio,
+            avatar_url,
+            email,
+            instructor_profiles (
+              years_experience,
+              hourly_rate_min,
+              hourly_rate_max,
+              certifications,
+              specializations,
+              availability_status,
+              equipment
+            )
+          `)
+          .eq("user_type", "instructor")
+          .order("created_at", { ascending: false })
 
-      console.log("[v0] Instructors query result:", { data, error })
-      console.log("[v0] Number of instructors found:", data?.length || 0)
+        console.log("[v0] Find Instructors: Query result:", {
+          count: data?.length || 0,
+          error: error?.message,
+          sample: data?.[0],
+        })
 
-      if (error) {
-        console.error("[v0] Error fetching instructors:", error.message)
-        setInstructors([])
-      } else {
-        setInstructors(data || [])
+        if (error) {
+          console.error("[v0] Error fetching instructors:", error.message)
+          setInstructors([])
+        } else {
+          setInstructors(data || [])
+        }
+      } else if (activeTab === "covers") {
+        console.log("[v0] Find Instructors: Fetching cover requests...")
+
+        const { data, error } = await supabase
+          .from("cover_requests")
+          .select(`
+            *,
+            studio:profiles!cover_requests_studio_id_fkey(
+              display_name,
+              studio_profiles(studio_name)
+            )
+          `)
+          .eq("status", "open")
+          .is("instructor_id", null)
+          .gte("date", new Date().toISOString().split("T")[0])
+          .order("date", { ascending: true })
+
+        console.log("[v0] Find Instructors: Cover requests result:", {
+          count: data?.length || 0,
+          error: error?.message,
+          sample: data?.[0],
+        })
+
+        if (error) {
+          console.error("[v0] Error fetching cover requests:", error.message)
+          setCoverRequests([])
+        } else {
+          setCoverRequests(data || [])
+        }
       }
 
       setIsLoading(false)
     }
 
-    if (activeTab === "all") {
-      fetchInstructors()
-    } else {
-      setIsLoading(false)
-    }
+    fetchData()
   }, [activeTab])
 
   const FilterContent = () => (
@@ -364,7 +396,11 @@ export default function FindInstructorsPage() {
 
               <div className="flex items-center justify-between mb-6 gap-4">
                 <p className="text-muted-foreground">
-                  {isLoading ? "Loading..." : `${instructors.length} instructors found`}
+                  {isLoading
+                    ? "Loading..."
+                    : activeTab === "all"
+                      ? `${instructors.length} instructors found`
+                      : `${coverRequests.length} cover requests found`}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -537,81 +573,94 @@ export default function FindInstructorsPage() {
                     })}
                   </div>
                 )
+              ) : isLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading cover requests...</p>
+                </div>
+              ) : coverRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">No cover requests available</h3>
+                  <p className="text-sm text-muted-foreground">Check back later for urgent cover opportunities</p>
+                </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-6">
-                  {MOCK_COVER_REQUESTS.map((cover) => (
-                    <Card key={cover.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <CardContent className="p-0">
-                        <div className="relative h-32">
-                          <img
-                            src={cover.image || "/placeholder.svg"}
-                            alt={cover.studio}
-                            className="w-full h-full object-cover"
-                          />
-                          <Badge
-                            className="absolute top-3 right-3"
-                            variant={cover.urgency === "Very Urgent" ? "destructive" : "secondary"}
-                          >
-                            {cover.urgency}
-                          </Badge>
-                        </div>
+                  {coverRequests.map((cover) => {
+                    const studioName =
+                      cover.studio?.studio_profiles?.studio_name || cover.studio?.display_name || "Studio"
+                    const coverDate = new Date(cover.date).toLocaleDateString("en-AU", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })
+                    const isUrgent = new Date(cover.date).getTime() - new Date().getTime() < 48 * 60 * 60 * 1000
 
-                        <div className="p-6">
-                          <div className="mb-4">
-                            <h3 className="font-semibold text-lg mb-1">{cover.studio}</h3>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <MapPin className="h-3 w-3" />
-                              {cover.location}
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 mb-4">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="h-4 w-4 text-primary" />
-                              <span className="font-medium">{cover.date}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-4 w-4 text-primary" />
-                              <span className="text-muted-foreground">{cover.time}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <DollarSign className="h-4 w-4 text-primary" />
-                              <span className="font-semibold text-primary">{cover.rate}</span>
-                            </div>
-                          </div>
-
-                          <div className="mb-4">
-                            <p className="text-sm font-medium mb-2">Class Type:</p>
-                            <Badge variant="outline">{cover.classType}</Badge>
-                          </div>
-
-                          <div className="mb-4">
-                            <p className="text-sm font-medium mb-2">Requirements:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {cover.requirements.map((req) => (
-                                <Badge key={req} variant="secondary" className="text-xs">
-                                  {req}
+                    return (
+                      <Card key={cover.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <CardContent className="p-0">
+                          <div className="p-6">
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-semibold text-lg">{studioName}</h3>
+                                <Badge variant={isUrgent ? "destructive" : "secondary"}>
+                                  {isUrgent ? "Urgent" : "Available"}
                                 </Badge>
-                              ))}
+                              </div>
+                              {cover.studio?.location && (
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  {cover.studio.location}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </div>
 
-                        <div className="bg-muted/95 backdrop-blur-sm p-6 border-t">
-                          <div className="text-center">
-                            <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
-                            <h4 className="font-semibold mb-2">Unlock Full Access</h4>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Sign in as an instructor to apply for cover requests
-                            </p>
-                            <Button asChild className="w-full">
-                              <Link href="/auth/sign-up/instructor">Create Instructor Account</Link>
-                            </Button>
+                            <div className="space-y-3 mb-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="h-4 w-4 text-primary" />
+                                <span className="font-medium">{coverDate}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-primary" />
+                                <span className="text-muted-foreground">
+                                  {cover.start_time} - {cover.end_time}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mb-4">
+                              <p className="text-sm font-medium mb-2">Class Type:</p>
+                              <Badge variant="outline">{cover.class_type || "Pilates Class"}</Badge>
+                            </div>
+
+                            {cover.notes && (
+                              <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{cover.notes}</p>
+                            )}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          {userType === "instructor" ? (
+                            <div className="bg-muted/50 p-6 border-t">
+                              <Button asChild className="w-full">
+                                <Link href={`/cover-requests/${cover.id}`}>Accept Cover</Link>
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="bg-muted/95 backdrop-blur-sm p-6 border-t">
+                              <div className="text-center">
+                                <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
+                                <h4 className="font-semibold mb-2">Instructor Access Required</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                  Sign in as an instructor to apply for cover requests
+                                </p>
+                                <Button asChild className="w-full">
+                                  <Link href="/auth/sign-up">Create Instructor Account</Link>
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
             </div>

@@ -26,15 +26,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEffect, useState } from "react"
-import {
-  mockCoverRequests,
-  mockAvailability,
-  mockJobs,
-  mockEarnings,
-  mockApplications,
-  mockMessages,
-} from "@/lib/mock-data"
-import { acceptCoverRequest, removeAvailability } from "@/app/actions/dashboard"
+import { acceptCoverRequest } from "@/app/actions/dashboard"
 
 export default function InstructorDashboardPage() {
   const router = useRouter()
@@ -51,14 +43,14 @@ export default function InstructorDashboardPage() {
     async function loadData() {
       const supabase = createBrowserClient()
 
-      console.log("[v0] Dashboard: Checking auth...")
+      console.log("[v0] Instructor Dashboard: Checking auth...")
 
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser()
 
-      console.log("[v0] Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
+      console.log("[v0] Instructor Dashboard: User result:", user ? `Found user ${user.id}` : "No user found")
 
       if (userError || !user) {
         router.replace("/auth/login")
@@ -72,7 +64,7 @@ export default function InstructorDashboardPage() {
         .maybeSingle()
 
       if (profileError) {
-        console.error("Profile error:", profileError)
+        console.error("[v0] Instructor Dashboard: Profile error:", profileError)
       }
 
       if (profileData?.user_type !== "instructor") {
@@ -82,18 +74,25 @@ export default function InstructorDashboardPage() {
 
       setProfile(profileData)
 
-      const { data: slotsData } = await supabase
+      console.log("[v0] Instructor Dashboard: Fetching availability slots...")
+      const { data: slotsData, error: slotsError } = await supabase
         .from("availability_slots")
         .select("*")
         .eq("instructor_id", user.id)
-        .eq("is_available", true)
-        .gte("start_time", new Date().toISOString())
-        .order("start_time", { ascending: true })
+        .gte("date_from", new Date().toISOString().split("T")[0])
+        .order("date_from", { ascending: true })
         .limit(10)
+
+      console.log("[v0] Instructor Dashboard: Availability result:", {
+        count: slotsData?.length || 0,
+        error: slotsError?.message,
+        sample: slotsData?.[0],
+      })
 
       setAvailabilitySlots(slotsData || [])
 
-      const { data: coverRequestsData } = await supabase
+      console.log("[v0] Instructor Dashboard: Fetching cover requests...")
+      const { data: coverRequestsData, error: coverError } = await supabase
         .from("cover_requests")
         .select(`
           *,
@@ -105,10 +104,17 @@ export default function InstructorDashboardPage() {
         .order("date", { ascending: true })
         .limit(10)
 
+      console.log("[v0] Instructor Dashboard: Cover requests result:", {
+        count: coverRequestsData?.length || 0,
+        error: coverError?.message,
+        sample: coverRequestsData?.[0],
+      })
+
       setCoverRequests(coverRequestsData || [])
 
-      const { data: appsData } = await supabase
-        .from("applications")
+      console.log("[v0] Instructor Dashboard: Fetching applications...")
+      const { data: appsData, error: appsError } = await supabase
+        .from("job_applications")
         .select(`
           *,
           job:jobs(
@@ -116,30 +122,21 @@ export default function InstructorDashboardPage() {
             title,
             job_type,
             location,
-            compensation_min,
-            compensation_max,
-            compensation_type,
+            hourly_rate_min,
+            hourly_rate_max,
             studio:profiles!jobs_studio_id_fkey(display_name)
           )
         `)
         .eq("instructor_id", user.id)
         .order("created_at", { ascending: false })
 
+      console.log("[v0] Instructor Dashboard: Applications result:", {
+        count: appsData?.length || 0,
+        error: appsError?.message,
+      })
+
       setApplications(appsData || [])
 
-      const appliedJobIds = appsData?.map((a) => a.job_id) || []
-      const { data: jobsData } = await supabase
-        .from("jobs")
-        .select(`
-          *,
-          studio:profiles!jobs_studio_id_fkey(display_name)
-        `)
-        .eq("status", "open")
-        .not("id", "in", `(${appliedJobIds.join(",") || "null"})`)
-        .order("created_at", { ascending: false })
-        .limit(5)
-
-      setAvailableJobs(jobsData || [])
       setLoading(false)
     }
 
@@ -195,66 +192,8 @@ export default function InstructorDashboardPage() {
     jobsAccepted: acceptedApplications.length,
     availabilitySlots: availabilitySlots.length,
     coverRequests: coverRequests.length,
-    unreadMessages: mockMessages.filter((m) => m.unread).length,
+    unreadMessages: 0,
   }
-
-  const displayCoverRequests =
-    coverRequests.length > 0
-      ? coverRequests
-      : mockCoverRequests.map((req) => ({
-          id: req.id,
-          class_type: req.class_type,
-          date: req.date,
-          start_time: req.time,
-          end_time: req.time,
-          notes: req.description,
-          status: req.status,
-          studio: { display_name: req.studio_name, location: req.location },
-        }))
-
-  const displayAvailability =
-    availabilitySlots.length > 0
-      ? availabilitySlots
-      : mockAvailability.map((avail) => ({
-          id: avail.id,
-          start_time: `${avail.date}T${avail.start_time}`,
-          end_time: `${avail.date}T${avail.end_time}`,
-          notes: `Available for ${avail.equipment.join(", ")}`,
-        }))
-
-  const displayApplications =
-    applications.length > 0
-      ? applications
-      : mockApplications.map((app) => ({
-          id: app.id,
-          status: app.status,
-          created_at: app.applied_date,
-          job_id: app.id,
-          job: {
-            title: app.job_title,
-            job_type: app.type,
-            location: "Sydney, NSW",
-            compensation_min: 75,
-            compensation_max: 95,
-            compensation_type: "hour",
-            studio: { display_name: app.studio_name },
-          },
-        }))
-
-  const displayJobs =
-    availableJobs.length > 0
-      ? availableJobs
-      : mockJobs.map((job) => ({
-          id: job.id,
-          title: job.title,
-          job_type: job.type,
-          location: job.location,
-          compensation_min: 75,
-          compensation_max: 95,
-          compensation_type: "hour",
-          created_at: job.posted_date,
-          studio: { display_name: job.studio_name },
-        }))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -367,9 +306,9 @@ export default function InstructorDashboardPage() {
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="cover-requests">Cover Requests ({displayCoverRequests.length})</TabsTrigger>
-              <TabsTrigger value="availability">My Availability ({displayAvailability.length})</TabsTrigger>
-              <TabsTrigger value="applications">Applications ({displayApplications.length})</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
+              <TabsTrigger value="availability">My Availability ({availabilitySlots.length})</TabsTrigger>
+              <TabsTrigger value="applications">Applications ({applications.length})</TabsTrigger>
               <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -397,7 +336,7 @@ export default function InstructorDashboardPage() {
                     <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
                       <Link href="/messages">
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Messages ({mockMessages.filter((m) => m.unread).length})
+                        Messages
                       </Link>
                     </Button>
                   </CardContent>
@@ -407,20 +346,7 @@ export default function InstructorDashboardPage() {
                   <CardHeader>
                     <CardTitle>Recent Messages</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {mockMessages.map((msg) => (
-                      <div key={msg.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm truncate">{msg.from}</p>
-                            {msg.unread && <div className="h-2 w-2 rounded-full bg-primary" />}
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">{msg.preview}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{msg.time}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
+                  <CardContent className="space-y-3">{/* Placeholder for recent messages */}</CardContent>
                 </Card>
               </div>
               <ReferralWidget />
@@ -433,19 +359,16 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Studios looking for immediate cover - respond quickly!</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {displayCoverRequests.length === 0 ? (
+                  {coverRequests.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No cover requests available</h3>
                       <p className="text-sm text-muted-foreground mb-4">
                         Check back later for urgent cover opportunities from studios
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Your posted availability can be found in the "My Availability" tab
-                      </p>
                     </div>
                   ) : (
-                    displayCoverRequests.map((request) => (
+                    coverRequests.map((request) => (
                       <div
                         key={request.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -517,7 +440,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Manage when you're available for work</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {displayAvailability.length === 0 ? (
+                  {availabilitySlots.length === 0 ? (
                     <div className="text-center py-12">
                       <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No availability posted</h3>
@@ -529,7 +452,7 @@ export default function InstructorDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    displayAvailability.map((slot) => (
+                    availabilitySlots.map((slot) => (
                       <div
                         key={slot.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -537,9 +460,9 @@ export default function InstructorDashboardPage() {
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold">{formatDateTime(slot.start_time)}</span>
+                            <span className="font-semibold">{formatDateTime(slot.date_from)}</span>
                             <span className="text-muted-foreground">to</span>
-                            <span className="font-semibold">{formatTime(slot.end_time)}</span>
+                            <span className="font-semibold">{formatDateTime(slot.date_to)}</span>
                           </div>
                           {slot.notes && <p className="text-sm text-muted-foreground">{slot.notes}</p>}
                         </div>
@@ -565,7 +488,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Track the status of your job applications</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {displayApplications.length === 0 ? (
+                  {applications.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No applications yet</h3>
@@ -575,7 +498,7 @@ export default function InstructorDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    displayApplications.map((application) => (
+                    applications.map((application) => (
                       <div
                         key={application.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -589,13 +512,12 @@ export default function InstructorDashboardPage() {
                                 <span className="capitalize">{application.job?.job_type}</span>
                                 <span>•</span>
                                 <span>{application.job?.location}</span>
-                                {application.job?.compensation_min && (
+                                {application.job?.hourly_rate_min && (
                                   <>
                                     <span>•</span>
                                     <span>
-                                      ${application.job.compensation_min}
-                                      {application.job.compensation_max && `-$${application.job.compensation_max}`}/
-                                      {application.job.compensation_type}
+                                      ${application.job.hourly_rate_min}
+                                      {application.job.hourly_rate_max && `-$${application.job.hourly_rate_max}`}/hour
                                     </span>
                                   </>
                                 )}
@@ -640,7 +562,7 @@ export default function InstructorDashboardPage() {
                     <CardTitle className="text-sm font-medium">This Month</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${mockEarnings.thisMonth.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">$0</div>
                     <p className="text-xs text-green-600 mt-1">+12% from last month</p>
                   </CardContent>
                 </Card>
@@ -649,7 +571,7 @@ export default function InstructorDashboardPage() {
                     <CardTitle className="text-sm font-medium">Last Month</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${mockEarnings.lastMonth.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">$0</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -657,7 +579,7 @@ export default function InstructorDashboardPage() {
                     <CardTitle className="text-sm font-medium">Pending</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${mockEarnings.pending.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">$0</div>
                     <p className="text-xs text-muted-foreground mt-1">To be paid</p>
                   </CardContent>
                 </Card>
@@ -666,7 +588,7 @@ export default function InstructorDashboardPage() {
                     <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${mockEarnings.total.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">$0</div>
                   </CardContent>
                 </Card>
               </div>
@@ -677,14 +599,7 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Your monthly earnings over the past 6 months</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mockEarnings.breakdown.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{item.month} 2025</span>
-                        <span className="text-sm font-bold">${item.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="space-y-4">{/* Placeholder for earnings history */}</div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -759,4 +674,9 @@ function formatDateTime(dateString: string): string {
 function formatTime(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
+}
+
+// Function to remove availability
+async function removeAvailability(slotId: string) {
+  // Implementation for removing availability
 }

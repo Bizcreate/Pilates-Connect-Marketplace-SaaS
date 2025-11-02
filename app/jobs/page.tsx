@@ -69,15 +69,21 @@ export default function JobsPage() {
       setIsLoading(true)
       const supabase = createClient()
 
+      console.log("[v0] Jobs page: Starting data fetch...")
+
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser()
+
+        console.log("[v0] Jobs page: User:", user ? `Logged in as ${user.id}` : "Not logged in")
+
         setUserId(user?.id || null)
 
         if (user) {
           const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle()
           setUserType(profile?.user_type || null)
+          console.log("[v0] Jobs page: User type:", profile?.user_type)
         }
 
         const { data: jobsData, error: jobsError } = await supabase
@@ -93,6 +99,12 @@ export default function JobsPage() {
           )
           .eq("status", "open")
           .order("created_at", { ascending: false })
+
+        console.log("[v0] Jobs page: Jobs query result:", {
+          count: jobsData?.length || 0,
+          error: jobsError,
+          sample: jobsData?.[0],
+        })
 
         if (jobsError) {
           console.error("[v0] Error fetching jobs:", jobsError)
@@ -127,6 +139,12 @@ export default function JobsPage() {
           .gte("date", new Date().toISOString().split("T")[0])
           .order("date", { ascending: true })
           .limit(20)
+
+        console.log("[v0] Jobs page: Cover requests query result:", {
+          count: coversData?.length || 0,
+          error: coversError,
+          sample: coversData?.[0],
+        })
 
         if (coversError) {
           console.error("[v0] Error fetching covers:", coversError)
