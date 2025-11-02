@@ -45,7 +45,7 @@ export async function acceptCoverRequest(requestId: string) {
       .from("cover_requests")
       .update({
         instructor_id: user.id,
-        status: "filled",
+        status: "accepted",
         updated_at: new Date().toISOString(),
       })
       .eq("id", requestId)

@@ -19,6 +19,7 @@ function LoginForm() {
   const [password, setPassword] = useState("")
 
   const successMessage = searchParams.get("message") || null
+  const redirectTo = searchParams.get("redirect") || null
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -43,7 +44,13 @@ function LoginForm() {
         return
       }
 
-      // Fetch profile to determine dashboard
+      if (redirectTo) {
+        console.log("[v0] Login: Redirecting to:", redirectTo)
+        router.push(redirectTo)
+        router.refresh()
+        return
+      }
+
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("user_type")
@@ -55,7 +62,6 @@ function LoginForm() {
         return
       }
 
-      // Redirect to appropriate dashboard
       const redirectPath =
         profile.user_type === "instructor"
           ? "/instructor/dashboard"
