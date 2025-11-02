@@ -6,16 +6,20 @@ import { sendEmail, emailTemplates } from "@/lib/email"
 
 export async function acceptCoverRequest(requestId: string) {
   try {
+    console.log("[v0] acceptCoverRequest: Starting for request ID:", requestId)
+
     const supabase = await createServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
+    console.log("[v0] acceptCoverRequest: User:", user?.id || "No user")
+
     if (!user) {
       return { success: false, error: "Not authenticated" }
     }
 
-    const { data: coverRequest } = await supabase
+    const { data: coverRequest, error: fetchError } = await supabase
       .from("cover_requests")
       .select(
         `
@@ -26,7 +30,18 @@ export async function acceptCoverRequest(requestId: string) {
       .eq("id", requestId)
       .single()
 
-    const { error } = await supabase
+    console.log(
+      "[v0] acceptCoverRequest: Fetched cover request:",
+      coverRequest ? "Found" : "Not found",
+      fetchError?.message,
+    )
+
+    if (fetchError) {
+      console.error("[v0] acceptCoverRequest: Fetch error:", fetchError)
+      throw fetchError
+    }
+
+    const { data: updateData, error: updateError } = await supabase
       .from("cover_requests")
       .update({
         instructor_id: user.id,
@@ -35,29 +50,54 @@ export async function acceptCoverRequest(requestId: string) {
       })
       .eq("id", requestId)
       .eq("status", "open")
+      .select()
 
-    if (error) throw error
+    console.log("[v0] acceptCoverRequest: Update result:", {
+      success: !updateError,
+      error: updateError?.message,
+      data: updateData,
+    })
+
+    if (updateError) {
+      console.error("[v0] acceptCoverRequest: Update error:", updateError)
+      throw updateError
+    }
+
+    if (!updateData || updateData.length === 0) {
+      console.error("[v0] acceptCoverRequest: No rows updated - request may already be filled")
+      return { success: false, error: "This cover request is no longer available" }
+    }
 
     if (coverRequest?.studio?.email) {
+      console.log("[v0] acceptCoverRequest: Sending email to:", coverRequest.studio.email)
+
       const { data: instructorProfile } = await supabase
         .from("profiles")
         .select("display_name")
         .eq("id", user.id)
         .single()
 
-      await sendEmail({
-        to: coverRequest.studio.email,
-        ...emailTemplates.coverRequestAccepted(
-          instructorProfile?.display_name || "An instructor",
-          new Date(coverRequest.date).toLocaleDateString("en-AU"),
-          coverRequest.studio.display_name || "your studio",
-        ),
-      })
+      try {
+        await sendEmail({
+          to: coverRequest.studio.email,
+          ...emailTemplates.coverRequestAccepted(
+            instructorProfile?.display_name || "An instructor",
+            new Date(coverRequest.date).toLocaleDateString("en-AU"),
+            coverRequest.studio.display_name || "your studio",
+          ),
+        })
+        console.log("[v0] acceptCoverRequest: Email sent successfully")
+      } catch (emailError) {
+        console.error("[v0] acceptCoverRequest: Email error:", emailError)
+        // Don't fail the whole operation if email fails
+      }
     }
 
     revalidatePath("/instructor/dashboard")
+    console.log("[v0] acceptCoverRequest: Success!")
     return { success: true }
   } catch (error: any) {
+    console.error("[v0] acceptCoverRequest: Error:", error)
     return { success: false, error: error.message }
   }
 }
