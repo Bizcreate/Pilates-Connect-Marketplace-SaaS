@@ -261,13 +261,6 @@ export default function JobsPage() {
   }, [])
 
   const handleSaveJob = async (jobId: string, currentlySaved: boolean) => {
-    const job = jobs.find((j) => j.id === jobId)
-    if (job?.is_mock) {
-      alert("Please sign up to save jobs and apply!")
-      router.push("/auth/sign-up")
-      return
-    }
-
     if (!userId) {
       router.push("/auth/login")
       return
@@ -275,6 +268,12 @@ export default function JobsPage() {
 
     if (userType !== "instructor") {
       alert("Only instructors can save jobs. Studios can post jobs from their dashboard.")
+      return
+    }
+
+    const job = jobs.find((j) => j.id === jobId)
+    if (job?.is_mock) {
+      alert("This is a sample job. Real jobs will be saved to your account!")
       return
     }
 

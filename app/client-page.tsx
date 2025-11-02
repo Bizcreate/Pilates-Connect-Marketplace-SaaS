@@ -95,7 +95,7 @@ export default function ClientPage() {
                 <Link href="/jobs">Browse Jobs</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/create-account">Create Account</Link>
+                <Link href="/auth/sign-up">Create Account</Link>
               </Button>
             </div>
           </div>

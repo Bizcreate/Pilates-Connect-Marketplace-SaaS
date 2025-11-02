@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { MapPin, Star, Award, Lock, Calendar, Clock, DollarSign, Filter } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { createClient } from "@/lib/supabase/client"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -130,11 +131,55 @@ export default function FindInstructorsPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
   const [locationQuery, setLocationQuery] = useState(searchParams.get("location") || "")
+  const [instructors, setInstructors] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setSearchQuery(searchParams.get("q") || "")
     setLocationQuery(searchParams.get("location") || "")
   }, [searchParams])
+
+  useEffect(() => {
+    async function fetchInstructors() {
+      const supabase = createClient()
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          display_name,
+          location,
+          instructor_profiles (
+            bio,
+            experience_years,
+            hourly_rate,
+            certifications,
+            specializations,
+            availability_status
+          )
+        `)
+        .eq("user_type", "instructor")
+        .not("instructor_profiles", "is", null)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[v0] Error fetching instructors:", error)
+        setInstructors(MOCK_INSTRUCTORS)
+      } else if (data && data.length > 0) {
+        setInstructors(data)
+      } else {
+        setInstructors(MOCK_INSTRUCTORS)
+      }
+
+      setIsLoading(false)
+    }
+
+    if (activeTab === "all") {
+      fetchInstructors()
+    } else {
+      setIsLoading(false)
+    }
+  }, [activeTab])
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -305,7 +350,7 @@ export default function FindInstructorsPage() {
                 <p className="text-muted-foreground">
                   {activeTab === "covers"
                     ? `${MOCK_COVER_REQUESTS.length} cover requests found`
-                    : `${MOCK_INSTRUCTORS.length} instructors found`}
+                    : `${instructors.length} instructors found`}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -351,69 +396,86 @@ export default function FindInstructorsPage() {
 
               {activeTab === "all" ? (
                 <div className="grid md:grid-cols-2 gap-6">
-                  {MOCK_INSTRUCTORS.map((instructor) => (
-                    <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <CardContent className="p-0">
-                        <div className="p-6">
-                          <div className="flex gap-4 mb-4">
-                            <img
-                              src={instructor.image || "/placeholder.svg"}
-                              alt={instructor.name}
-                              className="h-20 w-20 rounded-full object-cover"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-1">
-                                <h3 className="font-semibold text-lg">{instructor.name}</h3>
-                                <Badge variant="secondary">Available</Badge>
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                                <MapPin className="h-3 w-3" />
-                                {instructor.location}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 fill-primary text-primary" />
-                                <span className="font-semibold text-sm">{instructor.rating}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({instructor.reviewCount} reviews)
-                                </span>
+                  {(isLoading ? [] : instructors.length > 0 ? instructors : MOCK_INSTRUCTORS).map((instructor) => {
+                    const profile = instructor.instructor_profiles?.[0] || instructor.instructor_profiles
+                    const displayName = instructor.display_name || instructor.name
+                    const bio = profile?.bio || instructor.bio
+                    const experience = profile?.experience_years
+                      ? `${profile.experience_years} years`
+                      : instructor.experience
+                    const hourlyRate = profile?.hourly_rate || instructor.hourlyRate
+                    const certifications = profile?.certifications || instructor.certifications || []
+                    const location = instructor.location
+                    const rating = instructor.rating || 4.8
+                    const reviewCount = instructor.reviewCount || 0
+
+                    return (
+                      <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <CardContent className="p-0">
+                          <div className="p-6">
+                            <div className="flex gap-4 mb-4">
+                              <img
+                                src={instructor.image || "/placeholder.svg?height=80&width=80"}
+                                alt={displayName}
+                                className="h-20 w-20 rounded-full object-cover"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-start justify-between mb-1">
+                                  <h3 className="font-semibold text-lg">{displayName}</h3>
+                                  <Badge variant="secondary">Available</Badge>
+                                </div>
+                                {location && (
+                                  <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                                    <MapPin className="h-3 w-3" />
+                                    {location}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-4 w-4 fill-primary text-primary" />
+                                  <span className="font-semibold text-sm">{rating}</span>
+                                  <span className="text-xs text-muted-foreground">({reviewCount} reviews)</span>
+                                </div>
                               </div>
                             </div>
+
+                            {bio && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{bio}</p>}
+
+                            {experience && (
+                              <div className="flex items-center gap-2 text-sm mb-3">
+                                <Award className="h-4 w-4 text-primary" />
+                                <span className="font-medium">Experience:</span>
+                                <span className="text-muted-foreground">{experience}</span>
+                              </div>
+                            )}
+
+                            {certifications.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-4">
+                                {certifications.map((cert: string) => (
+                                  <Badge key={cert} variant="outline" className="text-xs">
+                                    {cert}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
-                          <p className="text-sm text-muted-foreground mb-4 line-clamp-2 blur-sm select-none">
-                            {instructor.bio}
-                          </p>
-
-                          <div className="flex items-center gap-2 text-sm mb-3">
-                            <Award className="h-4 w-4 text-primary" />
-                            <span className="font-medium">Experience:</span>
-                            <span className="text-muted-foreground">{instructor.experience}</span>
+                          <div className="bg-muted/50 p-6 border-t">
+                            <div className="flex items-center justify-between">
+                              {hourlyRate && (
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Hourly Rate</p>
+                                  <p className="text-lg font-semibold">${hourlyRate}/hr</p>
+                                </div>
+                              )}
+                              <Button asChild>
+                                <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
+                              </Button>
+                            </div>
                           </div>
-
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {instructor.certifications.map((cert) => (
-                              <Badge key={cert} variant="outline" className="text-xs">
-                                {cert}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="bg-muted/95 backdrop-blur-sm p-6 border-t">
-                          <div className="text-center">
-                            <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
-                            <h4 className="font-semibold mb-2">Unlock Full Access</h4>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Sign in as a studio to view contact details and message instructors
-                            </p>
-                            <Button asChild className="w-full">
-                              <Link href="/auth/sign-up/studio">Create Studio Account</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-6">
