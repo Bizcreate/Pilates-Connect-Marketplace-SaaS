@@ -20,7 +20,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       studio:profiles!jobs_studio_id_fkey(
         display_name,
         location,
-        studio_profiles(studio_name, website, instagram)
+        studio_profiles(studio_name, website, social_links)
       )
     `)
     .eq("id", id)

@@ -18,6 +18,7 @@ import { MapPin, Star, Award, Lock, Calendar, Clock, Filter } from "lucide-react
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { createClient } from "@/lib/supabase/client"
 import { Users } from "lucide-react"
+import { useRouter } from "next/router"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -127,6 +128,7 @@ const MOCK_COVER_REQUESTS = [
 
 export default function FindInstructorsPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [sortBy, setSortBy] = useState("rating")
   const [maxRate, setMaxRate] = useState([100])
   const [activeTab, setActiveTab] = useState("all")
@@ -639,8 +641,14 @@ export default function FindInstructorsPage() {
 
                           {userType === "instructor" ? (
                             <div className="bg-muted/50 p-6 border-t">
-                              <Button asChild className="w-full">
-                                <Link href={`/cover-requests/${cover.id}`}>Accept Cover</Link>
+                              <Button
+                                className="w-full"
+                                onClick={() => {
+                                  // Open dialog or navigate to instructor dashboard to accept
+                                  router.push("/instructor/dashboard?tab=cover-requests")
+                                }}
+                              >
+                                View & Accept Cover
                               </Button>
                             </div>
                           ) : (

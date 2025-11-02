@@ -90,8 +90,8 @@ export default function PostJobPage() {
         location: formData.get("location") as string,
         suburb: (formData.get("suburb") as string) || null,
         state: (formData.get("state") as string) || null,
-        equipment_provided: selectedEquipment,
-        required_certifications: selectedCertifications,
+        equipment: selectedEquipment, // Changed from equipment_provided
+        certifications_required: selectedCertifications, // Changed from required_certifications
         class_types: selectedClassTypes,
         hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null,
         hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null,
@@ -99,11 +99,10 @@ export default function PostJobPage() {
         schedule_blocks: scheduleBlocks,
         start_date: (formData.get("start-date") as string) || null,
         end_date: (formData.get("end-date") as string) || null,
-        required_experience: null,
         status,
       }
 
-      console.log("[v0] Job data:", jobData)
+      console.log("[v0] Job data to insert:", jobData)
 
       const { data, error } = await supabase.from("jobs").insert(jobData).select()
 

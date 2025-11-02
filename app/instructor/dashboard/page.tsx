@@ -467,7 +467,7 @@ export default function InstructorDashboardPage() {
                           {slot.notes && <p className="text-sm text-muted-foreground">{slot.notes}</p>}
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" asChild>
+                          <Button variant="outline" size="sm" asChild>
                             <Link href={`/instructor/availability/${slot.id}/edit`}>Edit</Link>
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => handleRemoveAvailability(slot.id)}>
