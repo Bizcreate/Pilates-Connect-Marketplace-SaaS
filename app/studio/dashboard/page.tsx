@@ -434,8 +434,8 @@ export default function StudioDashboardPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            Edit
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/studio/cover-requests/${request.id}/edit`}>Edit</Link>
                           </Button>
                           {request.status === "open" && (
                             <Button size="sm" variant="destructive">
@@ -508,9 +508,11 @@ export default function StudioDashboardPage() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/instructors/${slot.instructor?.id}`}>View Profile</Link>
                           </Button>
-                          <Button size="sm">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Contact
+                          <Button size="sm" asChild>
+                            <Link href={`/messages?userId=${slot.instructor?.id}`}>
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Contact
+                            </Link>
                           </Button>
                         </div>
                       </div>

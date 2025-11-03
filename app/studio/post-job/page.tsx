@@ -90,13 +90,10 @@ export default function PostJobPage() {
         location: formData.get("location") as string,
         suburb: (formData.get("suburb") as string) || null,
         state: (formData.get("state") as string) || null,
-        equipment: selectedEquipment, // Changed from equipment_provided
-        certifications_required: selectedCertifications, // Changed from required_certifications
-        class_types: selectedClassTypes,
+        equipment_provided: selectedEquipment, // Changed to match DB column
+        required_certifications: selectedCertifications, // Changed to match DB column
         hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null,
         hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null,
-        schedule_details: (formData.get("schedule") as string) || null,
-        schedule_blocks: scheduleBlocks,
         start_date: (formData.get("start-date") as string) || null,
         end_date: (formData.get("end-date") as string) || null,
         status,
@@ -340,12 +337,7 @@ export default function PostJobPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Schedule Blocks</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addScheduleBlock}>
-                      Add Time Slot
-                    </Button>
-                  </div>
+                  <Label>Schedule Blocks</Label>
 
                   <div className="space-y-3">
                     {scheduleBlocks.map((block, index) => (
@@ -391,6 +383,16 @@ export default function PostJobPage() {
                       </div>
                     ))}
                   </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addScheduleBlock}
+                    className="w-full bg-transparent"
+                  >
+                    Add Time Slot
+                  </Button>
                 </div>
 
                 <div className="space-y-2">
