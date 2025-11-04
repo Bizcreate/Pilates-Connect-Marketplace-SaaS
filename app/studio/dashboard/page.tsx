@@ -24,7 +24,6 @@ import {
   Search,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { mockCoverRequests, mockInstructors, mockJobs, mockApplications, mockMessages } from "@/lib/mock-data"
 
 export default function StudioDashboardPage() {
   const router = useRouter()
@@ -34,15 +33,21 @@ export default function StudioDashboardPage() {
   const [applications, setApplications] = useState<any[]>([])
   const [coverRequests, setCoverRequests] = useState<any[]>([])
   const [availableInstructors, setAvailableInstructors] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState("overview")
   const supabase = createBrowserClient()
 
   useEffect(() => {
     async function loadDashboard() {
+      console.log("[v0] Loading studio dashboard...")
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
+      console.log("[v0] User:", user?.id)
+
       if (!user) {
+        console.log("[v0] No user found, redirecting to login")
         router.push("/auth/login")
         return
       }
@@ -53,12 +58,16 @@ export default function StudioDashboardPage() {
         .eq("id", user.id)
         .maybeSingle()
 
+      console.log("[v0] Profile data:", profileData)
+
       if (!profileData) {
+        console.log("[v0] No profile found, redirecting to login")
         router.push("/auth/login")
         return
       }
 
       if (profileData.user_type !== "studio") {
+        console.log("[v0] User is not a studio, redirecting to instructor dashboard")
         router.push("/instructor/dashboard")
         return
       }
@@ -74,38 +83,25 @@ export default function StudioDashboardPage() {
         .eq("studio_id", user.id)
         .order("date", { ascending: true })
 
+      console.log("[v0] Cover requests:", coverRequestsData?.length)
       setCoverRequests(coverRequestsData || [])
 
       const { data: instructorsData } = await supabase
-        .from("availability_slots")
+        .from("instructor_profiles")
         .select(`
           *,
-          instructor:profiles!availability_slots_instructor_id_fkey(
+          profile:profiles!instructor_profiles_id_fkey(
             id,
             display_name,
-            location
-          ),
-          instructor_profile:instructor_profiles!availability_slots_instructor_id_fkey(
-            certifications,
-            specializations,
-            years_experience,
-            hourly_rate_min,
-            hourly_rate_max
+            location,
+            avatar_url
           )
         `)
-        .eq("is_available", true)
-        .gte("start_time", new Date().toISOString())
-        .order("start_time", { ascending: true })
-        .limit(10)
+        .eq("availability_status", "available")
+        .limit(20)
 
-      const uniqueInstructors = instructorsData?.reduce((acc, slot) => {
-        if (!acc.find((i: any) => i.instructor?.id === slot.instructor?.id)) {
-          acc.push(slot)
-        }
-        return acc
-      }, [] as any[])
-
-      setAvailableInstructors(uniqueInstructors || [])
+      console.log("[v0] Available instructors:", instructorsData?.length)
+      setAvailableInstructors(instructorsData || [])
 
       const { data: jobsData } = await supabase
         .from("jobs")
@@ -113,14 +109,15 @@ export default function StudioDashboardPage() {
         .eq("studio_id", user.id)
         .order("created_at", { ascending: false })
 
+      console.log("[v0] Jobs:", jobsData?.length)
       setJobs(jobsData || [])
 
       if (jobsData && jobsData.length > 0) {
         const { data: applicationsData } = await supabase
-          .from("applications")
+          .from("job_applications")
           .select(`
             *,
-            instructor:profiles!applications_instructor_id_fkey(display_name, email),
+            instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
             job:jobs(title)
           `)
           .in(
@@ -130,9 +127,11 @@ export default function StudioDashboardPage() {
           .order("created_at", { ascending: false })
           .limit(10)
 
+        console.log("[v0] Applications:", applicationsData?.length)
         setApplications(applicationsData || [])
       }
 
+      console.log("[v0] Dashboard loaded successfully")
       setLoading(false)
     }
 
@@ -169,72 +168,73 @@ export default function StudioDashboardPage() {
     profileViews: 0,
   }
 
-  const recentApplications = newApplications.slice(0, 5).map((app) => ({
-    id: app.id,
-    instructorName: app.instructor?.display_name || "Unknown",
-    jobTitle: app.job?.title || "Unknown Job",
-    appliedDate: formatRelativeTime(app.created_at),
-    status: app.status,
-  }))
+  // Removed mock data as we are now fetching from Supabase
+  // const recentApplications = newApplications.slice(0, 5).map((app) => ({
+  //   id: app.id,
+  //   instructorName: app.instructor?.display_name || "Unknown",
+  //   jobTitle: app.job?.title || "Unknown Job",
+  //   appliedDate: formatRelativeTime(app.created_at),
+  //   status: app.status,
+  // }))
 
-  const displayCoverRequests =
-    coverRequests.length > 0
-      ? coverRequests
-      : mockCoverRequests.map((req) => ({
-          id: req.id,
-          class_type: req.class_type,
-          date: req.date,
-          start_time: req.time,
-          end_time: req.time,
-          notes: req.description,
-          status: req.status,
-          instructor: null,
-        }))
+  // const displayCoverRequests =
+  //   coverRequests.length > 0
+  //     ? coverRequests
+  //     : mockCoverRequests.map((req) => ({
+  //         id: req.id,
+  //         class_type: req.class_type,
+  //         date: req.date,
+  //         start_time: req.time,
+  //         end_time: req.time,
+  //         notes: req.description,
+  //         status: req.status,
+  //         instructor: null,
+  //       }))
 
-  const displayInstructors =
-    availableInstructors.length > 0
-      ? availableInstructors
-      : mockInstructors.map((inst) => ({
-          id: inst.id,
-          start_time: new Date().toISOString(),
-          instructor: {
-            id: inst.id,
-            display_name: inst.name,
-            location: inst.location,
-          },
-          instructor_profile: {
-            certifications: inst.certifications,
-            years_experience: inst.experience_years,
-            hourly_rate_min: inst.hourly_rate - 10,
-            hourly_rate_max: inst.hourly_rate + 10,
-          },
-        }))
+  // const displayInstructors =
+  //   availableInstructors.length > 0
+  //     ? availableInstructors
+  //     : mockInstructors.map((inst) => ({
+  //         id: inst.id,
+  //         start_time: new Date().toISOString(),
+  //         instructor: {
+  //           id: inst.id,
+  //           display_name: inst.name,
+  //           location: inst.location,
+  //         },
+  //         instructor_profile: {
+  //           certifications: inst.certifications,
+  //           years_experience: inst.experience_years,
+  //           hourly_rate_min: inst.hourly_rate - 10,
+  //           hourly_rate_max: inst.hourly_rate + 10,
+  //         },
+  //       }))
 
-  const displayJobs =
-    jobs.length > 0
-      ? jobs
-      : mockJobs.map((job) => ({
-          id: job.id,
-          title: job.title,
-          job_type: job.type,
-          location: job.location,
-          status: job.status,
-          created_at: job.posted_date,
-        }))
+  // const displayJobs =
+  //   jobs.length > 0
+  //     ? jobs
+  //     : mockJobs.map((job) => ({
+  //         id: job.id,
+  //         title: job.title,
+  //         job_type: job.type,
+  //         location: job.location,
+  //         status: job.status,
+  //         created_at: job.posted_date,
+  //       }))
 
-  const displayApplications =
-    applications.length > 0
-      ? applications
-      : mockApplications
-          .filter((app) => app.type === "permanent")
-          .map((app) => ({
-            id: app.id,
-            status: app.status,
-            created_at: app.applied_date,
-            job_id: app.id,
-            instructor: { display_name: "Mock Instructor", email: "instructor@example.com" },
-            job: { title: app.job_title },
-          }))
+  // const displayApplications =
+  //   applications.length > 0
+  //     ? applications
+  //     : mockApplications
+  //         .filter((app) => app.type === "permanent")
+  //         .map((app) => ({
+  //           id: app.id,
+  //           status: app.status,
+  //           created_at: app.applied_date,
+  //           job_id: app.id,
+  //           instructor: { display_name: "Mock Instructor", email: "instructor@example.com" },
+  //           job: { title: app.job_title },
+  //         }))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -264,7 +264,7 @@ export default function StudioDashboardPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+            <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setActiveTab("jobs")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -275,7 +275,10 @@ export default function StudioDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setActiveTab("cover-requests")}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cover Requests</CardTitle>
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
@@ -286,7 +289,10 @@ export default function StudioDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setActiveTab("instructors")}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Available Instructors</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -297,7 +303,7 @@ export default function StudioDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setActiveTab("hiring")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -309,12 +315,12 @@ export default function StudioDashboardPage() {
             </Card>
           </div>
 
-          <Tabs defaultValue="overview" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="cover-requests">Cover Requests ({displayCoverRequests.length})</TabsTrigger>
-              <TabsTrigger value="instructors">Available Instructors ({displayInstructors.length})</TabsTrigger>
-              <TabsTrigger value="jobs">Active Jobs ({displayJobs.length})</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
+              <TabsTrigger value="instructors">Available Instructors ({availableInstructors.length})</TabsTrigger>
+              <TabsTrigger value="jobs">Active Jobs ({jobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -353,18 +359,31 @@ export default function StudioDashboardPage() {
                     <CardTitle>Recent Messages</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {mockMessages.map((msg) => (
-                      <div key={msg.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm truncate">{msg.from}</p>
-                            {msg.unread && <div className="h-2 w-2 rounded-full bg-primary" />}
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">{msg.preview}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{msg.time}</p>
+                    {/* Displaying mock messages for now */}
+                    {/* Replace with actual message fetching logic */}
+                    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">Alex Johnson</p>
+                          <div className="h-2 w-2 rounded-full bg-primary" />
                         </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          Can you confirm the class schedule for tomorrow?
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">Maria Garcia</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          Regarding the recent job application...
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -457,7 +476,7 @@ export default function StudioDashboardPage() {
                   <CardDescription>Instructors ready to work now</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {displayInstructors.length === 0 ? (
+                  {availableInstructors.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No instructors available</h3>
@@ -467,49 +486,42 @@ export default function StudioDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    displayInstructors.map((slot) => (
+                    availableInstructors.map((instructor) => (
                       <div
-                        key={slot.id}
+                        key={instructor.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className="space-y-2 flex-1">
                           <div className="flex items-start gap-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{slot.instructor?.display_name}</h3>
-                              {slot.instructor?.location && (
+                              <h3 className="font-semibold text-lg">{instructor.profile?.display_name}</h3>
+                              {instructor.profile?.location && (
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                   <MapPin className="h-3 w-3" />
-                                  <span>{slot.instructor.location}</span>
+                                  <span>{instructor.profile.location}</span>
                                 </div>
                               )}
-                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>Available: {formatDateTime(slot.start_time)}</span>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {instructor.years_experience && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {instructor.years_experience}+ years exp
+                                  </Badge>
+                                )}
+                                {instructor.hourly_rate_min && (
+                                  <Badge variant="outline" className="text-xs">
+                                    ${instructor.hourly_rate_min}-${instructor.hourly_rate_max}/hr
+                                  </Badge>
+                                )}
                               </div>
-                              {slot.instructor_profile && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {slot.instructor_profile.years_experience && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {slot.instructor_profile.years_experience}+ years exp
-                                    </Badge>
-                                  )}
-                                  {slot.instructor_profile.hourly_rate_min && (
-                                    <Badge variant="outline" className="text-xs">
-                                      ${slot.instructor_profile.hourly_rate_min}-$
-                                      {slot.instructor_profile.hourly_rate_max}/hr
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" asChild>
-                            <Link href={`/instructors/${slot.instructor?.id}`}>View Profile</Link>
+                            <Link href={`/instructors/${instructor.profile?.id}`}>View Profile</Link>
                           </Button>
                           <Button size="sm" asChild>
-                            <Link href={`/messages?userId=${slot.instructor?.id}`}>
+                            <Link href={`/messages?userId=${instructor.profile?.id}`}>
                               <MessageSquare className="h-4 w-4 mr-1" />
                               Contact
                             </Link>
@@ -529,7 +541,7 @@ export default function StudioDashboardPage() {
                   <CardDescription>Manage and track your current job listings</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {displayJobs.length === 0 ? (
+                  {jobs.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No active jobs</h3>
@@ -541,7 +553,7 @@ export default function StudioDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    displayJobs.map((job) => (
+                    jobs.map((job) => (
                       <div
                         key={job.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -594,10 +606,10 @@ export default function StudioDashboardPage() {
                   <div className="grid gap-4 md:grid-cols-4">
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm">
-                        Applied ({displayApplications.filter((a) => a.status === "pending").length})
+                        Applied ({applications.filter((a) => a.status === "pending").length})
                       </h3>
                       <div className="space-y-2">
-                        {displayApplications
+                        {applications
                           .filter((a) => a.status === "pending")
                           .map((app) => (
                             <Card key={app.id} className="p-3">
@@ -617,10 +629,10 @@ export default function StudioDashboardPage() {
                     </div>
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm">
-                        Hired ({displayApplications.filter((a) => a.status === "accepted").length})
+                        Hired ({applications.filter((a) => a.status === "accepted").length})
                       </h3>
                       <div className="space-y-2">
-                        {displayApplications
+                        {applications
                           .filter((a) => a.status === "accepted")
                           .map((app) => (
                             <Card key={app.id} className="p-3">
