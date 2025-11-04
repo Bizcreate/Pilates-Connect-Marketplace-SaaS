@@ -19,22 +19,18 @@ export function SiteHeader() {
     const supabase = createClient()
 
     const checkAuth = async () => {
-      console.log("[v0] SiteHeader: Checking auth...")
       const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      console.log("[v0] SiteHeader: User:", authUser ? `Logged in as ${authUser.id}` : "Not logged in")
-
-      if (authUser) {
-        setUser(authUser)
+      if (session?.user) {
+        setUser(session.user)
         const { data: profile } = await supabase
           .from("profiles")
           .select("user_type")
-          .eq("id", authUser.id)
+          .eq("id", session.user.id)
           .maybeSingle()
         setUserType(profile?.user_type || null)
-        console.log("[v0] SiteHeader: User type:", profile?.user_type)
       } else {
         setUser(null)
         setUserType(null)
@@ -47,7 +43,6 @@ export function SiteHeader() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[v0] SiteHeader: Auth state changed:", event, session?.user?.id)
       if (session?.user) {
         setUser(session.user)
         const { data: profile } = await supabase
@@ -56,11 +51,9 @@ export function SiteHeader() {
           .eq("id", session.user.id)
           .maybeSingle()
         setUserType(profile?.user_type || null)
-        console.log("[v0] SiteHeader: Updated user type:", profile?.user_type)
       } else {
         setUser(null)
         setUserType(null)
-        console.log("[v0] SiteHeader: User logged out")
       }
       setLoading(false)
     })
