@@ -4,7 +4,21 @@ import { createServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { sendEmail, emailTemplates } from "@/lib/email"
 
-export async function createJob(formData: FormData) {
+export async function createJob(jobData: {
+  title: string
+  description: string
+  job_type: string
+  location: string
+  suburb?: string | null
+  state?: string | null
+  equipment_provided?: string[]
+  required_certifications?: string[]
+  hourly_rate_min?: number | null
+  hourly_rate_max?: number | null
+  start_date?: string | null
+  end_date?: string | null
+  status: "open" | "draft"
+}) {
   try {
     const supabase = await createServerClient()
     const {
@@ -15,21 +29,21 @@ export async function createJob(formData: FormData) {
       return { success: false, error: "Not authenticated" }
     }
 
-    const jobData = {
+    const fullJobData = {
+      ...jobData,
       studio_id: user.id,
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
-      location: formData.get("location") as string,
-      employment_type: formData.get("employment_type") as string,
-      salary_min: Number.parseInt(formData.get("salary_min") as string),
-      salary_max: Number.parseInt(formData.get("salary_max") as string),
-      requirements: formData.get("requirements") as string,
-      status: "open",
     }
 
-    const { data: job, error } = await supabase.from("jobs").insert(jobData).select().single()
+    console.log("[v0] Creating job with data:", fullJobData)
 
-    if (error) throw error
+    const { data: job, error } = await supabase.from("jobs").insert(fullJobData).select().single()
+
+    if (error) {
+      console.error("[v0] Error creating job:", error)
+      throw error
+    }
+
+    console.log("[v0] Job created successfully:", job)
 
     const { data: studioProfile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
 
@@ -42,8 +56,8 @@ export async function createJob(formData: FormData) {
       .not("email", "is", null)
 
     // Send emails to matching instructors
-    if (instructors && instructors.length > 0) {
-      const salaryRange = `$${jobData.salary_min.toLocaleString()} - $${jobData.salary_max.toLocaleString()}`
+    if (instructors && instructors.length > 0 && jobData.hourly_rate_min && jobData.hourly_rate_max) {
+      const salaryRange = `$${jobData.hourly_rate_min.toLocaleString()} - $${jobData.hourly_rate_max.toLocaleString()}`
 
       await Promise.all(
         instructors.map((instructor) =>
@@ -61,9 +75,10 @@ export async function createJob(formData: FormData) {
     }
 
     revalidatePath("/studio/dashboard")
-    revalidatePath("/instructor/jobs")
+    revalidatePath("/jobs")
     return { success: true, data: job }
   } catch (error: any) {
+    console.error("[v0] Error in createJob:", error)
     return { success: false, error: error.message }
   }
 }
@@ -80,7 +95,7 @@ export async function applyToJob(jobId: string, coverLetter: string) {
     }
 
     const { data: existingApplication } = await supabase
-      .from("applications")
+      .from("job_applications")
       .select("id")
       .eq("job_id", jobId)
       .eq("instructor_id", user.id)
@@ -91,7 +106,7 @@ export async function applyToJob(jobId: string, coverLetter: string) {
     }
 
     const { data: application, error } = await supabase
-      .from("applications")
+      .from("job_applications")
       .insert({
         job_id: jobId,
         instructor_id: user.id,
@@ -131,7 +146,7 @@ export async function applyToJob(jobId: string, coverLetter: string) {
       })
     }
 
-    revalidatePath("/instructor/jobs")
+    revalidatePath("/jobs")
     revalidatePath("/studio/dashboard")
     return { success: true, data: application }
   } catch (error: any) {
