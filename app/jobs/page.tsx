@@ -26,8 +26,8 @@ type Job = {
   hourly_rate_min: number | null
   hourly_rate_max: number | null
   created_at: string
-  equipment: string[]
-  certifications_required: string[]
+  equipment_provided: string[]
+  required_certifications: string[]
   description: string
   studio: {
     display_name: string
@@ -36,7 +36,6 @@ type Job = {
     } | null
   } | null
   is_saved?: boolean
-  is_mock?: boolean
 }
 
 type CoverRequest = {
@@ -95,7 +94,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:profiles!jobs_studio_id_fkey(
+            studio:studio_id(
               display_name,
               studio_profiles(studio_name)
             )
@@ -133,7 +132,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:profiles!cover_requests_studio_id_fkey(
+            studio:studio_id(
               display_name,
               studio_profiles(studio_name)
             )
@@ -236,7 +235,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:profiles!cover_requests_studio_id_fkey(
+            studio:studio_id(
               display_name,
               studio_profiles(studio_name)
             )
@@ -473,11 +472,11 @@ export default function JobsPage() {
                                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{job.description}</p>
 
                                 <div className="space-y-2">
-                                  {job.equipment && job.equipment.length > 0 && (
+                                  {job.equipment_provided && job.equipment_provided.length > 0 && (
                                     <div>
                                       <span className="text-xs text-muted-foreground mr-2">Equipment:</span>
                                       <div className="inline-flex flex-wrap gap-1">
-                                        {job.equipment.map((item) => (
+                                        {job.equipment_provided.map((item) => (
                                           <Badge key={item} variant="outline" className="text-xs">
                                             {item}
                                           </Badge>
@@ -485,11 +484,11 @@ export default function JobsPage() {
                                       </div>
                                     </div>
                                   )}
-                                  {job.certifications_required && job.certifications_required.length > 0 && (
+                                  {job.required_certifications && job.required_certifications.length > 0 && (
                                     <div>
                                       <span className="text-xs text-muted-foreground mr-2">Required:</span>
                                       <div className="inline-flex flex-wrap gap-1">
-                                        {job.certifications_required.map((cert) => (
+                                        {job.required_certifications.map((cert) => (
                                           <Badge key={cert} variant="secondary" className="text-xs">
                                             {cert}
                                           </Badge>

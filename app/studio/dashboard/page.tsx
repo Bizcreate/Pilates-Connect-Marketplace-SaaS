@@ -78,7 +78,7 @@ export default function StudioDashboardPage() {
         .from("cover_requests")
         .select(`
           *,
-          instructor:profiles!cover_requests_instructor_id_fkey(display_name)
+          instructor:instructor_id(display_name)
         `)
         .eq("studio_id", user.id)
         .order("date", { ascending: true })
@@ -90,7 +90,7 @@ export default function StudioDashboardPage() {
         .from("instructor_profiles")
         .select(`
           *,
-          profile:profiles!instructor_profiles_id_fkey(
+          profile:id(
             id,
             display_name,
             location,
@@ -117,8 +117,8 @@ export default function StudioDashboardPage() {
           .from("job_applications")
           .select(`
             *,
-            instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
-            job:jobs(title)
+            instructor:instructor_id(display_name, email),
+            job:job_id(title)
           `)
           .in(
             "job_id",
@@ -167,74 +167,6 @@ export default function StudioDashboardPage() {
     unreadMessages: 0,
     profileViews: 0,
   }
-
-  // Removed mock data as we are now fetching from Supabase
-  // const recentApplications = newApplications.slice(0, 5).map((app) => ({
-  //   id: app.id,
-  //   instructorName: app.instructor?.display_name || "Unknown",
-  //   jobTitle: app.job?.title || "Unknown Job",
-  //   appliedDate: formatRelativeTime(app.created_at),
-  //   status: app.status,
-  // }))
-
-  // const displayCoverRequests =
-  //   coverRequests.length > 0
-  //     ? coverRequests
-  //     : mockCoverRequests.map((req) => ({
-  //         id: req.id,
-  //         class_type: req.class_type,
-  //         date: req.date,
-  //         start_time: req.time,
-  //         end_time: req.time,
-  //         notes: req.description,
-  //         status: req.status,
-  //         instructor: null,
-  //       }))
-
-  // const displayInstructors =
-  //   availableInstructors.length > 0
-  //     ? availableInstructors
-  //     : mockInstructors.map((inst) => ({
-  //         id: inst.id,
-  //         start_time: new Date().toISOString(),
-  //         instructor: {
-  //           id: inst.id,
-  //           display_name: inst.name,
-  //           location: inst.location,
-  //         },
-  //         instructor_profile: {
-  //           certifications: inst.certifications,
-  //           years_experience: inst.experience_years,
-  //           hourly_rate_min: inst.hourly_rate - 10,
-  //           hourly_rate_max: inst.hourly_rate + 10,
-  //         },
-  //       }))
-
-  // const displayJobs =
-  //   jobs.length > 0
-  //     ? jobs
-  //     : mockJobs.map((job) => ({
-  //         id: job.id,
-  //         title: job.title,
-  //         job_type: job.type,
-  //         location: job.location,
-  //         status: job.status,
-  //         created_at: job.posted_date,
-  //       }))
-
-  // const displayApplications =
-  //   applications.length > 0
-  //     ? applications
-  //     : mockApplications
-  //         .filter((app) => app.type === "permanent")
-  //         .map((app) => ({
-  //           id: app.id,
-  //           status: app.status,
-  //           created_at: app.applied_date,
-  //           job_id: app.id,
-  //           instructor: { display_name: "Mock Instructor", email: "instructor@example.com" },
-  //           job: { title: app.job_title },
-  //         }))
 
   return (
     <div className="flex min-h-screen flex-col">
