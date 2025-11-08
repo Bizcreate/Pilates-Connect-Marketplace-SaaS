@@ -116,25 +116,82 @@ export default function PostAvailabilityPage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      const availabilityData = slots.map((slot) => ({
-        instructor_id: user.id,
-        availability_type: slot.availabilityType,
-        date_from: slot.dateFrom,
-        date_to: slot.dateTo || null,
-        repeat_days: slot.repeatDays,
-        start_time: slot.startTime,
-        end_time: slot.endTime,
-        location: slot.location,
-        pilates_level: slot.pilatesLevel,
-        equipment: slot.equipment,
-        rate_min: Number.parseInt(slot.rateMin) || null,
-        rate_unit: slot.rateUnit,
-        status: "available",
-      }))
+      const generatedSlots = []
 
-      console.log("[v0] Availability data:", availabilityData)
+      for (const slot of slots) {
+        if (!slot.dateFrom || !slot.startTime || !slot.endTime) continue
 
-      const { data, error } = await supabase.from("availability_slots").insert(availabilityData).select()
+        const startDate = new Date(slot.dateFrom)
+        const endDate = slot.dateTo ? new Date(slot.dateTo) : startDate
+
+        // If no repeat days selected, create single slot for start date
+        if (slot.repeatDays.length === 0) {
+          const startDateTime = `${slot.dateFrom}T${slot.startTime}:00`
+          const endDateTime = `${slot.dateFrom}T${slot.endTime}:00`
+
+          generatedSlots.push({
+            instructor_id: user.id,
+            start_time: startDateTime,
+            end_time: endDateTime,
+            is_available: true,
+            notes: JSON.stringify({
+              availability_type: slot.availabilityType,
+              pilates_level: slot.pilatesLevel,
+              equipment: slot.equipment,
+              rate_min: slot.rateMin,
+              rate_unit: slot.rateUnit,
+              location: slot.location,
+            }),
+          })
+        } else {
+          // Generate slots for each selected day within the date range
+          const dayMap: Record<string, number> = {
+            Sun: 0,
+            Mon: 1,
+            Tue: 2,
+            Wed: 3,
+            Thu: 4,
+            Fri: 5,
+            Sat: 6,
+          }
+
+          const currentDate = new Date(startDate)
+          while (currentDate <= endDate) {
+            const dayName = Object.keys(dayMap).find((key) => dayMap[key] === currentDate.getDay())
+
+            if (dayName && slot.repeatDays.includes(dayName)) {
+              const dateStr = currentDate.toISOString().split("T")[0]
+              const startDateTime = `${dateStr}T${slot.startTime}:00`
+              const endDateTime = `${dateStr}T${slot.endTime}:00`
+
+              generatedSlots.push({
+                instructor_id: user.id,
+                start_time: startDateTime,
+                end_time: endDateTime,
+                is_available: true,
+                notes: JSON.stringify({
+                  availability_type: slot.availabilityType,
+                  pilates_level: slot.pilatesLevel,
+                  equipment: slot.equipment,
+                  rate_min: slot.rateMin,
+                  rate_unit: slot.rateUnit,
+                  location: slot.location,
+                }),
+              })
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1)
+          }
+        }
+      }
+
+      console.log("[v0] Generated slots:", generatedSlots)
+
+      if (generatedSlots.length === 0) {
+        throw new Error("No valid availability slots to post")
+      }
+
+      const { data, error } = await supabase.from("availability_slots").insert(generatedSlots).select()
 
       console.log("[v0] Insert result:", { data, error })
 
@@ -142,7 +199,7 @@ export default function PostAvailabilityPage() {
 
       toast({
         title: "Availability posted!",
-        description: `${slots.length} availability slot(s) have been posted successfully.`,
+        description: `${generatedSlots.length} availability slot(s) have been posted successfully.`,
       })
 
       router.push("/instructor/dashboard")
@@ -156,6 +213,40 @@ export default function PostAvailabilityPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const calculateTotalSlots = () => {
+    let total = 0
+    for (const slot of slots) {
+      if (!slot.dateFrom) continue
+
+      if (slot.repeatDays.length === 0) {
+        total += 1
+      } else {
+        const startDate = new Date(slot.dateFrom)
+        const endDate = slot.dateTo ? new Date(slot.dateTo) : startDate
+
+        const dayMap: Record<string, number> = {
+          Sun: 0,
+          Mon: 1,
+          Tue: 2,
+          Wed: 3,
+          Thu: 4,
+          Fri: 5,
+          Sat: 6,
+        }
+
+        const currentDate = new Date(startDate)
+        while (currentDate <= endDate) {
+          const dayName = Object.keys(dayMap).find((key) => dayMap[key] === currentDate.getDay())
+          if (dayName && slot.repeatDays.includes(dayName)) {
+            total += 1
+          }
+          currentDate.setDate(currentDate.getDate() + 1)
+        }
+      }
+    }
+    return total
   }
 
   return (
@@ -375,50 +466,65 @@ export default function PostAvailabilityPage() {
                   <CardTitle>Preview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {slots[0] && (
-                    <>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge>{slots[0].availabilityType}</Badge>
-                        <Badge variant="outline">{slots[0].pilatesLevel}</Badge>
-                        {slots[0].equipment.map((eq) => (
+                  {slots.map((slot, index) => (
+                    <div key={slot.id} className="pb-4 border-b last:border-b-0 last:pb-0">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Slot {index + 1}</p>
+
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <Badge>{slot.availabilityType}</Badge>
+                        <Badge variant="outline">{slot.pilatesLevel}</Badge>
+                        {slot.equipment.map((eq) => (
                           <Badge key={eq} variant="secondary">
                             {eq}
                           </Badge>
                         ))}
                       </div>
 
-                      {slots[0].dateFrom && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Date range</p>
+                      {slot.dateFrom && (
+                        <div className="mb-2">
+                          <p className="text-xs text-muted-foreground">Date range</p>
                           <p className="text-sm font-medium">
-                            {new Date(slots[0].dateFrom).toLocaleDateString()}
-                            {slots[0].dateTo && ` - ${new Date(slots[0].dateTo).toLocaleDateString()}`}
+                            {new Date(slot.dateFrom).toLocaleDateString()}
+                            {slot.dateTo && ` - ${new Date(slot.dateTo).toLocaleDateString()}`}
                           </p>
                         </div>
                       )}
 
-                      {slots[0].repeatDays.length > 0 && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Days</p>
-                          <p className="text-sm font-medium">{slots[0].repeatDays.join(", ")}</p>
+                      {slot.repeatDays.length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-xs text-muted-foreground">Days</p>
+                          <p className="text-sm font-medium">{slot.repeatDays.join(", ")}</p>
+                        </div>
+                      )}
+
+                      <div className="mb-2">
+                        <p className="text-xs text-muted-foreground">Time</p>
+                        <p className="text-sm font-medium">
+                          {slot.startTime} - {slot.endTime}
+                        </p>
+                      </div>
+
+                      {slot.location && (
+                        <div className="mb-2">
+                          <p className="text-xs text-muted-foreground">Location</p>
+                          <p className="text-sm font-medium">{slot.location}</p>
                         </div>
                       )}
 
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Time</p>
+                        <p className="text-xs text-muted-foreground">Rate</p>
                         <p className="text-sm font-medium">
-                          {slots[0].startTime} - {slots[0].endTime}
+                          ${slot.rateMin} {slot.rateUnit.replace("_", " ")}
                         </p>
                       </div>
+                    </div>
+                  ))}
 
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Total slots</p>
-                        <p className="text-2xl font-bold text-primary">{slots.length}</p>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground">Your generated slots will appear here.</p>
-                    </>
-                  )}
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-1">Total generated slots</p>
+                    <p className="text-3xl font-bold text-primary">{calculateTotalSlots()}</p>
+                    <p className="text-xs text-muted-foreground mt-2">Based on your date ranges and repeat days</p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
