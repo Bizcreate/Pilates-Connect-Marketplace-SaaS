@@ -108,13 +108,28 @@ export default function PostAvailabilityPage() {
       console.log("[v0] Starting availability post submission...")
 
       const supabase = createClient()
+
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      console.log("[v0] User:", user?.id)
+      console.log("[v0] Session:", session?.user?.id)
 
-      if (!user) throw new Error("Not authenticated")
+      if (!session?.user) {
+        throw new Error("Not authenticated. Please sign in to post availability.")
+      }
+
+      const { data: instructorProfile, error: profileError } = await supabase
+        .from("instructor_profiles")
+        .select("id")
+        .eq("id", session.user.id)
+        .single()
+
+      console.log("[v0] Instructor profile:", instructorProfile, profileError)
+
+      if (profileError || !instructorProfile) {
+        throw new Error("Instructor profile not found. Please complete your profile first.")
+      }
 
       const generatedSlots = []
 
@@ -130,7 +145,7 @@ export default function PostAvailabilityPage() {
           const endDateTime = `${slot.dateFrom}T${slot.endTime}:00`
 
           generatedSlots.push({
-            instructor_id: user.id,
+            instructor_id: session.user.id,
             start_time: startDateTime,
             end_time: endDateTime,
             is_available: true,
@@ -165,7 +180,7 @@ export default function PostAvailabilityPage() {
               const endDateTime = `${dateStr}T${slot.endTime}:00`
 
               generatedSlots.push({
-                instructor_id: user.id,
+                instructor_id: session.user.id,
                 start_time: startDateTime,
                 end_time: endDateTime,
                 is_available: true,
@@ -185,7 +200,8 @@ export default function PostAvailabilityPage() {
         }
       }
 
-      console.log("[v0] Generated slots:", generatedSlots)
+      console.log("[v0] Generated slots count:", generatedSlots.length)
+      console.log("[v0] First slot sample:", generatedSlots[0])
 
       if (generatedSlots.length === 0) {
         throw new Error("No valid availability slots to post")
@@ -193,9 +209,12 @@ export default function PostAvailabilityPage() {
 
       const { data, error } = await supabase.from("availability_slots").insert(generatedSlots).select()
 
-      console.log("[v0] Insert result:", { data, error })
+      if (error) {
+        console.error("[v0] Database error:", error)
+        throw new Error(`Database error: ${error.message}`)
+      }
 
-      if (error) throw error
+      console.log("[v0] Insert successful, inserted count:", data?.length)
 
       toast({
         title: "Availability posted!",
