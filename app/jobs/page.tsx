@@ -94,13 +94,12 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!jobs_studio_id_fkey(
               display_name,
               studio_profiles(studio_name)
             )
           `,
           )
-          .eq("status", "open")
           .order("created_at", { ascending: false })
 
         console.log("[v0] Jobs page: Jobs query result:", {
@@ -132,13 +131,12 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!cover_requests_studio_id_fkey(
               display_name,
               studio_profiles(studio_name)
             )
           `,
           )
-          .eq("status", "open")
           .gte("date", new Date().toISOString().split("T")[0])
           .order("date", { ascending: true })
           .limit(20)
@@ -235,13 +233,12 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!cover_requests_studio_id_fkey(
               display_name,
               studio_profiles(studio_name)
             )
           `,
           )
-          .eq("status", "open")
           .gte("date", new Date().toISOString().split("T")[0])
           .order("date", { ascending: true })
           .limit(20)

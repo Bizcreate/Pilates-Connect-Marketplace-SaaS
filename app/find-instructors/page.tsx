@@ -18,7 +18,7 @@ import { MapPin, Star, Award, Lock, Calendar, Clock, Filter } from "lucide-react
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { createClient } from "@/lib/supabase/client"
 import { Users } from "lucide-react"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -523,7 +523,7 @@ export default function FindInstructorsPage() {
                               )}
 
                               {experience && (
-                                <div className="flex items-center gap-2 text-sm mb-3">
+                                <div className="flex items-center justify-between mb-3">
                                   <Award className="h-4 w-4 text-primary" />
                                   <span className="font-medium">Experience:</span>
                                   <span className="text-muted-foreground">{experience}</span>

@@ -90,7 +90,7 @@ export default function StudioDashboardPage() {
         .from("instructor_profiles")
         .select(`
           *,
-          profile:id(
+          profile:profiles!instructor_profiles_id_fkey(
             id,
             display_name,
             location,
