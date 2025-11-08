@@ -31,6 +31,7 @@ type Job = {
   description: string
   studio: {
     display_name: string
+    location: string
     studio_profiles: {
       studio_name: string
     } | null
@@ -49,6 +50,7 @@ type CoverRequest = {
   created_at: string
   studio: {
     display_name: string
+    location: string
     studio_profiles: {
       studio_name: string
     } | null
@@ -96,7 +98,8 @@ export default function JobsPage() {
             *,
             studio:profiles!jobs_studio_id_fkey(
               display_name,
-              studio_profiles(studio_name)
+              location,
+              studio_profiles!inner(studio_name)
             )
           `,
           )
@@ -104,7 +107,7 @@ export default function JobsPage() {
 
         console.log("[v0] Jobs page: Jobs query result:", {
           count: jobsData?.length || 0,
-          error: jobsError,
+          error: jobsError?.message,
           sample: jobsData?.[0],
         })
 
@@ -133,7 +136,8 @@ export default function JobsPage() {
             *,
             studio:profiles!cover_requests_studio_id_fkey(
               display_name,
-              studio_profiles(studio_name)
+              location,
+              studio_profiles!inner(studio_name)
             )
           `,
           )
@@ -143,7 +147,7 @@ export default function JobsPage() {
 
         console.log("[v0] Jobs page: Cover requests query result:", {
           count: coversData?.length || 0,
-          error: coversError,
+          error: coversError?.message,
           sample: coversData?.[0],
         })
 
@@ -235,7 +239,8 @@ export default function JobsPage() {
             *,
             studio:profiles!cover_requests_studio_id_fkey(
               display_name,
-              studio_profiles(studio_name)
+              location,
+              studio_profiles!inner(studio_name)
             )
           `,
           )
@@ -577,7 +582,7 @@ export default function JobsPage() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <MapPin className="h-4 w-4" />
-                                  <span>{cover.studio?.display_name || "Location TBD"}</span>
+                                  <span>{cover.studio?.location || "Location TBD"}</span>
                                 </div>
                               </div>
 

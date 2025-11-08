@@ -169,7 +169,7 @@ export default function FindInstructorsPage() {
             bio,
             avatar_url,
             email,
-            instructor_profiles (
+            instructor_profiles!inner (
               years_experience,
               hourly_rate_min,
               hourly_rate_max,
@@ -203,7 +203,8 @@ export default function FindInstructorsPage() {
             *,
             studio:profiles!cover_requests_studio_id_fkey(
               display_name,
-              studio_profiles(studio_name)
+              location,
+              studio_profiles!inner(studio_name)
             )
           `)
           .eq("status", "open")
@@ -460,7 +461,7 @@ export default function FindInstructorsPage() {
                 ) : (
                   <div className="grid md:grid-cols-2 gap-6">
                     {instructors.map((instructor) => {
-                      const profile = instructor.instructor_profiles?.[0] || instructor.instructor_profiles
+                      const profile = instructor.instructor_profiles
                       const displayName = instructor.display_name
                       const maskedName =
                         userType === "studio"
