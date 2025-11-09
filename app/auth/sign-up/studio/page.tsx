@@ -44,6 +44,8 @@ export default function StudioSignUpPage() {
     try {
       const supabase = createClient()
 
+      console.log("[v0] Starting studio signup for:", email)
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -70,6 +72,9 @@ export default function StudioSignUpPage() {
         setLoading(false)
         return
       }
+
+      console.log("[v0] Signup successful:", data)
+      console.log("[v0] User email confirmation required:", data.user?.identities?.length === 0)
 
       window.location.href = "/auth/sign-up-success"
     } catch (err: any) {

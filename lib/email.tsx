@@ -2,6 +2,8 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+
 export async function sendEmail({
   to,
   subject,
@@ -14,8 +16,10 @@ export async function sendEmail({
   text: string
 }) {
   try {
+    console.log("[v0] Sending email to:", to, "Subject:", subject)
+
     const { data, error } = await resend.emails.send({
-      from: "PilatesConnect <onboarding@resend.dev>",
+      from: `PilatesConnect <${FROM_EMAIL}>`,
       to,
       subject,
       html,
@@ -27,6 +31,7 @@ export async function sendEmail({
       return { success: false, error }
     }
 
+    console.log("[v0] Email sent successfully:", data)
     return { success: true, data }
   } catch (error) {
     console.error("[v0] Error sending email:", error)
