@@ -90,7 +90,7 @@ export default function StudioDashboardPage() {
         .from("instructor_profiles")
         .select(`
           *,
-          profile:profiles!instructor_profiles_id_fkey(
+          profile:id(
             id,
             display_name,
             location,
@@ -100,7 +100,7 @@ export default function StudioDashboardPage() {
         .eq("availability_status", "available")
         .limit(20)
 
-      console.log("[v0] Available instructors:", instructorsData?.length)
+      console.log("[v0] Available instructors:", instructorsData?.length, instructorsData)
       setAvailableInstructors(instructorsData || [])
 
       const { data: jobsData } = await supabase

@@ -201,10 +201,10 @@ export default function FindInstructorsPage() {
           .from("cover_requests")
           .select(`
             *,
-            studio:profiles!cover_requests_studio_id_fkey(
+            studio:studio_id(
               display_name,
               location,
-              studio_profiles!inner(studio_name)
+              studio_profiles(studio_name)
             )
           `)
           .eq("status", "open")
