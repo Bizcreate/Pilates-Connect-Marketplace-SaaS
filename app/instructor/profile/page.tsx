@@ -97,9 +97,29 @@ export default function InstructorProfilePage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      await supabase.from("instructor_profiles").update({ social_links: socialLinks }).eq("id", user.id)
+      console.log("[v0] Saving social links for user:", user.id)
+      console.log("[v0] Social links:", socialLinks)
+
+      const { data, error } = await supabase
+        .from("instructor_profiles")
+        .upsert(
+          {
+            id: user.id,
+            social_links: socialLinks,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "id",
+          },
+        )
+        .select()
+
+      console.log("[v0] Save result:", { success: !!data, error: error?.message, data })
+
+      if (error) throw error
 
       alert("Social links saved!")
+      window.location.reload()
     } catch (error: any) {
       console.error("[v0] Save error:", error)
       alert("Save failed: " + error.message)

@@ -78,9 +78,21 @@ export default function PostJobPage() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      console.log("[v0] User:", user?.id)
+      console.log("[v0] User:", user?.id, user?.email)
 
       if (!user) throw new Error("Not authenticated")
+
+      const { data: studioProfile, error: profileError } = await supabase
+        .from("studio_profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      console.log("[v0] Studio profile check:", { studioProfile, profileError })
+
+      if (!studioProfile) {
+        throw new Error("Studio profile not found. Please complete your profile first.")
+      }
 
       const jobData = {
         studio_id: user.id,
@@ -90,8 +102,8 @@ export default function PostJobPage() {
         location: formData.get("location") as string,
         suburb: (formData.get("suburb") as string) || null,
         state: (formData.get("state") as string) || null,
-        equipment_provided: selectedEquipment, // Changed to match DB column
-        required_certifications: selectedCertifications, // Changed to match DB column
+        equipment_provided: selectedEquipment,
+        required_certifications: selectedCertifications,
         hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null,
         hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null,
         start_date: (formData.get("start-date") as string) || null,
@@ -99,11 +111,11 @@ export default function PostJobPage() {
         status,
       }
 
-      console.log("[v0] Job data to insert:", jobData)
+      console.log("[v0] Job data to insert:", JSON.stringify(jobData, null, 2))
 
-      const { data, error } = await supabase.from("jobs").insert(jobData).select()
+      const { data, error } = await supabase.from("jobs").insert([jobData]).select()
 
-      console.log("[v0] Insert result:", { data, error })
+      console.log("[v0] Insert result:", { success: !!data, error: error?.message, data })
 
       if (error) throw error
 

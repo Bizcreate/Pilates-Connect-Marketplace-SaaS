@@ -73,17 +73,44 @@ export default function StudioProfilePage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      await supabase
+      console.log("[v0] Saving studio profile for user:", user.id)
+      console.log("[v0] Profile data:", formData)
+      console.log("[v0] Social links:", socialLinks)
+
+      const { data, error } = await supabase
         .from("studio_profiles")
+        .upsert(
+          {
+            id: user.id,
+            ...formData,
+            social_links: socialLinks,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "id",
+          },
+        )
+        .select()
+
+      console.log("[v0] Save result:", { success: !!data, error: error?.message, data })
+
+      if (error) throw error
+
+      const { error: profileError } = await supabase
+        .from("profiles")
         .update({
-          ...formData,
-          social_links: socialLinks,
+          display_name: formData.studio_name,
+          location: formData.location,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
 
+      console.log("[v0] Profiles table update:", { error: profileError?.message })
+
       alert("Profile saved successfully!")
+      window.location.reload()
     } catch (error: any) {
-      console.error("Save error:", error)
+      console.error("[v0] Save error:", error)
       alert("Save failed: " + error.message)
     } finally {
       setLoading(false)
