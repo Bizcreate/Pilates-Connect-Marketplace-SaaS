@@ -169,7 +169,7 @@ export default function FindInstructorsPage() {
             bio,
             avatar_url,
             email,
-            instructor_profiles!inner (
+            instructor_profiles (
               years_experience,
               hourly_rate_min,
               hourly_rate_max,
@@ -201,7 +201,7 @@ export default function FindInstructorsPage() {
           .from("cover_requests")
           .select(`
             *,
-            studio:studio_id(
+            studio:profiles!studio_id(
               display_name,
               location,
               studio_profiles(studio_name)
@@ -461,23 +461,27 @@ export default function FindInstructorsPage() {
                 ) : (
                   <div className="grid md:grid-cols-2 gap-6">
                     {instructors.map((instructor) => {
-                      const profile = instructor.instructor_profiles
-                      const displayName = instructor.display_name
+                      const profile = Array.isArray(instructor.instructor_profiles)
+                        ? instructor.instructor_profiles[0]
+                        : instructor.instructor_profiles
+                      const displayName = instructor.display_name || "Instructor"
                       const maskedName =
                         userType === "studio"
                           ? displayName
-                          : displayName
+                          : displayName.length > 1
                             ? `${displayName[0]}...${displayName[displayName.length - 1]}`
-                            : "Instructor"
-                      const bio = instructor.bio
-                      const experience = profile?.years_experience ? `${profile.years_experience} years` : null
+                            : displayName[0] + "..."
+                      const bio = instructor.bio || "Certified Pilates instructor"
+                      const experience = profile?.years_experience
+                        ? `${profile.years_experience} years`
+                        : "Experience not listed"
                       const hourlyRate =
                         profile?.hourly_rate_min && profile?.hourly_rate_max
                           ? `${profile.hourly_rate_min}-${profile.hourly_rate_max}`
                           : profile?.hourly_rate_min || null
                       const certifications = profile?.certifications || []
-                      const location = instructor.location
-                      const avatarUrl = instructor.avatar_url || "/placeholder.svg?height=80&width=80"
+                      const location = instructor.location || "Location not specified"
+                      const avatarUrl = instructor.avatar_url || "/instructor-teaching.png"
 
                       return (
                         <Card key={instructor.id} className="overflow-hidden hover:shadow-lg transition-shadow">

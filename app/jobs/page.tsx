@@ -96,7 +96,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!studio_id(
               display_name,
               location,
               studio_profiles(studio_name)
@@ -108,7 +108,7 @@ export default function JobsPage() {
         console.log("[v0] Jobs page: Jobs query result:", {
           count: jobsData?.length || 0,
           error: jobsError?.message,
-          data: jobsData,
+          sample: jobsData?.[0],
         })
 
         if (jobsError) {
@@ -134,7 +134,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!studio_id(
               display_name,
               location,
               studio_profiles(studio_name)
@@ -148,7 +148,7 @@ export default function JobsPage() {
         console.log("[v0] Jobs page: Cover requests query result:", {
           count: coversData?.length || 0,
           error: coversError?.message,
-          data: coversData,
+          sample: coversData?.[0],
         })
 
         if (coversError) {
@@ -237,7 +237,7 @@ export default function JobsPage() {
           .select(
             `
             *,
-            studio:studio_id(
+            studio:profiles!studio_id(
               display_name,
               location,
               studio_profiles(studio_name)

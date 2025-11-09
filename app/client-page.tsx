@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,11 @@ export default function ClientPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [location, setLocation] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -23,6 +28,10 @@ export default function ClientPage() {
     if (searchQuery) params.set("q", searchQuery)
     if (location) params.set("location", location)
     router.push(`/find-instructors?${params.toString()}`)
+  }
+
+  if (!isMounted) {
+    return null
   }
 
   return (
