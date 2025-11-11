@@ -45,6 +45,17 @@ export default function StudioSignUpPage() {
       const supabase = createClient()
 
       console.log("[v0] Starting studio signup for:", email)
+      console.log("[v0] Form data:", {
+        email,
+        studioName,
+        contactName,
+        location,
+        phone,
+        website,
+        instagram,
+        bio,
+        equipment,
+      })
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -67,19 +78,29 @@ export default function StudioSignUpPage() {
       })
 
       if (signUpError) {
-        console.error("[v0] Signup error:", signUpError)
-        setError(signUpError.message)
+        console.error("[v0] Signup error details:", {
+          message: signUpError.message,
+          status: signUpError.status,
+          name: signUpError.name,
+          fullError: signUpError,
+        })
+        setError(`Signup failed: ${signUpError.message}`)
         setLoading(false)
         return
       }
 
       console.log("[v0] Signup successful:", data)
-      console.log("[v0] User email confirmation required:", data.user?.identities?.length === 0)
+      console.log("[v0] User created:", data.user?.id)
+      console.log("[v0] Email confirmation required:", data.user?.identities?.length === 0)
 
       window.location.href = "/auth/sign-up-success"
     } catch (err: any) {
-      console.error("[v0] Studio signup error:", err)
-      setError(err.message || "Failed to create account. Please try again.")
+      console.error("[v0] Studio signup exception:", {
+        message: err.message,
+        stack: err.stack,
+        fullError: err,
+      })
+      setError(`Database error saving new user: ${err.message || "Unknown error"}`)
       setLoading(false)
     }
   }
