@@ -45,17 +45,7 @@ export default function StudioSignUpPage() {
       const supabase = createClient()
 
       console.log("[v0] Starting studio signup for:", email)
-      console.log("[v0] Form data:", {
-        email,
-        studioName,
-        contactName,
-        location,
-        phone,
-        website,
-        instagram,
-        bio,
-        equipment,
-      })
+      console.log("[v0] Equipment selected:", equipment)
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -70,7 +60,7 @@ export default function StudioSignUpPage() {
             phone: phone || null,
             bio: bio || null,
             studio_name: studioName,
-            equipment,
+            equipment: equipment,
             website: website || null,
             instagram: instagram || null,
           },
@@ -78,29 +68,20 @@ export default function StudioSignUpPage() {
       })
 
       if (signUpError) {
-        console.error("[v0] Signup error details:", {
-          message: signUpError.message,
-          status: signUpError.status,
-          name: signUpError.name,
-          fullError: signUpError,
-        })
-        setError(`Signup failed: ${signUpError.message}`)
+        console.error("[v0] Supabase auth error:", signUpError)
+        setError(signUpError.message)
         setLoading(false)
         return
       }
 
-      console.log("[v0] Signup successful:", data)
-      console.log("[v0] User created:", data.user?.id)
-      console.log("[v0] Email confirmation required:", data.user?.identities?.length === 0)
+      console.log("[v0] Signup successful! User:", data.user?.id)
+      console.log("[v0] User data:", data.user)
+      console.log("[v0] Session:", data.session)
 
       window.location.href = "/auth/sign-up-success"
     } catch (err: any) {
-      console.error("[v0] Studio signup exception:", {
-        message: err.message,
-        stack: err.stack,
-        fullError: err,
-      })
-      setError(`Database error saving new user: ${err.message || "Unknown error"}`)
+      console.error("[v0] Signup exception:", err)
+      setError(err.message || "An unexpected error occurred")
       setLoading(false)
     }
   }

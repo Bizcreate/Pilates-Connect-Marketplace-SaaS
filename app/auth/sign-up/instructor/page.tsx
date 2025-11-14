@@ -59,6 +59,8 @@ export default function InstructorSignUpPage() {
     try {
       const supabase = createClient()
 
+      console.log("[v0] Starting instructor signup for:", email)
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -71,8 +73,8 @@ export default function InstructorSignUpPage() {
             location,
             phone: phone || null,
             bio: bio || null,
-            equipment,
-            certifications,
+            equipment: JSON.stringify(equipment),
+            certifications: JSON.stringify(certifications),
             years_experience: Number.parseInt(yearsExperience) || 0,
             hourly_rate_min: rateMin ? Number.parseInt(rateMin) : null,
             hourly_rate_max: rateMax ? Number.parseInt(rateMax) : null,
@@ -81,16 +83,18 @@ export default function InstructorSignUpPage() {
       })
 
       if (signUpError) {
-        console.error("[v0] Signup error:", signUpError)
-        setError(signUpError.message)
+        console.error("[v0] Signup error:", signUpError.message)
+        setError(`Signup failed: ${signUpError.message}`)
         setLoading(false)
         return
       }
 
+      console.log("[v0] Signup successful! User ID:", data.user?.id)
+
       window.location.href = "/auth/sign-up-success"
     } catch (err: any) {
       console.error("[v0] Instructor signup error:", err)
-      setError(err.message || "Failed to create account. Please try again.")
+      setError(`Failed to create account: ${err.message || "Unknown error"}`)
       setLoading(false)
     }
   }
