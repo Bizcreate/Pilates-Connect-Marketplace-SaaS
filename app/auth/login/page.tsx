@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, Suspense } from "react"
 import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,6 +28,8 @@ function LoginForm() {
 
     try {
       const supabase = createClient()
+      
+      console.log("[v0] Login: Starting login for email:", email)
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -35,14 +37,18 @@ function LoginForm() {
       })
 
       if (signInError) {
+        console.log("[v0] Login: Sign-in error:", signInError)
         setError(signInError.message)
         return
       }
 
       if (!data.user) {
+        console.log("[v0] Login: No user returned from sign-in")
         setError("Login failed. Please try again.")
         return
       }
+
+      console.log("[v0] Login: User authenticated:", data.user.id)
 
       if (redirectTo) {
         console.log("[v0] Login: Redirecting to:", redirectTo)
@@ -57,10 +63,21 @@ function LoginForm() {
         .eq("id", data.user.id)
         .single()
 
-      if (profileError || !profile) {
-        setError("Profile not found. Please contact support.")
+      console.log("[v0] Login: Profile query result:", { profile, profileError })
+
+      if (profileError) {
+        console.error("[v0] Login: Profile error:", profileError)
+        setError(`Profile error: ${profileError.message}. Your account may need to be set up. Please contact support.`)
         return
       }
+
+      if (!profile) {
+        console.error("[v0] Login: No profile found for user:", data.user.id)
+        setError("Profile not found. Your account needs to be set up. Please contact support with your email address.")
+        return
+      }
+
+      console.log("[v0] Login: Profile found, user_type:", profile.user_type)
 
       const redirectPath =
         profile.user_type === "instructor"
@@ -71,9 +88,11 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
+      console.log("[v0] Login: Redirecting to dashboard:", redirectPath)
       router.push(redirectPath)
       router.refresh()
     } catch (err) {
+      console.error("[v0] Login: Unexpected error:", err)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
