@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { ArrowLeft, Plus, X, Calendar } from "lucide-react"
+import { ArrowLeft, Plus, X, Calendar } from 'lucide-react'
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -119,16 +119,37 @@ export default function PostAvailabilityPage() {
         throw new Error("Not authenticated. Please sign in to post availability.")
       }
 
-      const { data: instructorProfile, error: profileError } = await supabase
-        .from("instructor_profiles")
-        .select("id")
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, user_type")
         .eq("id", session.user.id)
         .single()
 
-      console.log("[v0] Instructor profile:", instructorProfile, profileError)
+      console.log("[v0] Profile check:", profile, profileError)
 
-      if (profileError || !instructorProfile) {
-        throw new Error("Instructor profile not found. Please complete your profile first.")
+      if (profileError || !profile) {
+        throw new Error("Profile not found. Please complete your profile first.")
+      }
+
+      if (profile.user_type !== "instructor") {
+        throw new Error("You must be registered as an instructor to post availability.")
+      }
+
+      const { data: instructorProfile, error: instructorError } = await supabase
+        .from("instructor_profiles")
+        .select("id")
+        .eq("id", session.user.id)
+        .maybeSingle()
+
+      console.log("[v0] Instructor profile check:", instructorProfile, instructorError)
+
+      if (instructorError) {
+        console.error("[v0] Error checking instructor profile:", instructorError)
+        throw new Error(`Instructor profile error: ${instructorError.message}`)
+      }
+
+      if (!instructorProfile) {
+        throw new Error("Instructor profile not found. Please complete your instructor profile in settings first.")
       }
 
       const generatedSlots = []
@@ -204,21 +225,23 @@ export default function PostAvailabilityPage() {
       console.log("[v0] First slot sample:", generatedSlots[0])
 
       if (generatedSlots.length === 0) {
-        throw new Error("No valid availability slots to post")
+        throw new Error("No valid availability slots to post. Please fill in at least the date and times.")
       }
+
+      console.log("[v0] About to insert slots:", JSON.stringify(generatedSlots, null, 2))
 
       const { data, error } = await supabase.from("availability_slots").insert(generatedSlots).select()
 
       if (error) {
-        console.error("[v0] Database error:", error)
-        throw new Error(`Database error: ${error.message}`)
+        console.error("[v0] Database error details:", JSON.stringify(error, null, 2))
+        throw new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ""}`)
       }
 
-      console.log("[v0] Insert successful, inserted count:", data?.length)
+      console.log("[v0] Insert successful, inserted records:", data)
 
       toast({
         title: "Availability posted!",
-        description: `${generatedSlots.length} availability slot(s) have been posted successfully.`,
+        description: `${data.length} availability slot(s) have been posted successfully.`,
       })
 
       router.push("/instructor/dashboard")
