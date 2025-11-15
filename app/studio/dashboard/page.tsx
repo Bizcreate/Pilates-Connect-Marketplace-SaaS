@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,19 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
-import {
-  Plus,
-  MessageSquare,
-  Users,
-  Briefcase,
-  TrendingUp,
-  Calendar,
-  Clock,
-  MapPin,
-  CalendarDays,
-  AlertCircle,
-  Search,
-} from "lucide-react"
+import { Plus, MessageSquare, Users, Briefcase, TrendingUp, Calendar, Clock, MapPin, CalendarDays, AlertCircle, Search } from 'lucide-react'
 import { createBrowserClient } from "@/lib/supabase/client"
 
 export default function StudioDashboardPage() {
@@ -74,51 +62,64 @@ export default function StudioDashboardPage() {
 
       setProfile(profileData)
 
-      const { data: coverRequestsData } = await supabase
+      const { data: coverRequestsData, error: coverError } = await supabase
         .from("cover_requests")
         .select(`
           *,
-          instructor:instructor_id(display_name)
+          instructor:profiles!cover_requests_instructor_id_fkey(display_name)
         `)
         .eq("studio_id", user.id)
         .order("date", { ascending: true })
 
-      console.log("[v0] Cover requests:", coverRequestsData?.length)
+      console.log("[v0] Cover requests:", { count: coverRequestsData?.length, error: coverError })
       setCoverRequests(coverRequestsData || [])
 
-      const { data: instructorsData } = await supabase
-        .from("instructor_profiles")
+      const { data: instructorsData, error: instructorsError } = await supabase
+        .from("profiles")
         .select(`
-          *,
-          profile:id(
-            id,
-            display_name,
-            location,
-            avatar_url
+          id,
+          display_name,
+          location,
+          avatar_url,
+          instructor_profile:instructor_profiles!instructor_profiles_id_fkey(
+            years_experience,
+            hourly_rate_min,
+            hourly_rate_max,
+            availability_status,
+            specializations,
+            certifications,
+            equipment
           )
         `)
-        .eq("availability_status", "available")
+        .eq("user_type", "instructor")
+        .not("instructor_profile", "is", null)
         .limit(20)
 
-      console.log("[v0] Available instructors:", instructorsData?.length, instructorsData)
-      setAvailableInstructors(instructorsData || [])
+      console.log("[v0] Available instructors:", { count: instructorsData?.length, error: instructorsError, sample: instructorsData?.[0] })
+      
+      // Filter for only available instructors
+      const availableInstructorsData = instructorsData?.filter(
+        (instructor) => instructor.instructor_profile?.availability_status === "available"
+      ) || []
+      
+      setAvailableInstructors(availableInstructorsData)
 
-      const { data: jobsData } = await supabase
+      const { data: jobsData, error: jobsError } = await supabase
         .from("jobs")
         .select("*")
         .eq("studio_id", user.id)
         .order("created_at", { ascending: false })
 
-      console.log("[v0] Jobs:", jobsData?.length)
+      console.log("[v0] Jobs:", { count: jobsData?.length, error: jobsError })
       setJobs(jobsData || [])
 
       if (jobsData && jobsData.length > 0) {
-        const { data: applicationsData } = await supabase
+        const { data: applicationsData, error: appsError } = await supabase
           .from("job_applications")
           .select(`
             *,
-            instructor:instructor_id(display_name, email),
-            job:job_id(title)
+            instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
+            job:jobs(title)
           `)
           .in(
             "job_id",
@@ -127,7 +128,7 @@ export default function StudioDashboardPage() {
           .order("created_at", { ascending: false })
           .limit(10)
 
-        console.log("[v0] Applications:", applicationsData?.length)
+        console.log("[v0] Applications:", { count: applicationsData?.length, error: appsError })
         setApplications(applicationsData || [])
       }
 
@@ -426,22 +427,22 @@ export default function StudioDashboardPage() {
                         <div className="space-y-2 flex-1">
                           <div className="flex items-start gap-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{instructor.profile?.display_name}</h3>
-                              {instructor.profile?.location && (
+                              <h3 className="font-semibold text-lg">{instructor.display_name}</h3>
+                              {instructor.location && (
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                   <MapPin className="h-3 w-3" />
-                                  <span>{instructor.profile.location}</span>
+                                  <span>{instructor.location}</span>
                                 </div>
                               )}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {instructor.years_experience && (
+                                {instructor.instructor_profile?.years_experience && (
                                   <Badge variant="outline" className="text-xs">
-                                    {instructor.years_experience}+ years exp
+                                    {instructor.instructor_profile.years_experience}+ years exp
                                   </Badge>
                                 )}
-                                {instructor.hourly_rate_min && (
+                                {instructor.instructor_profile?.hourly_rate_min && (
                                   <Badge variant="outline" className="text-xs">
-                                    ${instructor.hourly_rate_min}-${instructor.hourly_rate_max}/hr
+                                    ${instructor.instructor_profile.hourly_rate_min}-${instructor.instructor_profile.hourly_rate_max}/hr
                                   </Badge>
                                 )}
                               </div>
@@ -450,10 +451,10 @@ export default function StudioDashboardPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" asChild>
-                            <Link href={`/instructors/${instructor.profile?.id}`}>View Profile</Link>
+                            <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
                           </Button>
                           <Button size="sm" asChild>
-                            <Link href={`/messages?userId=${instructor.profile?.id}`}>
+                            <Link href={`/messages?userId=${instructor.id}`}>
                               <MessageSquare className="h-4 w-4 mr-1" />
                               Contact
                             </Link>
