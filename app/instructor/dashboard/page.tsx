@@ -9,21 +9,9 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { CoverRequestDialog } from "@/components/cover-request-dialog"
-import {
-  Search,
-  Briefcase,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  User,
-  AlertCircle,
-  CalendarDays,
-  MapPin,
-  MessageSquare,
-} from "lucide-react"
+import { Search, Briefcase, Calendar, CheckCircle2, Clock, XCircle, User, AlertCircle, CalendarDays, MapPin, MessageSquare } from 'lucide-react'
 import { createBrowserClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEffect, useState } from "react"
 import { acceptCoverRequest } from "@/app/actions/dashboard"
@@ -79,8 +67,8 @@ export default function InstructorDashboardPage() {
         .from("availability_slots")
         .select("*")
         .eq("instructor_id", user.id)
-        .gte("date_from", new Date().toISOString().split("T")[0])
-        .order("date_from", { ascending: true })
+        .gte("start_time", new Date().toISOString())
+        .order("start_time", { ascending: true })
         .limit(10)
 
       console.log("[v0] Instructor Dashboard: Availability result:", {
@@ -460,9 +448,9 @@ export default function InstructorDashboardPage() {
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold">{formatDateTime(slot.date_from)}</span>
+                            <span className="font-semibold">{formatDateTime(slot.start_time)}</span>
                             <span className="text-muted-foreground">to</span>
-                            <span className="font-semibold">{formatDateTime(slot.date_to)}</span>
+                            <span className="font-semibold">{formatDateTime(slot.end_time)}</span>
                           </div>
                           {slot.notes && <p className="text-sm text-muted-foreground">{slot.notes}</p>}
                         </div>
