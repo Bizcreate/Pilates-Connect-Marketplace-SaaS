@@ -2,16 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send } from "lucide-react"
+import { Send } from 'lucide-react'
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 
 interface Message {
   id: string
@@ -46,12 +46,26 @@ export function MessagesList({ conversations, currentUserId }: MessagesListProps
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation)
+    }
+  }, [selectedConversation])
+
   const loadMessages = async (conversationId: string) => {
-    const { data } = await supabase
+    console.log("[v0] Loading messages for conversation:", conversationId)
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("[v0] Error loading messages:", error)
+      return
+    }
+
+    console.log("[v0] Loaded messages:", data?.length || 0)
 
     if (data) {
       setMessages(data)
@@ -74,7 +88,6 @@ export function MessagesList({ conversations, currentUserId }: MessagesListProps
 
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversation(conversationId)
-    loadMessages(conversationId)
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -84,14 +97,19 @@ export function MessagesList({ conversations, currentUserId }: MessagesListProps
     setIsLoading(true)
 
     try {
+      console.log("[v0] Sending message to conversation:", selectedConversation)
       const { error } = await supabase.from("messages").insert({
         conversation_id: selectedConversation,
         sender_id: currentUserId,
         content: newMessage.trim(),
       })
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Error sending message:", error)
+        throw error
+      }
 
+      console.log("[v0] Message sent successfully")
       setNewMessage("")
       await loadMessages(selectedConversation)
       router.refresh()
@@ -170,31 +188,37 @@ export function MessagesList({ conversations, currentUserId }: MessagesListProps
             {/* Messages */}
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                {messages.map((message) => {
-                  const isSender = message.sender_id === currentUserId
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => {
+                    const isSender = message.sender_id === currentUserId
 
-                  return (
-                    <div key={message.id} className={`flex ${isSender ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          isSender ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p
-                          className={`text-xs mt-1 ${
-                            isSender ? "text-primary-foreground/70" : "text-muted-foreground"
+                    return (
+                      <div key={message.id} className={`flex ${isSender ? "justify-end" : "justify-start"}`}>
+                        <div
+                          className={`max-w-[70%] rounded-lg p-3 ${
+                            isSender ? "bg-primary text-primary-foreground" : "bg-muted"
                           }`}
                         >
-                          {new Date(message.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              isSender ? "text-primary-foreground/70" : "text-muted-foreground"
+                            }`}
+                          >
+                            {new Date(message.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </ScrollArea>
 

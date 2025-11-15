@@ -1,10 +1,10 @@
-import { redirect } from "next/navigation"
+import { redirect } from 'next/navigation'
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
 import { MessagesList } from "@/components/messages-list"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare } from 'lucide-react'
 
 export default async function MessagesPage() {
   const supabase = await createClient()
@@ -22,8 +22,8 @@ export default async function MessagesPage() {
     .from("conversations")
     .select(`
       id,
-      participant_1_id,
-      participant_2_id,
+      participant1_id,
+      participant2_id,
       updated_at,
       messages(
         id,
@@ -33,17 +33,19 @@ export default async function MessagesPage() {
         created_at
       )
     `)
-    .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
+    .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
     .order("updated_at", { ascending: false })
+
+  console.log("[v0] Fetched conversations:", conversations?.length || 0)
 
   // Get other participant details for each conversation
   const conversationsWithDetails = await Promise.all(
     (conversations || []).map(async (conv) => {
-      const otherParticipantId = conv.participant_1_id === user.id ? conv.participant_2_id : conv.participant_1_id
+      const otherParticipantId = conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
 
       const { data: otherUser } = await supabase
         .from("profiles")
-        .select("id, display_name, user_type")
+        .select("id, display_name, user_type, avatar_url")
         .eq("id", otherParticipantId)
         .single()
 
@@ -63,6 +65,8 @@ export default async function MessagesPage() {
       }
     }),
   )
+
+  console.log("[v0] Conversations with details:", conversationsWithDetails.length)
 
   return (
     <div className="flex min-h-screen flex-col">

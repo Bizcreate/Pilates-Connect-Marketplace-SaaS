@@ -1,28 +1,12 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import {
-  MapPin,
-  Star,
-  Award,
-  Briefcase,
-  GraduationCap,
-  Clock,
-  CheckCircle2,
-  FileText,
-  Video,
-  Instagram,
-  Globe,
-  ArrowLeft,
-  MessageSquare,
-  Facebook,
-  Linkedin,
-} from "lucide-react"
+import { MapPin, Star, Award, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, Video, Instagram, Globe, ArrowLeft, MessageSquare, Facebook, Linkedin } from 'lucide-react'
 import { createClient } from "@/lib/supabase/server"
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +40,15 @@ export default async function InstructorProfilePage({ params }: { params: Promis
 
   const instructorProfile = instructor.instructor_profiles?.[0] || {}
   const socialLinks = instructorProfile.social_links || {}
+
+  const { data: availabilitySlots } = await supabase
+    .from("availability_slots")
+    .select("*")
+    .eq("instructor_id", id)
+    .eq("is_available", true)
+    .gte("start_time", new Date().toISOString())
+    .order("start_time", { ascending: true })
+    .limit(10)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -335,18 +328,69 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />
-                    Weekly Availability
+                    Available Time Slots
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {instructorProfile.availability ? (
+                  {availabilitySlots && availabilitySlots.length > 0 ? (
                     <div className="space-y-3">
+                      {availabilitySlots.map((slot) => (
+                        <div key={slot.id} className="flex items-center justify-between py-3 px-4 border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {new Date(slot.start_time).toLocaleDateString('en-AU', { 
+                                  weekday: 'long', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(slot.start_time).toLocaleTimeString('en-AU', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })} - {new Date(slot.end_time).toLocaleTimeString('en-AU', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                          {slot.notes && (
+                            <span className="text-sm text-muted-foreground max-w-xs truncate">{slot.notes}</span>
+                          )}
+                          {user && userType === "studio" && (
+                            <Button size="sm" asChild>
+                              <Link href={`/messages?userId=${instructor.id}&slotId=${slot.id}`}>
+                                Book Slot
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">No upcoming availability slots</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {instructorProfile.availability && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Clock className="h-4 w-4 text-primary" />
+                      General Weekly Availability
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
                       {Object.entries(instructorProfile.availability).map(([day, times]) => (
                         <div key={day} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <span className="font-medium capitalize">{day}</span>
+                          <span className="font-medium capitalize text-sm">{day}</span>
                           <span
                             className={
-                              times === "Not Available" ? "text-muted-foreground" : "text-foreground font-medium"
+                              times === "Not Available" ? "text-muted-foreground text-sm" : "text-foreground font-medium text-sm"
                             }
                           >
                             {times as string}
@@ -354,11 +398,9 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">No availability set</p>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="media" className="space-y-4">
