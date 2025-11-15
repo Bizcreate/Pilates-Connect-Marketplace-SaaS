@@ -201,7 +201,7 @@ export default function FindInstructorsPage() {
           .from("availability_slots")
           .select(`
             *,
-            instructor:profiles!instructor_id(
+            profiles!availability_slots_instructor_id_fkey(
               id,
               display_name,
               location,
@@ -233,14 +233,16 @@ export default function FindInstructorsPage() {
           // Group slots by instructor
           const instructorMap = new Map()
           data?.forEach((slot: any) => {
-            const instructorId = slot.instructor?.id
-            if (!instructorMap.has(instructorId)) {
+            const instructorId = slot.profiles?.id
+            if (instructorId && !instructorMap.has(instructorId)) {
               instructorMap.set(instructorId, {
-                instructor: slot.instructor,
+                instructor: slot.profiles,
                 slots: [],
               })
             }
-            instructorMap.get(instructorId).slots.push(slot)
+            if (instructorId) {
+              instructorMap.get(instructorId).slots.push(slot)
+            }
           })
           setCoverRequests(Array.from(instructorMap.values()))
         }
