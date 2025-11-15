@@ -216,7 +216,7 @@ export default function FindInstructorsPage() {
               )
             )
           `)
-          .eq("status", "available")
+          .eq("is_available", true)
           .gte("start_time", new Date().toISOString())
           .order("start_time", { ascending: true })
 
