@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { ArrowLeft, Save, Send } from "lucide-react"
+import { ArrowLeft, Save, Send } from 'lucide-react'
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -82,16 +82,28 @@ export default function PostJobPage() {
 
       if (!user) throw new Error("Not authenticated")
 
+      const { data: profile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id, user_type")
+        .eq("id", user.id)
+        .single()
+
+      console.log("[v0] Profile check:", { profile, profileCheckError })
+
+      if (!profile || profile.user_type !== "studio") {
+        throw new Error("You must have a studio account to post jobs. Please create a studio profile first.")
+      }
+
       const { data: studioProfile, error: profileError } = await supabase
         .from("studio_profiles")
-        .select("id")
+        .select("id, studio_name")
         .eq("id", user.id)
         .maybeSingle()
 
       console.log("[v0] Studio profile check:", { studioProfile, profileError })
 
       if (!studioProfile) {
-        throw new Error("Studio profile not found. Please complete your profile first.")
+        throw new Error("Studio profile not found. Please complete your studio profile in Settings → Profile.")
       }
 
       const jobData = {
@@ -115,9 +127,17 @@ export default function PostJobPage() {
 
       const { data, error } = await supabase.from("jobs").insert([jobData]).select()
 
-      console.log("[v0] Insert result:", { success: !!data, error: error?.message, data })
+      console.log("[v0] Insert result:", { success: !!data, error: error?.message, errorDetails: error })
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Database error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        })
+        throw new Error(`Database error: ${error.message}${error.hint ? ` (Hint: ${error.hint})` : ""}`)
+      }
 
       toast({
         title: status === "open" ? "Job published!" : "Draft saved!",
@@ -132,7 +152,7 @@ export default function PostJobPage() {
       console.error("[v0] Error posting job:", error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to post job",
+        description: error instanceof Error ? error.message : "Failed to post job. Please try again.",
         variant: "destructive",
       })
     } finally {
