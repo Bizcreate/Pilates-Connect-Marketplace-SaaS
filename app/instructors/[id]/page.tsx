@@ -8,6 +8,8 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { MapPin, Star, Award, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, Video, Instagram, Globe, ArrowLeft, MessageSquare, Facebook, Linkedin } from 'lucide-react'
 import { createClient } from "@/lib/supabase/server"
+import { StartConversationButton } from "@/components/start-conversation-button"
+import { BookAvailabilityButton } from "@/components/book-availability-button"
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -96,12 +98,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                     <div className="flex flex-col sm:flex-row gap-2">
                       {user && userType === "studio" ? (
                         <>
-                          <Button size="lg" asChild>
-                            <Link href={`/messages?userId=${instructor.id}`}>
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Message
-                            </Link>
-                          </Button>
+                          <StartConversationButton userId={instructor.id} size="lg" />
                           <Button size="lg" variant="outline" asChild>
                             <Link href={`/studio/post-job?instructorId=${instructor.id}`}>
                               <Briefcase className="h-4 w-4 mr-2" />
@@ -334,40 +331,86 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                 <CardContent>
                   {availabilitySlots && availabilitySlots.length > 0 ? (
                     <div className="space-y-3">
-                      {availabilitySlots.map((slot) => (
-                        <div key={slot.id} className="flex items-center justify-between py-3 px-4 border rounded-lg bg-muted/30">
-                          <div className="flex items-center gap-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {new Date(slot.start_time).toLocaleDateString('en-AU', { 
-                                  weekday: 'long', 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                })}
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                {new Date(slot.start_time).toLocaleTimeString('en-AU', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })} - {new Date(slot.end_time).toLocaleTimeString('en-AU', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
+                      {availabilitySlots.map((slot) => {
+                        const startDate = new Date(slot.start_time)
+                        const endDate = new Date(slot.end_time)
+                        
+                        let metadata: any = {}
+                        try {
+                          if (slot.notes) {
+                            metadata = JSON.parse(slot.notes)
+                          }
+                        } catch (e) {
+                          // Notes is not JSON
+                        }
+
+                        return (
+                          <div key={slot.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">
+                                    {startDate.toLocaleDateString('en-AU', { 
+                                      weekday: 'short', 
+                                      month: 'short', 
+                                      day: 'numeric' 
+                                    })}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-muted-foreground">
+                                  {startDate.toLocaleTimeString('en-AU', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })} - {endDate.toLocaleTimeString('en-AU', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                              </div>
+                              
+                              {(metadata.location || metadata.pilates_level || metadata.rate_min) && (
+                                <div className="flex flex-wrap gap-2 text-sm">
+                                  {metadata.location && (
+                                    <span className="flex items-center gap-1 text-muted-foreground">
+                                      <MapPin className="h-3 w-3" />
+                                      {metadata.location}
+                                    </span>
+                                  )}
+                                  {metadata.pilates_level && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {metadata.pilates_level}
+                                    </Badge>
+                                  )}
+                                  {metadata.rate_min && (
+                                    <Badge variant="outline" className="text-xs">
+                                      ${metadata.rate_min}{metadata.rate_unit ? `/${metadata.rate_unit}` : ''}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+
+                              {metadata.equipment && Array.isArray(metadata.equipment) && metadata.equipment.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {metadata.equipment.map((item: string) => (
+                                    <Badge key={item} variant="outline" className="text-xs">
+                                      {item}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                             </div>
+                            
+                            {user && userType === "studio" && (
+                              <BookAvailabilityButton
+                                slot={slot}
+                                instructorId={instructor.id}
+                                instructorName={instructor.display_name}
+                              />
+                            )}
                           </div>
-                          {slot.notes && (
-                            <span className="text-sm text-muted-foreground max-w-xs truncate">{slot.notes}</span>
-                          )}
-                          {user && userType === "studio" && (
-                            <Button size="sm" asChild>
-                              <Link href={`/messages?userId=${instructor.id}&slotId=${slot.id}`}>
-                                Book Slot
-                              </Link>
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">No upcoming availability slots</p>

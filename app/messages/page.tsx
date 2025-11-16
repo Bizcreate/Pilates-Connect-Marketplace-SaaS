@@ -6,8 +6,9 @@ import { createClient } from "@/lib/supabase/server"
 import { MessagesList } from "@/components/messages-list"
 import { MessageSquare } from 'lucide-react'
 
-export default async function MessagesPage() {
+export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ initialMessage?: string; conversation?: string }> }) {
   const supabase = await createClient()
+  const params = await searchParams
 
   const {
     data: { user },
@@ -90,7 +91,12 @@ export default async function MessagesPage() {
               </CardContent>
             </Card>
           ) : (
-            <MessagesList conversations={conversationsWithDetails} currentUserId={user.id} />
+            <MessagesList 
+              conversations={conversationsWithDetails} 
+              currentUserId={user.id}
+              initialMessage={params.initialMessage}
+              selectedConversationId={params.conversation}
+            />
           )}
         </div>
       </main>

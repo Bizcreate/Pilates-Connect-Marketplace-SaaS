@@ -36,12 +36,16 @@ interface Conversation {
 interface MessagesListProps {
   conversations: Conversation[]
   currentUserId: string
+  initialMessage?: string
+  selectedConversationId?: string
 }
 
-export function MessagesList({ conversations, currentUserId }: MessagesListProps) {
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(conversations[0]?.id || null)
+export function MessagesList({ conversations, currentUserId, initialMessage, selectedConversationId }: MessagesListProps) {
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(
+    selectedConversationId || conversations[0]?.id || null
+  )
   const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState("")
+  const [newMessage, setNewMessage] = useState(initialMessage ? decodeURIComponent(initialMessage) : "")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -51,6 +55,15 @@ export function MessagesList({ conversations, currentUserId }: MessagesListProps
       loadMessages(selectedConversation)
     }
   }, [selectedConversation])
+
+  useEffect(() => {
+    if (initialMessage && selectedConversation && messages.length === 0) {
+      const timer = setTimeout(() => {
+        handleSendMessage(new Event('submit') as any)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [initialMessage, selectedConversation, messages])
 
   const loadMessages = async (conversationId: string) => {
     console.log("[v0] Loading messages for conversation:", conversationId)
