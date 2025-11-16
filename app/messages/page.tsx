@@ -18,8 +18,11 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     redirect("/auth/login")
   }
 
+  console.log("[v0] Current user ID:", user.id)
+  console.log("[v0] Fetching conversations for user...")
+
   // Fetch user's conversations
-  const { data: conversations } = await supabase
+  const { data: conversations, error: conversationsError } = await supabase
     .from("conversations")
     .select(`
       id,
@@ -37,18 +40,35 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
     .order("updated_at", { ascending: false })
 
+  if (conversationsError) {
+    console.error("[v0] Error fetching conversations:", conversationsError)
+    console.error("[v0] Error details:", {
+      code: conversationsError.code,
+      message: conversationsError.message,
+      details: conversationsError.details,
+      hint: conversationsError.hint
+    })
+  }
+
   console.log("[v0] Fetched conversations:", conversations?.length || 0)
+  console.log("[v0] Raw conversations data:", JSON.stringify(conversations, null, 2))
 
   // Get other participant details for each conversation
   const conversationsWithDetails = await Promise.all(
     (conversations || []).map(async (conv) => {
       const otherParticipantId = conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
 
-      const { data: otherUser } = await supabase
+      console.log("[v0] Fetching profile for participant:", otherParticipantId)
+
+      const { data: otherUser, error: profileError } = await supabase
         .from("profiles")
         .select("id, display_name, user_type, avatar_url")
         .eq("id", otherParticipantId)
         .single()
+
+      if (profileError) {
+        console.error("[v0] Error fetching profile:", profileError)
+      }
 
       const messages = Array.isArray(conv.messages) ? conv.messages : []
       const lastMessage = messages.sort(
@@ -80,7 +100,20 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             <p className="text-muted-foreground mt-1">Connect with studios and instructors</p>
           </div>
 
-          {conversationsWithDetails.length === 0 ? (
+          {conversationsError ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <MessageSquare className="h-12 w-12 text-destructive mb-4" />
+                <h3 className="font-semibold text-lg mb-2">Error loading messages</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  {conversationsError.message}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Check console for details
+                </p>
+              </CardContent>
+            </Card>
+          ) : conversationsWithDetails.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
