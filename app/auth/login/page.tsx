@@ -29,76 +29,41 @@ function LoginForm() {
     try {
       const supabase = createClient()
       
-      console.log("[v0] Login: Starting login for email:", email)
-
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        console.log("[v0] Login: Sign-in error:", signInError)
         setError(signInError.message)
         return
       }
 
       if (!data.user) {
-        console.log("[v0] Login: No user returned from sign-in")
         setError("Login failed. Please try again.")
         return
       }
 
-      console.log("[v0] Login: User authenticated:", data.user.id)
-
+      // If there's a specific redirect, use it
       if (redirectTo) {
-        console.log("[v0] Login: Redirecting to:", redirectTo)
         router.push(redirectTo)
         router.refresh()
         return
       }
 
+      // Get user profile to determine dashboard
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("user_type")
         .eq("id", data.user.id)
-        .maybeSingle()
+        .single()
 
-      console.log("[v0] Login: Profile query result:", { profile, profileError })
-
-      if (profileError) {
-        console.error("[v0] Login: Profile error:", profileError)
-        setError(`Profile error: ${profileError.message}. Please try again or contact support.`)
+      if (profileError || !profile) {
+        setError("Unable to load profile. Please try again or contact support.")
         return
       }
 
-      if (!profile) {
-        console.log("[v0] Login: No profile found, creating default profile and redirecting to onboarding")
-        
-        // Create a basic profile
-        const { error: createError } = await supabase
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            user_type: "instructor", // Default to instructor, they can change in onboarding
-            display_name: data.user.email?.split("@")[0] || "User"
-          })
-
-        if (createError) {
-          console.error("[v0] Login: Error creating profile:", createError)
-          setError("Account setup required. Please contact support.")
-          return
-        }
-
-        // Redirect to onboarding to complete profile
-        console.log("[v0] Login: Redirecting to onboarding")
-        router.push("/onboarding/select")
-        router.refresh()
-        return
-      }
-
-      console.log("[v0] Login: Profile found, user_type:", profile.user_type)
-
+      // Redirect to appropriate dashboard
       const redirectPath =
         profile.user_type === "instructor"
           ? "/instructor/dashboard"
@@ -108,11 +73,10 @@ function LoginForm() {
               ? "/admin/dashboard"
               : "/"
 
-      console.log("[v0] Login: Redirecting to dashboard:", redirectPath)
       router.push(redirectPath)
       router.refresh()
     } catch (err) {
-      console.error("[v0] Login: Unexpected error:", err)
+      console.error("[v0] Login error:", err)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
