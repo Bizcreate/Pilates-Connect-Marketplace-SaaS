@@ -61,19 +61,39 @@ function LoginForm() {
         .from("profiles")
         .select("user_type")
         .eq("id", data.user.id)
-        .single()
+        .maybeSingle()
 
       console.log("[v0] Login: Profile query result:", { profile, profileError })
 
       if (profileError) {
         console.error("[v0] Login: Profile error:", profileError)
-        setError(`Profile error: ${profileError.message}. Your account may need to be set up. Please contact support.`)
+        setError(`Profile error: ${profileError.message}. Please try again or contact support.`)
         return
       }
 
       if (!profile) {
-        console.error("[v0] Login: No profile found for user:", data.user.id)
-        setError("Profile not found. Your account needs to be set up. Please contact support with your email address.")
+        console.log("[v0] Login: No profile found, creating default profile and redirecting to onboarding")
+        
+        // Create a basic profile
+        const { error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            user_type: "instructor", // Default to instructor, they can change in onboarding
+            display_name: data.user.email?.split("@")[0] || "User"
+          })
+
+        if (createError) {
+          console.error("[v0] Login: Error creating profile:", createError)
+          setError("Account setup required. Please contact support.")
+          return
+        }
+
+        // Redirect to onboarding to complete profile
+        console.log("[v0] Login: Redirecting to onboarding")
+        router.push("/onboarding/select")
+        router.refresh()
         return
       }
 
