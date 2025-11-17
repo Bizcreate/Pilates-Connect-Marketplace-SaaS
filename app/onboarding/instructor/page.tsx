@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { AvatarUpload } from "@/components/avatar-upload"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
+import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 
 const STEPS = [
   { id: 1, title: "Profile Photo", description: "Add a professional photo" },
@@ -65,11 +65,11 @@ export default function InstructorOnboardingPage() {
       // Check if already onboarded
       const { data: profile } = await supabase
         .from("instructor_profiles")
-        .select("onboarding_completed")
+        .select("years_experience")
         .eq("id", user.id)
         .single()
 
-      if (profile?.onboarding_completed) {
+      if (profile?.years_experience !== null) {
         router.push("/instructor/dashboard")
       }
     }
@@ -97,14 +97,41 @@ export default function InstructorOnboardingPage() {
     try {
       const supabase = createBrowserClient()
 
-      await supabase
-        .from("instructor_profiles")
+      // First update the profile display_name, bio, location
+      const { error: profileError } = await supabase
+        .from("profiles")
         .update({
-          ...formData,
-          onboarding_completed: true,
+          display_name: formData.display_name,
+          bio: formData.bio,
+          location: formData.location,
         })
         .eq("id", userId)
 
+      if (profileError) {
+        console.error("[v0] Profile update error:", profileError)
+        throw profileError
+      }
+
+      // Then upsert the instructor_profiles with correct columns
+      const { error: instructorError } = await supabase
+        .from("instructor_profiles")
+        .upsert({
+          id: userId,
+          years_experience: Number.parseInt(formData.years_experience) || 0,
+          hourly_rate_min: Number.parseInt(formData.hourly_rate_min) || null,
+          hourly_rate_max: Number.parseInt(formData.hourly_rate_max) || null,
+          equipment: formData.equipment,
+          certifications: formData.certifications,
+          specializations: [],
+          availability_status: "available",
+        })
+
+      if (instructorError) {
+        console.error("[v0] Instructor profile error:", instructorError)
+        throw instructorError
+      }
+
+      console.log("[v0] Onboarding completed successfully")
       router.push("/instructor/dashboard")
     } catch (error) {
       console.error("[v0] Onboarding error:", error)

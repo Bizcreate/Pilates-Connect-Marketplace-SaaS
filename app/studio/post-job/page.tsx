@@ -116,6 +116,7 @@ export default function PostJobPage() {
         state: (formData.get("state") as string) || null,
         equipment_provided: selectedEquipment,
         required_certifications: selectedCertifications,
+        required_experience: Number.parseInt(formData.get("required-experience") as string) || 0,
         hourly_rate_min: Number.parseInt(formData.get("rate-min") as string) || null,
         hourly_rate_max: Number.parseInt(formData.get("rate-max") as string) || null,
         start_date: (formData.get("start-date") as string) || null,
@@ -249,6 +250,22 @@ export default function PostJobPage() {
                 <CardDescription>Specify the equipment and certifications needed</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="required-experience">Required Experience (Years) *</Label>
+                  <Input 
+                    id="required-experience" 
+                    name="required-experience" 
+                    type="number" 
+                    placeholder="e.g., 2" 
+                    min="0"
+                    defaultValue="0"
+                    required 
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Minimum years of teaching experience required
+                  </p>
+                </div>
+
                 <div className="space-y-3">
                   <Label>Required Equipment Experience *</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

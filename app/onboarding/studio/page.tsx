@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { AvatarUpload } from "@/components/avatar-upload"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
+import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 
 const STEPS = [
   { id: 1, title: "Studio Logo", description: "Add your studio branding" },
@@ -49,11 +49,11 @@ export default function StudioOnboardingPage() {
       // Check if already onboarded
       const { data: profile } = await supabase
         .from("studio_profiles")
-        .select("onboarding_completed")
+        .select("id")
         .eq("id", user.id)
         .single()
 
-      if (profile?.onboarding_completed) {
+      if (profile) {
         router.push("/studio/dashboard")
       }
     }
@@ -81,14 +81,41 @@ export default function StudioOnboardingPage() {
     try {
       const supabase = createBrowserClient()
 
-      await supabase
-        .from("studio_profiles")
+      // First update the profile display_name
+      const { error: profileError } = await supabase
+        .from("profiles")
         .update({
-          ...formData,
-          onboarding_completed: true,
+          display_name: formData.studio_name,
+          bio: formData.description,
         })
         .eq("id", userId)
 
+      if (profileError) {
+        console.error("[v0] Profile update error:", profileError)
+        throw profileError
+      }
+
+      // Then upsert the studio_profiles with correct columns only
+      const { error: studioError } = await supabase
+        .from("studio_profiles")
+        .upsert({
+          id: userId,
+          studio_name: formData.studio_name,
+          address: formData.address,
+          suburb: null,
+          state: null,
+          postcode: null,
+          website: formData.website || null,
+          equipment_available: [],
+          studio_size: null,
+        })
+
+      if (studioError) {
+        console.error("[v0] Studio profile error:", studioError)
+        throw studioError
+      }
+
+      console.log("[v0] Studio onboarding completed successfully")
       router.push("/studio/dashboard")
     } catch (error) {
       console.error("[v0] Onboarding error:", error)
