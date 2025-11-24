@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { ArrowLeft, Save, Send } from 'lucide-react'
+import { ArrowLeft, Save, Send } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -252,18 +252,16 @@ export default function PostJobPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="required-experience">Required Experience (Years) *</Label>
-                  <Input 
-                    id="required-experience" 
-                    name="required-experience" 
-                    type="number" 
-                    placeholder="e.g., 2" 
+                  <Input
+                    id="required-experience"
+                    name="required-experience"
+                    type="number"
+                    placeholder="e.g., 2"
                     min="0"
                     defaultValue="0"
-                    required 
+                    required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum years of teaching experience required
-                  </p>
+                  <p className="text-xs text-muted-foreground">Minimum years of teaching experience required</p>
                 </div>
 
                 <div className="space-y-3">

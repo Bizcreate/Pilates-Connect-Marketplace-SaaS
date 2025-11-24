@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -23,6 +24,15 @@ export default function InstructorProfilePage() {
     linkedin: "",
     website: "",
   })
+  const [formData, setFormData] = useState({
+    display_name: "",
+    bio: "",
+    location: "",
+    phone: "",
+    years_experience: 0,
+    hourly_rate_min: 60,
+    hourly_rate_max: 80,
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -37,15 +47,81 @@ export default function InstructorProfilePage() {
         return
       }
 
-      const { data } = await supabase.from("instructor_profiles").select("*").eq("id", user.id).maybeSingle()
+      const { data: baseProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      const { data: instructorProfile } = await supabase
+        .from("instructor_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
 
-      if (data) {
-        setProfile(data)
-        setSocialLinks(data.social_links || {})
+      if (baseProfile) {
+        setFormData((prev) => ({
+          ...prev,
+          display_name: baseProfile.display_name || "",
+          bio: baseProfile.bio || "",
+          location: baseProfile.location || "",
+          phone: baseProfile.phone || "",
+        }))
+      }
+
+      if (instructorProfile) {
+        setProfile(instructorProfile)
+        setSocialLinks(instructorProfile.social_links || {})
+        setFormData((prev) => ({
+          ...prev,
+          years_experience: instructorProfile.years_experience || 0,
+          hourly_rate_min: instructorProfile.hourly_rate_min || 60,
+          hourly_rate_max: instructorProfile.hourly_rate_max || 80,
+        }))
       }
     }
     loadProfile()
   }, [router])
+
+  async function handleSaveProfile() {
+    setLoading(true)
+    try {
+      const supabase = createBrowserClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) throw new Error("Not authenticated")
+
+      const { error: baseError } = await supabase
+        .from("profiles")
+        .update({
+          display_name: formData.display_name,
+          bio: formData.bio,
+          location: formData.location,
+          phone: formData.phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (baseError) throw baseError
+
+      const { error: instructorError } = await supabase
+        .from("instructor_profiles")
+        .update({
+          years_experience: formData.years_experience,
+          hourly_rate_min: formData.hourly_rate_min,
+          hourly_rate_max: formData.hourly_rate_max,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (instructorError) throw instructorError
+
+      alert("Profile saved successfully!")
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Save error:", error)
+      alert("Save failed: " + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleFileUpload(file: File, type: "cv" | "insurance") {
     setUploading(true)
@@ -70,7 +146,6 @@ export default function InstructorProfilePage() {
 
       const { url } = await response.json()
 
-      // Update profile based on type
       const updateField = type === "cv" ? "cv_url" : "insurance_url"
       await supabase
         .from("instructor_profiles")
@@ -97,9 +172,6 @@ export default function InstructorProfilePage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      console.log("[v0] Saving social links for user:", user.id)
-      console.log("[v0] Social links:", socialLinks)
-
       const { data, error } = await supabase
         .from("instructor_profiles")
         .upsert(
@@ -114,14 +186,12 @@ export default function InstructorProfilePage() {
         )
         .select()
 
-      console.log("[v0] Save result:", { success: !!data, error: error?.message, data })
-
       if (error) throw error
 
       alert("Social links saved!")
       window.location.reload()
     } catch (error: any) {
-      console.error("[v0] Save error:", error)
+      console.error("Save error:", error)
       alert("Save failed: " + error.message)
     } finally {
       setLoading(false)
@@ -165,6 +235,93 @@ export default function InstructorProfilePage() {
                   userType="instructor"
                   onUploadComplete={() => window.location.reload()}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Basic Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+                <CardDescription>Your personal details and teaching experience</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="display_name">Display Name</Label>
+                  <Input
+                    id="display_name"
+                    value={formData.display_name}
+                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Years Experience</Label>
+                    <Input
+                      id="experience"
+                      type="number"
+                      value={formData.years_experience}
+                      onChange={(e) =>
+                        setFormData({ ...formData, years_experience: Number.parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min_rate">Min Rate ($)</Label>
+                    <Input
+                      id="min_rate"
+                      type="number"
+                      value={formData.hourly_rate_min}
+                      onChange={(e) =>
+                        setFormData({ ...formData, hourly_rate_min: Number.parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_rate">Max Rate ($)</Label>
+                    <Input
+                      id="max_rate"
+                      type="number"
+                      value={formData.hourly_rate_max}
+                      onChange={(e) =>
+                        setFormData({ ...formData, hourly_rate_max: Number.parseInt(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveProfile} disabled={loading} className="w-full">
+                  {loading ? "Saving..." : "Save Basic Info"}
+                </Button>
               </CardContent>
             </Card>
 

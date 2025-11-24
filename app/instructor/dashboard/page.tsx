@@ -9,9 +9,21 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { CoverRequestDialog } from "@/components/cover-request-dialog"
-import { Search, Briefcase, Calendar, CheckCircle2, Clock, XCircle, User, AlertCircle, CalendarDays, MapPin, MessageSquare } from 'lucide-react'
+import {
+  Search,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  User,
+  AlertCircle,
+  CalendarDays,
+  MapPin,
+  MessageSquare,
+} from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEffect, useState } from "react"
 import { acceptCoverRequest } from "@/app/actions/dashboard"
@@ -246,11 +258,14 @@ export default function InstructorDashboardPage() {
             </Card>
 
             <Card>
-              <Link href="#availability" onClick={(e) => {
-                e.preventDefault();
-                const tabTrigger = document.querySelector('[value="availability"]') as HTMLElement;
-                tabTrigger?.click();
-              }}>
+              <Link
+                href="#availability"
+                onClick={(e) => {
+                  e.preventDefault()
+                  const tabTrigger = document.querySelector('[value="availability"]') as HTMLElement
+                  tabTrigger?.click()
+                }}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
                   <CardTitle className="text-sm font-medium">My Availability</CardTitle>
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -449,9 +464,9 @@ export default function InstructorDashboardPage() {
                     availabilitySlots.map((slot) => {
                       let metadata: any = {}
                       try {
-                        metadata = typeof slot.notes === 'string' ? JSON.parse(slot.notes) : slot.notes || {}
+                        metadata = typeof slot.notes === "string" ? JSON.parse(slot.notes) : slot.notes || {}
                       } catch (e) {
-                        console.error('[v0] Failed to parse slot metadata:', e)
+                        console.error("[v0] Failed to parse slot metadata:", e)
                       }
 
                       return (
@@ -477,11 +492,13 @@ export default function InstructorDashboardPage() {
                                   <span className="font-medium capitalize">{metadata.location}</span>
                                 </div>
                               )}
-                              
+
                               {metadata.pilates_level && (
                                 <div className="flex items-center gap-2">
                                   <span className="text-muted-foreground">Level:</span>
-                                  <span className="font-medium capitalize">{metadata.pilates_level.replace('-', ' ')}</span>
+                                  <span className="font-medium capitalize">
+                                    {metadata.pilates_level.replace("-", " ")}
+                                  </span>
                                 </div>
                               )}
 
@@ -490,23 +507,25 @@ export default function InstructorDashboardPage() {
                                   <span className="text-muted-foreground">Rate:</span>
                                   <span className="font-medium">
                                     ${metadata.rate_min}
-                                    {metadata.rate_unit === 'per_class' ? '/class' : '/hour'}
+                                    {metadata.rate_unit === "per_class" ? "/class" : "/hour"}
                                   </span>
                                 </div>
                               )}
 
-                              {metadata.equipment && Array.isArray(metadata.equipment) && metadata.equipment.length > 0 && (
-                                <div className="flex items-start gap-2 col-span-2">
-                                  <span className="text-muted-foreground">Equipment:</span>
-                                  <div className="flex flex-wrap gap-1">
-                                    {metadata.equipment.map((eq: string, idx: number) => (
-                                      <Badge key={idx} variant="secondary" className="text-xs">
-                                        {eq}
-                                      </Badge>
-                                    ))}
+                              {metadata.equipment &&
+                                Array.isArray(metadata.equipment) &&
+                                metadata.equipment.length > 0 && (
+                                  <div className="flex items-start gap-2 col-span-2">
+                                    <span className="text-muted-foreground">Equipment:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {metadata.equipment.map((eq: string, idx: number) => (
+                                        <Badge key={idx} variant="secondary" className="text-xs">
+                                          {eq}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
                               {metadata.availability_type && (
                                 <div className="flex items-center gap-2">

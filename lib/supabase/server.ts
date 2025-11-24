@@ -1,10 +1,19 @@
-import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
+import { createServerClient as createServerClientInternal } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export async function createServerClient() {
   const cookieStore = await cookies()
 
-  return createSupabaseServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error(
+      "[v0] Supabase environment variables are missing! Check your .env.local file or Vercel project settings.",
+    )
+  }
+
+  return createServerClientInternal(supabaseUrl || "", supabaseAnonKey || "", {
     cookies: {
       getAll() {
         return cookieStore.getAll()
@@ -24,18 +33,3 @@ export async function createServerClient() {
 
 // Keep the old export for backward compatibility
 export const createClient = createServerClient
-
-export function createAdminClient() {
-  return createSupabaseServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    cookies: {
-      getAll() {
-        return []
-      },
-      setAll() {},
-    },
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
-}
