@@ -200,11 +200,10 @@ export default function PostJobPage() {
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="full-time">Full-time</SelectItem>
-                        <SelectItem value="part-time">Part-time</SelectItem>
+                        <SelectItem value="permanent">Permanent</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
                         <SelectItem value="casual">Casual</SelectItem>
                         <SelectItem value="cover">Cover</SelectItem>
-                        <SelectItem value="temp">Temp</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
