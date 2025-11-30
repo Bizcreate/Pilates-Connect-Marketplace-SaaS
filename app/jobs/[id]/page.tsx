@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+
+  console.log("[v0] Job detail page - ID:", id)
+
   const supabase = await createClient()
 
   const { data: job, error: jobError } = await supabase
@@ -26,8 +29,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .eq("id", id)
     .maybeSingle()
 
+  console.log("[v0] Job query result:", { job, error: jobError })
+
   if (jobError || !job) {
-    console.error("[v0] Error fetching job:", jobError)
+    console.error("[v0] Error fetching job or job not found:", jobError)
     notFound()
   }
 
