@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
-import { Plus, MessageSquare, Users, Briefcase, TrendingUp, Calendar, Clock, MapPin, CalendarDays, AlertCircle, Search } from 'lucide-react'
+import {
+  Plus,
+  MessageSquare,
+  Users,
+  Briefcase,
+  TrendingUp,
+  Calendar,
+  Clock,
+  MapPin,
+  CalendarDays,
+  AlertCircle,
+  Search,
+} from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 
 export default function StudioDashboardPage() {
@@ -22,6 +34,8 @@ export default function StudioDashboardPage() {
   const [coverRequests, setCoverRequests] = useState<any[]>([])
   const [availableInstructors, setAvailableInstructors] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState("overview")
+  const [selectedApplication, setSelectedApplication] = useState<any>(null)
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -95,13 +109,17 @@ export default function StudioDashboardPage() {
         .not("instructor_profile", "is", null)
         .limit(20)
 
-      console.log("[v0] Available instructors:", { count: instructorsData?.length, error: instructorsError, sample: instructorsData?.[0] })
-      
+      console.log("[v0] Available instructors:", {
+        count: instructorsData?.length,
+        error: instructorsError,
+        sample: instructorsData?.[0],
+      })
+
       // Filter for only available instructors
-      const availableInstructorsData = instructorsData?.filter(
-        (instructor) => instructor.instructor_profile?.availability_status === "available"
-      ) || []
-      
+      const availableInstructorsData =
+        instructorsData?.filter((instructor) => instructor.instructor_profile?.availability_status === "available") ||
+        []
+
       setAvailableInstructors(availableInstructorsData)
 
       const { data: jobsData, error: jobsError } = await supabase
@@ -138,6 +156,50 @@ export default function StudioDashboardPage() {
 
     loadDashboard()
   }, [router, supabase])
+
+  const fetchApplications = async () => {
+    const { data: jobsData, error: jobsError } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("studio_id", router.query.id)
+      .order("created_at", { ascending: false })
+
+    console.log("[v0] Jobs:", { count: jobsData?.length, error: jobsError })
+    setJobs(jobsData || [])
+
+    if (jobsData && jobsData.length > 0) {
+      const { data: applicationsData, error: appsError } = await supabase
+        .from("job_applications")
+        .select(`
+          *,
+          instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
+          job:jobs(title)
+        `)
+        .in(
+          "job_id",
+          jobsData.map((j) => j.id),
+        )
+        .order("created_at", { ascending: false })
+        .limit(10)
+
+      console.log("[v0] Applications:", { count: applicationsData?.length, error: appsError })
+      setApplications(applicationsData || [])
+    }
+  }
+
+  const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
+    const { error } = await supabase.from("job_applications").update({ status: newStatus }).eq("id", applicationId)
+
+    if (error) {
+      console.error("[v0] Error updating application:", error)
+      alert("Failed to update application status")
+      return
+    }
+
+    // Refresh applications
+    fetchApplications()
+    setIsApplicationModalOpen(false)
+  }
 
   if (loading) {
     return (
@@ -442,7 +504,8 @@ export default function StudioDashboardPage() {
                                 )}
                                 {instructor.instructor_profile?.hourly_rate_min && (
                                   <Badge variant="outline" className="text-xs">
-                                    ${instructor.instructor_profile.hourly_rate_min}-${instructor.instructor_profile.hourly_rate_max}/hr
+                                    ${instructor.instructor_profile.hourly_rate_min}-$
+                                    {instructor.instructor_profile.hourly_rate_max}/hr
                                   </Badge>
                                 )}
                               </div>
@@ -545,20 +608,74 @@ export default function StudioDashboardPage() {
                         {applications
                           .filter((a) => a.status === "pending")
                           .map((app) => (
-                            <Card key={app.id} className="p-3">
+                            <Card
+                              key={app.id}
+                              className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                              onClick={() => {
+                                setSelectedApplication(app)
+                                setIsApplicationModalOpen(true)
+                              }}
+                            >
                               <p className="font-medium text-sm">{app.instructor.display_name}</p>
                               <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Applied {new Date(app.created_at).toLocaleDateString()}
+                              </p>
                             </Card>
                           ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-sm">Interview (0)</h3>
-                      <p className="text-xs text-muted-foreground">No interviews scheduled</p>
+                      <h3 className="font-semibold text-sm">
+                        Interview ({applications.filter((a) => a.status === "interview").length})
+                      </h3>
+                      {applications.filter((a) => a.status === "interview").length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No interviews scheduled</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {applications
+                            .filter((a) => a.status === "interview")
+                            .map((app) => (
+                              <Card
+                                key={app.id}
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => {
+                                  setSelectedApplication(app)
+                                  setIsApplicationModalOpen(true)
+                                }}
+                              >
+                                <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                                <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                              </Card>
+                            ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-sm">Offer (0)</h3>
-                      <p className="text-xs text-muted-foreground">No offers extended</p>
+                      <h3 className="font-semibold text-sm">
+                        Offer ({applications.filter((a) => a.status === "offer").length})
+                      </h3>
+                      {applications.filter((a) => a.status === "offer").length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No offers extended</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {applications
+                            .filter((a) => a.status === "offer")
+                            .map((app) => (
+                              <Card
+                                key={app.id}
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => {
+                                  setSelectedApplication(app)
+                                  setIsApplicationModalOpen(true)
+                                }}
+                              >
+                                <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                                <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                              </Card>
+                            ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm">
@@ -568,7 +685,14 @@ export default function StudioDashboardPage() {
                         {applications
                           .filter((a) => a.status === "accepted")
                           .map((app) => (
-                            <Card key={app.id} className="p-3">
+                            <Card
+                              key={app.id}
+                              className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                              onClick={() => {
+                                setSelectedApplication(app)
+                                setIsApplicationModalOpen(true)
+                              }}
+                            >
                               <p className="font-medium text-sm">{app.instructor.display_name}</p>
                               <p className="text-xs text-muted-foreground">{app.job.title}</p>
                             </Card>
