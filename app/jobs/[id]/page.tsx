@@ -44,7 +44,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
     if (userType === "instructor") {
       const { data: application } = await supabase
-        .from("applications")
+        .from("job_applications")
         .select("id")
         .eq("job_id", id)
         .eq("instructor_id", user.id)
@@ -96,12 +96,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm capitalize">{job.job_type}</span>
                     </div>
-                    {job.compensation_min && (
+                    {job.hourly_rate_min && (
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          ${job.compensation_min}
-                          {job.compensation_max && `-$${job.compensation_max}`}/{job.compensation_type}
+                          ${job.hourly_rate_min}
+                          {job.hourly_rate_max && `-$${job.hourly_rate_max}`}/hour
                         </span>
                       </div>
                     )}
@@ -124,26 +124,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     <p className="text-muted-foreground whitespace-pre-wrap">{job.description}</p>
                   </div>
 
-                  {job.schedule_details && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Schedule</h3>
-                        <p className="text-muted-foreground whitespace-pre-wrap">{job.schedule_details}</p>
-                      </div>
-                    </>
-                  )}
-
                   <Separator />
 
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Requirements</h3>
                     <div className="space-y-3">
-                      {job.equipment && job.equipment.length > 0 && (
+                      {job.equipment_provided && job.equipment_provided.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2">Equipment Experience:</p>
+                          <p className="text-sm font-medium mb-2">Equipment Provided:</p>
                           <div className="flex flex-wrap gap-2">
-                            {job.equipment.map((item: string) => (
+                            {job.equipment_provided.map((item: string) => (
                               <Badge key={item} variant="outline">
                                 {item}
                               </Badge>
@@ -151,29 +141,23 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                         </div>
                       )}
-                      {job.certifications_required && job.certifications_required.length > 0 && (
+                      {job.required_certifications && job.required_certifications.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2">Certifications:</p>
+                          <p className="text-sm font-medium mb-2">Required Certifications:</p>
                           <div className="flex flex-wrap gap-2">
-                            {job.certifications_required.map((item: string) => (
-                              <Badge key={item} variant="outline">
+                            {job.required_certifications.map((cert: string) => (
+                              <Badge key={cert} variant="outline">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                                {item}
+                                {cert}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
-                      {job.class_types && job.class_types.length > 0 && (
+                      {job.required_experience && (
                         <div>
-                          <p className="text-sm font-medium mb-2">Class Types:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {job.class_types.map((item: string) => (
-                              <Badge key={item} variant="secondary">
-                                {item}
-                              </Badge>
-                            ))}
-                          </div>
+                          <p className="text-sm font-medium mb-2">Experience Required:</p>
+                          <Badge variant="secondary">{job.required_experience}+ years</Badge>
                         </div>
                       )}
                     </div>
