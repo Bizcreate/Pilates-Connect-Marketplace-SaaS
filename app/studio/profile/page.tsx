@@ -77,12 +77,30 @@ export default function StudioProfilePage() {
       console.log("[v0] Profile data:", formData)
       console.log("[v0] Social links:", socialLinks)
 
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          display_name: formData.studio_name,
+          location: formData.location,
+          phone: formData.phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      console.log("[v0] Profiles table update:", { error: profileError?.message })
+
+      if (profileError) throw profileError
+
       const { data, error } = await supabase
         .from("studio_profiles")
         .upsert(
           {
             id: user.id,
-            ...formData,
+            studio_name: formData.studio_name,
+            website: formData.website,
+            description: formData.description,
+            phone: formData.phone,
+            email: formData.email,
             social_links: socialLinks,
             updated_at: new Date().toISOString(),
           },
@@ -95,17 +113,6 @@ export default function StudioProfilePage() {
       console.log("[v0] Save result:", { success: !!data, error: error?.message, data })
 
       if (error) throw error
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          display_name: formData.studio_name,
-          location: formData.location,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
-
-      console.log("[v0] Profiles table update:", { error: profileError?.message })
 
       alert("Profile saved successfully!")
       window.location.reload()

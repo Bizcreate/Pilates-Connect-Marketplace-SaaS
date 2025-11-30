@@ -88,6 +88,9 @@ export default function InstructorProfilePage() {
 
       if (!user) throw new Error("Not authenticated")
 
+      console.log("[v0] Saving instructor profile for user:", user.id)
+      console.log("[v0] Form data:", formData)
+
       const { error: baseError } = await supabase
         .from("profiles")
         .update({
@@ -99,24 +102,31 @@ export default function InstructorProfilePage() {
         })
         .eq("id", user.id)
 
+      console.log("[v0] Profiles table update:", { error: baseError?.message })
+
       if (baseError) throw baseError
 
-      const { error: instructorError } = await supabase
-        .from("instructor_profiles")
-        .update({
+      const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
+        {
+          id: user.id,
           years_experience: formData.years_experience,
           hourly_rate_min: formData.hourly_rate_min,
           hourly_rate_max: formData.hourly_rate_max,
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
+        },
+        {
+          onConflict: "id",
+        },
+      )
+
+      console.log("[v0] Instructor profiles table update:", { error: instructorError?.message })
 
       if (instructorError) throw instructorError
 
       alert("Profile saved successfully!")
       window.location.reload()
     } catch (error: any) {
-      console.error("Save error:", error)
+      console.error("[v0] Save error:", error)
       alert("Save failed: " + error.message)
     } finally {
       setLoading(false)
