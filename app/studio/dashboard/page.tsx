@@ -610,19 +610,23 @@ export default function StudioDashboardPage() {
                           .map((app) => (
                             <Card
                               key={app.id}
-                              className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                              className="p-3 cursor-pointer hover:bg-accent transition-colors bg-background"
                               onClick={() => {
+                                console.log("[v0] Opening application modal for:", app)
                                 setSelectedApplication(app)
                                 setIsApplicationModalOpen(true)
                               }}
                             >
-                              <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                              <p className="font-medium text-sm text-foreground">{app.instructor.display_name}</p>
                               <p className="text-xs text-muted-foreground">{app.job.title}</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Applied {new Date(app.created_at).toLocaleDateString()}
                               </p>
                             </Card>
                           ))}
+                        {applications.filter((a) => a.status === "pending").length === 0 && (
+                          <p className="text-xs text-muted-foreground">No pending applications</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -638,13 +642,14 @@ export default function StudioDashboardPage() {
                             .map((app) => (
                               <Card
                                 key={app.id}
-                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors bg-background"
                                 onClick={() => {
+                                  console.log("[v0] Opening application modal for:", app)
                                   setSelectedApplication(app)
                                   setIsApplicationModalOpen(true)
                                 }}
                               >
-                                <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                                <p className="font-medium text-sm text-foreground">{app.instructor.display_name}</p>
                                 <p className="text-xs text-muted-foreground">{app.job.title}</p>
                               </Card>
                             ))}
@@ -664,13 +669,14 @@ export default function StudioDashboardPage() {
                             .map((app) => (
                               <Card
                                 key={app.id}
-                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors bg-background"
                                 onClick={() => {
+                                  console.log("[v0] Opening application modal for:", app)
                                   setSelectedApplication(app)
                                   setIsApplicationModalOpen(true)
                                 }}
                               >
-                                <p className="font-medium text-sm">{app.instructor.display_name}</p>
+                                <p className="font-medium text-sm text-foreground">{app.instructor.display_name}</p>
                                 <p className="text-xs text-muted-foreground">{app.job.title}</p>
                               </Card>
                             ))}
@@ -681,23 +687,28 @@ export default function StudioDashboardPage() {
                       <h3 className="font-semibold text-sm">
                         Hired ({applications.filter((a) => a.status === "accepted").length})
                       </h3>
-                      <div className="space-y-2">
-                        {applications
-                          .filter((a) => a.status === "accepted")
-                          .map((app) => (
-                            <Card
-                              key={app.id}
-                              className="p-3 cursor-pointer hover:bg-accent transition-colors"
-                              onClick={() => {
-                                setSelectedApplication(app)
-                                setIsApplicationModalOpen(true)
-                              }}
-                            >
-                              <p className="font-medium text-sm">{app.instructor.display_name}</p>
-                              <p className="text-xs text-muted-foreground">{app.job.title}</p>
-                            </Card>
-                          ))}
-                      </div>
+                      {applications.filter((a) => a.status === "accepted").length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No one hired yet</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {applications
+                            .filter((a) => a.status === "accepted")
+                            .map((app) => (
+                              <Card
+                                key={app.id}
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors bg-background"
+                                onClick={() => {
+                                  console.log("[v0] Opening application modal for:", app)
+                                  setSelectedApplication(app)
+                                  setIsApplicationModalOpen(true)
+                                }}
+                              >
+                                <p className="font-medium text-sm text-foreground">{app.instructor.display_name}</p>
+                                <p className="text-xs text-muted-foreground">{app.job.title}</p>
+                              </Card>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

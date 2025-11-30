@@ -46,13 +46,16 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
         return
       }
 
-      // Load job details
+      console.log("[v0] Loading job details for job:", id)
+
       const { data: jobData, error: jobError } = await supabase
         .from("jobs")
         .select("*")
         .eq("id", id)
         .eq("studio_id", user.id)
         .maybeSingle()
+
+      console.log("[v0] Job data:", jobData, "Error:", jobError)
 
       if (jobError || !jobData) {
         console.error("[v0] Error loading job:", jobError)
@@ -68,7 +71,8 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
       setJob(jobData)
 
       // Load applications for this job
-      const { data: applicationsData } = await supabase
+      console.log("[v0] Loading applications for job:", id)
+      const { data: applicationsData, error: appsError } = await supabase
         .from("job_applications")
         .select(
           `
@@ -94,6 +98,7 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
         .eq("job_id", id)
         .order("created_at", { ascending: false })
 
+      console.log("[v0] Applications loaded:", applicationsData?.length, "Error:", appsError)
       setApplications(applicationsData || [])
       setLoading(false)
     }
@@ -197,12 +202,12 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex flex-wrap gap-4">
-                    {job.compensation_min && (
+                    {job.hourly_rate_min && (
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          ${job.compensation_min}
-                          {job.compensation_max && `-$${job.compensation_max}`}/{job.compensation_type}
+                          ${job.hourly_rate_min}
+                          {job.hourly_rate_max && `-$${job.hourly_rate_max}`}/hour
                         </span>
                       </div>
                     )}
@@ -233,11 +238,11 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Requirements</h3>
                     <div className="space-y-3">
-                      {job.equipment && job.equipment.length > 0 && (
+                      {job.equipment_provided && job.equipment_provided.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2">Equipment:</p>
+                          <p className="text-sm font-medium mb-2">Equipment Provided:</p>
                           <div className="flex flex-wrap gap-2">
-                            {job.equipment.map((item: string) => (
+                            {job.equipment_provided.map((item: string) => (
                               <Badge key={item} variant="outline">
                                 {item}
                               </Badge>
@@ -245,11 +250,11 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
                           </div>
                         </div>
                       )}
-                      {job.certifications_required && job.certifications_required.length > 0 && (
+                      {job.required_certifications && job.required_certifications.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2">Certifications:</p>
+                          <p className="text-sm font-medium mb-2">Required Certifications:</p>
                           <div className="flex flex-wrap gap-2">
-                            {job.certifications_required.map((item: string) => (
+                            {job.required_certifications.map((item: string) => (
                               <Badge key={item} variant="secondary">
                                 {item}
                               </Badge>
