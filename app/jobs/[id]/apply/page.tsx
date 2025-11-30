@@ -15,7 +15,6 @@ import { SiteFooter } from "@/components/site-footer"
 import { ArrowLeft, Send, Upload, X, Video, ImageIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
-import { put } from "@vercel/blob"
 
 export default function ApplyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -123,24 +122,46 @@ export default function ApplyPage({ params }: { params: Promise<{ id: string }> 
       let cvUrl = null
       const demoUrls: string[] = []
 
-      if (cvFile) {
-        console.log("[v0] Uploading CV...")
-        const cvBlob = await put(`applications/${user.id}/cv-${Date.now()}-${cvFile.name}`, cvFile, {
-          access: "public",
-        })
-        cvUrl = cvBlob.url
-      }
+      if (cvFile || demoFiles.length > 0) {
+        console.log("[v0] Uploading files via API...")
 
-      if (demoFiles.length > 0) {
-        console.log("[v0] Uploading demo files...")
-        for (const file of demoFiles) {
-          const blob = await put(`applications/${user.id}/demo-${Date.now()}-${file.name}`, file, {
-            access: "public",
-          })
-          demoUrls.push(blob.url)
+        const formData = new FormData()
+        formData.append("userId", user.id)
+        formData.append("jobId", id)
+
+        if (cvFile) {
+          formData.append("files", cvFile)
+        }
+
+        demoFiles.forEach((file) => {
+          formData.append("files", file)
+        })
+
+        const uploadResponse = await fetch("/api/upload-application-files", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json()
+          throw new Error(error.details || "Failed to upload files")
+        }
+
+        const { urls } = await uploadResponse.json()
+        console.log("[v0] Files uploaded successfully:", urls)
+
+        // First URL is CV if CV was uploaded
+        if (cvFile && urls.length > 0) {
+          cvUrl = urls[0]
+          // Remaining URLs are demo files
+          demoUrls.push(...urls.slice(1))
+        } else {
+          // All URLs are demo files
+          demoUrls.push(...urls)
         }
       }
 
+      console.log("[v0] Inserting application into database...")
       const { data, error } = await supabase
         .from("job_applications")
         .insert({
