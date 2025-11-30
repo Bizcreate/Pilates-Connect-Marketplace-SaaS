@@ -103,6 +103,7 @@ export default function JobsPage() {
             )
           `,
           )
+          .eq("status", "open")
           .order("created_at", { ascending: false })
 
         console.log("[v0] Jobs page: Jobs query result:", {
