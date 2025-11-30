@@ -32,9 +32,10 @@ export function StartConversationButton({
       if (!response.ok) throw new Error("Failed to start conversation")
 
       const { conversationId } = await response.json()
-      router.push("/messages")
+      router.push(`/messages?conversation=${conversationId}`)
     } catch (error) {
       console.error("[v0] Error starting conversation:", error)
+      alert("Failed to start conversation. Please try again.")
     } finally {
       setIsLoading(false)
     }

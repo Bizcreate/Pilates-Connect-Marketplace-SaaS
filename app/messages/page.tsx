@@ -1,12 +1,14 @@
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
 import { MessagesList } from "@/components/messages-list"
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare } from "lucide-react"
 
-export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ initialMessage?: string; conversation?: string }> }) {
+export default async function MessagesPage({
+  searchParams,
+}: { searchParams: Promise<{ initialMessage?: string; conversation?: string }> }) {
   const supabase = await createClient()
   const params = await searchParams
 
@@ -46,7 +48,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       code: conversationsError.code,
       message: conversationsError.message,
       details: conversationsError.details,
-      hint: conversationsError.hint
+      hint: conversationsError.hint,
     })
   }
 
@@ -105,12 +107,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <MessageSquare className="h-12 w-12 text-destructive mb-4" />
                 <h3 className="font-semibold text-lg mb-2">Error loading messages</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-sm">
-                  {conversationsError.message}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Check console for details
-                </p>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">{conversationsError.message}</p>
+                <p className="text-xs text-muted-foreground mt-2">Check console for details</p>
               </CardContent>
             </Card>
           ) : conversationsWithDetails.length === 0 ? (
@@ -124,8 +122,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
               </CardContent>
             </Card>
           ) : (
-            <MessagesList 
-              conversations={conversationsWithDetails} 
+            <MessagesList
+              conversations={conversationsWithDetails}
               currentUserId={user.id}
               initialMessage={params.initialMessage}
               selectedConversationId={params.conversation}

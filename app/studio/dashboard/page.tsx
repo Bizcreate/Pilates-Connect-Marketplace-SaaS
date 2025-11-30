@@ -12,7 +12,6 @@ import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import {
   Plus,
-  MessageSquare,
   Users,
   Briefcase,
   TrendingUp,
@@ -24,6 +23,7 @@ import {
   Search,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { StartConversationButton } from "@/components/start-conversation-button"
 
 export default function StudioDashboardPage() {
   const router = useRouter()
@@ -516,12 +516,7 @@ export default function StudioDashboardPage() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/instructors/${instructor.id}`}>View Profile</Link>
                           </Button>
-                          <Button size="sm" asChild>
-                            <Link href={`/messages?userId=${instructor.id}`}>
-                              <MessageSquare className="h-4 w-4 mr-1" />
-                              Contact
-                            </Link>
-                          </Button>
+                          <StartConversationButton userId={instructor.id} size="sm" />
                         </div>
                       </div>
                     ))
