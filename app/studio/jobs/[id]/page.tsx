@@ -99,6 +99,8 @@ export default function StudioJobDetailPage({ params }: { params: Promise<{ id: 
         .order("created_at", { ascending: false })
 
       console.log("[v0] Applications loaded:", applicationsData?.length, "Error:", appsError)
+      console.log("[v0] Full applications data:", JSON.stringify(applicationsData, null, 2))
+      console.log("[v0] Full error details:", JSON.stringify(appsError, null, 2))
       setApplications(applicationsData || [])
       setLoading(false)
     }
