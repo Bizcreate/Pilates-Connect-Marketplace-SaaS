@@ -75,7 +75,6 @@ export default function StudioProfilePage() {
 
       console.log("[v0] Saving studio profile for user:", user.id)
       console.log("[v0] Profile data:", formData)
-      console.log("[v0] Social links:", socialLinks)
 
       const { error: profileError } = await supabase
         .from("profiles")
@@ -99,9 +98,6 @@ export default function StudioProfilePage() {
             studio_name: formData.studio_name,
             website: formData.website,
             description: formData.description,
-            phone: formData.phone,
-            email: formData.email,
-            social_links: socialLinks,
             updated_at: new Date().toISOString(),
           },
           {

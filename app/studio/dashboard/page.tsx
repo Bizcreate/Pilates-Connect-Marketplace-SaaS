@@ -531,13 +531,16 @@ export default function StudioDashboardPage() {
             </TabsContent>
 
             <TabsContent value="jobs" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Active Job Postings</CardTitle>
-                  <CardDescription>Manage and track your current job listings</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {jobs.length === 0 ? (
+              {activeTab === "jobs" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold">Active Job Postings</h2>
+                      <p className="text-muted-foreground text-sm">Manage and track your current job listings</p>
+                    </div>
+                  </div>
+
+                  {activeJobs.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold mb-2">No active jobs</h3>
@@ -549,7 +552,7 @@ export default function StudioDashboardPage() {
                       </Button>
                     </div>
                   ) : (
-                    jobs.map((job) => (
+                    activeJobs.map((job) => (
                       <div
                         key={job.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -588,8 +591,8 @@ export default function StudioDashboardPage() {
                       </div>
                     ))
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="hiring" className="space-y-4">

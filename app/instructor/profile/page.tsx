@@ -32,6 +32,8 @@ export default function InstructorProfilePage() {
     years_experience: 0,
     hourly_rate_min: 60,
     hourly_rate_max: 80,
+    certifications: "",
+    equipment: "",
   })
   const router = useRouter()
 
@@ -72,6 +74,8 @@ export default function InstructorProfilePage() {
           years_experience: instructorProfile.years_experience || 0,
           hourly_rate_min: instructorProfile.hourly_rate_min || 60,
           hourly_rate_max: instructorProfile.hourly_rate_max || 80,
+          certifications: instructorProfile.certifications || "",
+          equipment: instructorProfile.equipment || "",
         }))
       }
     }
@@ -112,6 +116,8 @@ export default function InstructorProfilePage() {
           years_experience: formData.years_experience,
           hourly_rate_min: formData.hourly_rate_min,
           hourly_rate_max: formData.hourly_rate_max,
+          certifications: formData.certifications,
+          equipment: formData.equipment,
           updated_at: new Date().toISOString(),
         },
         {
@@ -325,6 +331,25 @@ export default function InstructorProfilePage() {
                       onChange={(e) =>
                         setFormData({ ...formData, hourly_rate_max: Number.parseInt(e.target.value) || 0 })
                       }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="certifications">Certifications</Label>
+                    <Input
+                      id="certifications"
+                      value={formData.certifications}
+                      onChange={(e) => setFormData({ ...formData, certifications: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="equipment">Equipment</Label>
+                    <Input
+                      id="equipment"
+                      value={formData.equipment}
+                      onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
                     />
                   </div>
                 </div>
