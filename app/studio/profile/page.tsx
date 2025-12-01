@@ -10,27 +10,32 @@ import { Textarea } from "@/components/ui/textarea"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { AvatarUpload } from "@/components/avatar-upload"
-import { GalleryUpload } from "@/components/gallery-upload"
-import { Instagram, Facebook, Linkedin, Globe, MapPin, Phone, Mail } from "lucide-react"
+import { Instagram, Facebook, Linkedin, Globe, Phone, Mail } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 
 export default function StudioProfilePage() {
   const [loading, setLoading] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     studio_name: "",
     description: "",
-    location: "",
+    address: "",
+    suburb: "",
+    state: "",
+    postcode: "",
     phone: "",
     email: "",
     website: "",
-  })
-  const [socialLinks, setSocialLinks] = useState({
+    studio_size: "",
+    equipment_available: "",
     instagram: "",
     facebook: "",
     linkedin: "",
-    website: "",
   })
+
   const router = useRouter()
 
   useEffect(() => {
@@ -45,20 +50,44 @@ export default function StudioProfilePage() {
         return
       }
 
-      const { data } = await supabase.from("studio_profiles").select("*").eq("id", user.id).maybeSingle()
+      setUserId(user.id)
 
-      if (data) {
-        setProfile(data)
-        setFormData({
-          studio_name: data.studio_name || "",
-          description: data.description || "",
-          location: data.location || "",
-          phone: data.phone || "",
-          email: data.email || "",
-          website: data.website || "",
-        })
-        setSocialLinks(data.social_links || {})
+      const { data: baseProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+
+      const { data: studioProfile } = await supabase.from("studio_profiles").select("*").eq("id", user.id).maybeSingle()
+
+      if (baseProfile) {
+        setAvatarUrl(baseProfile.avatar_url)
+        setFormData((prev) => ({
+          ...prev,
+          phone: baseProfile.phone || "",
+        }))
       }
+
+      if (studioProfile) {
+        const socialLinks = studioProfile.social_links || {}
+
+        setFormData((prev) => ({
+          ...prev,
+          studio_name: studioProfile.studio_name || "",
+          description: studioProfile.description || "",
+          address: studioProfile.address || "",
+          suburb: studioProfile.suburb || "",
+          state: studioProfile.state || "",
+          postcode: studioProfile.postcode || "",
+          email: studioProfile.email || "",
+          website: studioProfile.website || "",
+          studio_size: studioProfile.studio_size || "",
+          equipment_available: Array.isArray(studioProfile.equipment_available)
+            ? studioProfile.equipment_available.join(", ")
+            : "",
+          instagram: socialLinks.instagram || "",
+          facebook: socialLinks.facebook || "",
+          linkedin: socialLinks.linkedin || "",
+        }))
+      }
+
+      setInitialLoading(false)
     }
     loadProfile()
   }, [router])
@@ -67,60 +96,71 @@ export default function StudioProfilePage() {
     setLoading(true)
     try {
       const supabase = createBrowserClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      if (!userId) throw new Error("Not authenticated")
 
-      if (!user) throw new Error("Not authenticated")
+      console.log("[v0] Saving studio profile for user:", userId)
 
-      console.log("[v0] Saving studio profile for user:", user.id)
-      console.log("[v0] Profile data:", formData)
-
-      const { error: profileError } = await supabase
+      const { error: baseError } = await supabase
         .from("profiles")
         .update({
           display_name: formData.studio_name,
-          location: formData.location,
           phone: formData.phone,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id)
+        .eq("id", userId)
 
-      console.log("[v0] Profiles table update:", { error: profileError?.message })
+      if (baseError) {
+        console.error("[v0] Profiles update error:", baseError)
+        throw baseError
+      }
 
-      if (profileError) throw profileError
+      const equipmentArray = formData.equipment_available
+        ? formData.equipment_available
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0)
+        : []
 
-      const { data, error } = await supabase
-        .from("studio_profiles")
-        .upsert(
-          {
-            id: user.id,
-            studio_name: formData.studio_name,
-            website: formData.website,
-            description: formData.description,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: "id",
-          },
-        )
-        .select()
+      const socialLinksObj = {
+        instagram: formData.instagram || null,
+        facebook: formData.facebook || null,
+        linkedin: formData.linkedin || null,
+      }
 
-      console.log("[v0] Save result:", { success: !!data, error: error?.message, data })
+      const { error: studioError } = await supabase.from("studio_profiles").upsert(
+        {
+          id: userId,
+          studio_name: formData.studio_name,
+          description: formData.description,
+          address: formData.address,
+          suburb: formData.suburb,
+          state: formData.state,
+          postcode: formData.postcode,
+          email: formData.email,
+          website: formData.website,
+          studio_size: formData.studio_size,
+          equipment_available: equipmentArray,
+          social_links: socialLinksObj,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      )
 
-      if (error) throw error
+      if (studioError) {
+        console.error("[v0] Studio profiles update error:", studioError)
+        throw studioError
+      }
 
       alert("Profile saved successfully!")
-      window.location.reload()
     } catch (error: any) {
       console.error("[v0] Save error:", error)
-      alert("Save failed: " + error.message)
+      alert(`Save failed: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  if (!profile) {
+  if (initialLoading) {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
@@ -152,10 +192,10 @@ export default function StudioProfilePage() {
               </CardHeader>
               <CardContent>
                 <AvatarUpload
-                  userId={profile.id}
-                  currentAvatarUrl={profile.avatar_url}
+                  userId={userId}
+                  currentAvatarUrl={avatarUrl}
                   userType="studio"
-                  onUploadComplete={() => window.location.reload()}
+                  onUploadComplete={(url) => setAvatarUrl(url)}
                 />
               </CardContent>
             </Card>
@@ -163,7 +203,7 @@ export default function StudioProfilePage() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>Studio Information</CardTitle>
                 <CardDescription>Your studio's core details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -173,6 +213,7 @@ export default function StudioProfilePage() {
                     id="studio_name"
                     value={formData.studio_name}
                     onChange={(e) => setFormData({ ...formData, studio_name: e.target.value })}
+                    placeholder="Pilates Studio Sydney"
                   />
                 </div>
 
@@ -187,20 +228,49 @@ export default function StudioProfilePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Street Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="123 Main Street"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="location" className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Location
-                    </Label>
+                    <Label htmlFor="suburb">Suburb</Label>
                     <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      placeholder="Sydney, NSW"
+                      id="suburb"
+                      value={formData.suburb}
+                      onChange={(e) => setFormData({ ...formData, suburb: e.target.value })}
+                      placeholder="Sydney CBD"
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      placeholder="NSW"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="postcode">Postcode</Label>
+                    <Input
+                      id="postcode"
+                      value={formData.postcode}
+                      onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                      placeholder="2000"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
@@ -242,78 +312,79 @@ export default function StudioProfilePage() {
                       placeholder="https://yourstudio.com"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Studio Gallery */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Studio Gallery</CardTitle>
-                <CardDescription>Showcase your studio space, equipment, and classes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <GalleryUpload
-                  userId={profile.id}
-                  userType="studio"
-                  currentImages={profile.image_gallery || []}
-                  currentVideos={profile.video_urls || []}
-                  onUpdate={() => window.location.reload()}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Social Links */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Social Media</CardTitle>
-                <CardDescription>Connect your social media profiles</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instagram" className="flex items-center gap-2">
-                    <Instagram className="h-4 w-4" />
-                    Instagram
-                  </Label>
-                  <Input
-                    id="instagram"
-                    placeholder="https://instagram.com/yourstudio"
-                    value={socialLinks.instagram}
-                    onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="studio_size">Studio Size</Label>
+                    <Input
+                      id="studio_size"
+                      value={formData.studio_size}
+                      onChange={(e) => setFormData({ ...formData, studio_size: e.target.value })}
+                      placeholder="Small, Medium, Large"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="facebook" className="flex items-center gap-2">
-                    <Facebook className="h-4 w-4" />
-                    Facebook
-                  </Label>
+                  <Label htmlFor="equipment">Equipment Available</Label>
                   <Input
-                    id="facebook"
-                    placeholder="https://facebook.com/yourstudio"
-                    value={socialLinks.facebook}
-                    onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                    id="equipment"
+                    value={formData.equipment_available}
+                    onChange={(e) => setFormData({ ...formData, equipment_available: e.target.value })}
+                    placeholder="Reformer, Cadillac, Chair, Barrel"
                   />
+                  <p className="text-xs text-muted-foreground">Separate with commas</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="linkedin" className="flex items-center gap-2">
-                    <Linkedin className="h-4 w-4" />
-                    LinkedIn
-                  </Label>
-                  <Input
-                    id="linkedin"
-                    placeholder="https://linkedin.com/company/yourstudio"
-                    value={socialLinks.linkedin}
-                    onChange={(e) => setSocialLinks({ ...socialLinks, linkedin: e.target.value })}
-                  />
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="font-medium">Social Media</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram" className="flex items-center gap-2">
+                        <Instagram className="h-4 w-4" />
+                        Instagram
+                      </Label>
+                      <Input
+                        id="instagram"
+                        placeholder="https://instagram.com/yourstudio"
+                        value={formData.instagram}
+                        onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="facebook" className="flex items-center gap-2">
+                        <Facebook className="h-4 w-4" />
+                        Facebook
+                      </Label>
+                      <Input
+                        id="facebook"
+                        placeholder="https://facebook.com/yourstudio"
+                        value={formData.facebook}
+                        onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin" className="flex items-center gap-2">
+                        <Linkedin className="h-4 w-4" />
+                        LinkedIn
+                      </Label>
+                      <Input
+                        id="linkedin"
+                        placeholder="https://linkedin.com/company/yourstudio"
+                        value={formData.linkedin}
+                        onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
+
+                <Button onClick={handleSaveProfile} disabled={loading} className="w-full" size="lg">
+                  {loading ? "Saving..." : "Save Profile"}
+                </Button>
               </CardContent>
             </Card>
-
-            <Button onClick={handleSaveProfile} disabled={loading} className="w-full" size="lg">
-              {loading ? "Saving..." : "Save Profile"}
-            </Button>
           </div>
         </div>
       </main>
