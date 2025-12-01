@@ -193,6 +193,8 @@ export default function StudioDashboardPage() {
   }
 
   const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
+    console.log("[v0] Updating application status:", { applicationId, newStatus })
+
     const { error } = await supabase.from("job_applications").update({ status: newStatus }).eq("id", applicationId)
 
     if (error) {
@@ -201,6 +203,7 @@ export default function StudioDashboardPage() {
       return
     }
 
+    console.log("[v0] Successfully updated application status")
     // Refresh applications
     fetchApplications()
     setIsApplicationModalOpen(false)
@@ -861,33 +864,54 @@ export default function StudioDashboardPage() {
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-4 border-t">
                   <Button
+                    type="button"
                     variant="default"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, "interview")}
-                    disabled={selectedApplication.status !== "pending"}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log("[v0] Move to Interview clicked", selectedApplication)
+                      updateApplicationStatus(selectedApplication.id, "interview")
+                    }}
                   >
                     Move to Interview
                   </Button>
                   <Button
+                    type="button"
                     variant="default"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, "offer")}
-                    disabled={!["pending", "interview"].includes(selectedApplication.status)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log("[v0] Send Offer clicked", selectedApplication)
+                      updateApplicationStatus(selectedApplication.id, "offer")
+                    }}
                   >
                     Send Offer
                   </Button>
                   <Button
+                    type="button"
                     variant="default"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, "accepted")}
-                    disabled={selectedApplication.status !== "offer"}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log("[v0] Mark as Hired clicked", selectedApplication)
+                      updateApplicationStatus(selectedApplication.id, "hired")
+                    }}
                   >
                     Mark as Hired
                   </Button>
                   <Button
+                    type="button"
                     variant="destructive"
-                    onClick={() => updateApplicationStatus(selectedApplication.id, "rejected")}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log("[v0] Reject clicked", selectedApplication)
+                      updateApplicationStatus(selectedApplication.id, "rejected")
+                    }}
                   >
                     Reject
                   </Button>
-                  <Button variant="outline" onClick={() => setIsApplicationModalOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setIsApplicationModalOpen(false)}>
                     Close
                   </Button>
                 </div>
