@@ -18,6 +18,9 @@ export function AvatarUpload({ userId, currentAvatarUrl, userType, onUploadCompl
   const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl)
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -34,30 +37,43 @@ export function AvatarUpload({ userId, currentAvatarUrl, userType, onUploadCompl
     }
 
     setUploading(true)
+    console.log("[v0] Starting avatar upload for user:", userId)
 
     try {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("folder", `avatars/${userId}`)
 
+      console.log("[v0] Uploading to /api/upload...")
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       })
 
-      if (!response.ok) throw new Error("Upload failed")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload failed")
+      }
 
       const { url } = await response.json()
+      console.log("[v0] Upload successful, URL:", url)
 
+      console.log("[v0] Updating profiles table...")
       const supabase = createBrowserClient()
       const { error: updateError } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error("[v0] Database update error:", updateError)
+        throw updateError
+      }
 
+      console.log("[v0] Avatar saved to database successfully")
       setAvatarUrl(url)
       onUploadComplete?.(url)
+
+      event.target.value = ""
     } catch (error: any) {
-      console.error("Avatar upload error:", error)
+      console.error("[v0] Avatar upload error:", error)
       alert("Upload failed: " + error.message)
     } finally {
       setUploading(false)

@@ -17,6 +17,7 @@ import { GalleryUpload } from "@/components/gallery-upload"
 export default function InstructorProfilePage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
@@ -64,10 +65,10 @@ export default function InstructorProfilePage() {
           location: baseProfile.location || "",
           phone: baseProfile.phone || "",
         }))
+        setProfile({ ...instructorProfile, avatar_url: baseProfile.avatar_url })
       }
 
       if (instructorProfile) {
-        setProfile(instructorProfile)
         setSocialLinks(instructorProfile.social_links || {})
         setFormData((prev) => ({
           ...prev,
@@ -80,6 +81,8 @@ export default function InstructorProfilePage() {
           equipment: Array.isArray(instructorProfile.equipment) ? instructorProfile.equipment.join(", ") : "",
         }))
       }
+
+      setInitialLoading(false)
     }
     loadProfile()
   }, [router])
@@ -229,7 +232,7 @@ export default function InstructorProfilePage() {
     }
   }
 
-  if (!profile) {
+  if (initialLoading) {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
@@ -261,10 +264,10 @@ export default function InstructorProfilePage() {
               </CardHeader>
               <CardContent>
                 <AvatarUpload
-                  userId={profile.id}
-                  currentAvatarUrl={profile.avatar_url}
+                  userId={profile?.id}
+                  currentAvatarUrl={profile?.avatar_url}
                   userType="instructor"
-                  onUploadComplete={() => window.location.reload()}
+                  onUploadComplete={(url) => setProfile((prev: any) => ({ ...prev, avatar_url: url }))}
                 />
               </CardContent>
             </Card>
