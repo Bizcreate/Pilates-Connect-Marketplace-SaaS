@@ -53,15 +53,26 @@ export default function InstructorProfilePage() {
         return
       }
 
+      console.log("[v0] Loading profile for user:", user.id)
       setUserId(user.id)
 
-      const { data: baseProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      const { data: baseProfile, error: baseError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
 
-      const { data: instructorProfile } = await supabase
+      console.log("[v0] Base profile loaded:", baseProfile)
+      if (baseError) console.error("[v0] Base profile error:", baseError)
+
+      const { data: instructorProfile, error: instructorError } = await supabase
         .from("instructor_profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
+
+      console.log("[v0] Instructor profile loaded:", instructorProfile)
+      if (instructorError) console.error("[v0] Instructor profile error:", instructorError)
 
       if (baseProfile) {
         setAvatarUrl(baseProfile.avatar_url)
@@ -104,27 +115,40 @@ export default function InstructorProfilePage() {
 
   async function handleSaveProfile() {
     setLoading(true)
+    console.log("[v0] ===== STARTING PROFILE SAVE =====")
+    console.log("[v0] Form data to save:", formData)
+
     try {
       const supabase = createBrowserClient()
       if (!userId) throw new Error("Not authenticated")
 
-      console.log("[v0] Saving instructor profile for user:", userId)
+      const profilesData = {
+        display_name: formData.display_name,
+        bio: formData.bio,
+        location: formData.location,
+        phone: formData.phone,
+        updated_at: new Date().toISOString(),
+      }
+      console.log("[v0] Step 1: Updating profiles table with data:", profilesData)
 
-      const { error: baseError } = await supabase
+      const { data: profilesResult, error: baseError } = await supabase
         .from("profiles")
-        .update({
-          display_name: formData.display_name,
-          bio: formData.bio,
-          location: formData.location,
-          phone: formData.phone,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profilesData)
         .eq("id", userId)
+        .select()
 
       if (baseError) {
-        console.error("[v0] Profiles update error:", baseError)
+        console.error("[v0] ❌ Profiles update FAILED:", {
+          error: baseError,
+          message: baseError.message,
+          details: baseError.details,
+          hint: baseError.hint,
+          code: baseError.code,
+        })
         throw baseError
       }
+
+      console.log("[v0] ✅ Profiles updated successfully:", profilesResult)
 
       const certificationsArray = formData.certifications
         ? formData.certifications
@@ -147,34 +171,47 @@ export default function InstructorProfilePage() {
         website: formData.website || null,
       }
 
-      console.log("[v0] Saving to instructor_profiles with social links:", socialLinksObj)
+      const instructorData = {
+        id: userId,
+        bio: formData.bio,
+        years_experience: formData.years_experience,
+        hourly_rate_min: formData.hourly_rate_min,
+        hourly_rate_max: formData.hourly_rate_max,
+        certifications: certificationsArray,
+        equipment: equipmentArray,
+        availability_status: formData.availability_status,
+        social_links: socialLinksObj,
+        updated_at: new Date().toISOString(),
+      }
 
-      const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
-        {
-          id: userId,
-          bio: formData.bio, // Also save bio to instructor_profiles for backward compatibility
-          years_experience: formData.years_experience,
-          hourly_rate_min: formData.hourly_rate_min,
-          hourly_rate_max: formData.hourly_rate_max,
-          certifications: certificationsArray,
-          equipment: equipmentArray,
-          availability_status: formData.availability_status,
-          social_links: socialLinksObj,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      )
+      console.log("[v0] Step 2: Upserting instructor_profiles with data:", instructorData)
+      console.log("[v0] Certifications array:", certificationsArray)
+      console.log("[v0] Equipment array:", equipmentArray)
+      console.log("[v0] Social links object:", socialLinksObj)
+
+      const { data: instructorResult, error: instructorError } = await supabase
+        .from("instructor_profiles")
+        .upsert(instructorData, { onConflict: "id" })
+        .select()
 
       if (instructorError) {
-        console.error("[v0] Instructor profiles update error:", instructorError)
+        console.error("[v0] ❌ Instructor profiles update FAILED:", {
+          error: instructorError,
+          message: instructorError.message,
+          details: instructorError.details,
+          hint: instructorError.hint,
+          code: instructorError.code,
+        })
         throw instructorError
       }
 
-      console.log("[v0] Profile saved successfully!")
+      console.log("[v0] ✅ Instructor profiles updated successfully:", instructorResult)
+      console.log("[v0] ===== PROFILE SAVE COMPLETE =====")
+
       alert("Profile saved successfully!")
     } catch (error: any) {
-      console.error("[v0] Save error:", error)
-      alert(`Save failed: ${error.message}`)
+      console.error("[v0] ❌ SAVE FAILED:", error)
+      alert(`Save failed: ${error.message}\n\nCheck the browser console for detailed error information.`)
     } finally {
       setLoading(false)
     }
