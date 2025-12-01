@@ -21,9 +21,14 @@ import {
   CalendarDays,
   AlertCircle,
   Search,
+  Download,
+  FileText,
+  ImageIcon,
+  Video,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { StartConversationButton } from "@/components/start-conversation-button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function StudioDashboardPage() {
   const router = useRouter()
@@ -769,6 +774,128 @@ export default function StudioDashboardPage() {
       </main>
 
       <SiteFooter />
+
+      <Dialog open={isApplicationModalOpen} onOpenChange={setIsApplicationModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedApplication && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">Application Details</DialogTitle>
+                <DialogDescription>
+                  Review application from {selectedApplication.instructor.display_name}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Applicant Info */}
+                <div>
+                  <h3 className="font-semibold mb-2">Applicant</h3>
+                  <div className="space-y-1">
+                    <p className="text-lg font-medium">{selectedApplication.instructor.display_name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedApplication.instructor.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Applied: {new Date(selectedApplication.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Job Info */}
+                <div>
+                  <h3 className="font-semibold mb-2">Position</h3>
+                  <p className="text-sm">{selectedApplication.job.title}</p>
+                </div>
+
+                {/* Cover Letter */}
+                {selectedApplication.cover_letter && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Cover Letter</h3>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-sm whitespace-pre-wrap">{selectedApplication.cover_letter}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* CV */}
+                {selectedApplication.cv_url && (
+                  <div>
+                    <h3 className="font-semibold mb-2">CV / Resume</h3>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={selectedApplication.cv_url} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download CV
+                      </a>
+                    </Button>
+                  </div>
+                )}
+
+                {/* Demo Files */}
+                {selectedApplication.demo_urls && selectedApplication.demo_urls.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Demo Files</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedApplication.demo_urls.map((url: string, index: number) => {
+                        const isVideo = url.match(/\.(mp4|mov|avi|webm)$/i)
+                        const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+
+                        return (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="justify-start bg-transparent"
+                          >
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              {isVideo && <Video className="h-4 w-4 mr-2" />}
+                              {isImage && <ImageIcon className="h-4 w-4 mr-2" />}
+                              {!isVideo && !isImage && <FileText className="h-4 w-4 mr-2" />}
+                              Demo {index + 1}
+                            </a>
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    variant="default"
+                    onClick={() => updateApplicationStatus(selectedApplication.id, "interview")}
+                    disabled={selectedApplication.status !== "pending"}
+                  >
+                    Move to Interview
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => updateApplicationStatus(selectedApplication.id, "offer")}
+                    disabled={!["pending", "interview"].includes(selectedApplication.status)}
+                  >
+                    Send Offer
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => updateApplicationStatus(selectedApplication.id, "accepted")}
+                    disabled={selectedApplication.status !== "offer"}
+                  >
+                    Mark as Hired
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => updateApplicationStatus(selectedApplication.id, "rejected")}
+                  >
+                    Reject
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsApplicationModalOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
