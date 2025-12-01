@@ -5,7 +5,7 @@ const securityHeaders = [
       "default-src 'self';",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vusercontent.net https://vercel-insights.com;",
       "connect-src 'self' https://*.supabase.co https://vercel-insights.com;",
-      "img-src 'self' data: blob:;",
+      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com;",
       "style-src 'self' 'unsafe-inline';",
       "font-src 'self' data:;",
     ].join(" "),

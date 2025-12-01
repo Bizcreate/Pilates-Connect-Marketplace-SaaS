@@ -117,10 +117,29 @@ export default function InstructorProfilePage() {
     setLoading(true)
     console.log("[v0] ===== STARTING PROFILE SAVE =====")
     console.log("[v0] Form data to save:", formData)
+    console.log("[v0] User ID:", userId)
 
     try {
       const supabase = createBrowserClient()
       if (!userId) throw new Error("Not authenticated")
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getUser()
+      console.log("[v0] Current session:", sessionData)
+      if (sessionError) {
+        console.error("[v0] Session error:", sessionError)
+      }
+
+      const { data: testRead, error: testReadError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single()
+
+      console.log("[v0] Test read from profiles:", testRead)
+      if (testReadError) {
+        console.error("[v0] ❌ Cannot read profiles table:", testReadError)
+        throw new Error(`Permission error: ${testReadError.message}`)
+      }
 
       const profilesData = {
         display_name: formData.display_name,
@@ -174,12 +193,12 @@ export default function InstructorProfilePage() {
       const instructorData = {
         id: userId,
         bio: formData.bio,
-        years_experience: formData.years_experience,
-        hourly_rate_min: formData.hourly_rate_min,
-        hourly_rate_max: formData.hourly_rate_max,
+        years_experience: formData.years_experience ? Number.parseInt(formData.years_experience.toString()) : 0,
+        hourly_rate_min: formData.hourly_rate_min ? Number.parseInt(formData.hourly_rate_min.toString()) : 0,
+        hourly_rate_max: formData.hourly_rate_max ? Number.parseInt(formData.hourly_rate_max.toString()) : 0,
         certifications: certificationsArray,
         equipment: equipmentArray,
-        availability_status: formData.availability_status,
+        availability_status: formData.availability_status || "unavailable",
         social_links: socialLinksObj,
         updated_at: new Date().toISOString(),
       }
@@ -207,6 +226,13 @@ export default function InstructorProfilePage() {
 
       console.log("[v0] ✅ Instructor profiles updated successfully:", instructorResult)
       console.log("[v0] ===== PROFILE SAVE COMPLETE =====")
+
+      setFormData({
+        ...formData,
+        ...profilesData,
+        certifications: formData.certifications,
+        equipment: formData.equipment,
+      })
 
       alert("Profile saved successfully!")
     } catch (error: any) {
