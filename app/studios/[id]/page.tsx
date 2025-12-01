@@ -39,7 +39,20 @@ export default function StudioPublicProfilePage() {
 
       const { data: studioData } = await supabase.from("studio_profiles").select("*").eq("id", studioId).maybeSingle()
 
-      setStudio({ ...profileData, ...studioData })
+      const mergedStudio = {
+        ...profileData,
+        studio_name: studioData?.studio_name || profileData.display_name,
+        description: studioData?.description || profileData.bio,
+        address: studioData?.address,
+        suburb: studioData?.suburb,
+        state: studioData?.state,
+        postcode: studioData?.postcode,
+        equipment: studioData?.equipment,
+        social_links: studioData?.social_links,
+      }
+
+      console.log("[v0] Loaded studio:", mergedStudio)
+      setStudio(mergedStudio)
 
       const { data: jobsData } = await supabase
         .from("jobs")
@@ -47,8 +60,9 @@ export default function StudioPublicProfilePage() {
         .eq("studio_id", studioId)
         .eq("status", "open")
         .order("created_at", { ascending: false })
-        .limit(3)
+        .limit(5)
 
+      console.log("[v0] Found open jobs:", jobsData?.length || 0)
       setJobs(jobsData || [])
       setLoading(false)
     }
@@ -129,6 +143,36 @@ export default function StudioPublicProfilePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
+              {/* About Section */}
+              {studio.description && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>About {studio.studio_name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">{studio.description}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Equipment Available */}
+              {studio.equipment && studio.equipment.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Equipment Available</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {studio.equipment.map((item: string, idx: number) => (
+                        <Badge key={idx} variant="secondary">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Current Job Openings */}
               <Card>
                 <CardHeader>
@@ -144,21 +188,31 @@ export default function StudioPublicProfilePage() {
                         <div key={job.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="font-semibold text-lg">{job.title}</h3>
-                            <Badge variant="secondary">{job.job_type}</Badge>
+                            <Badge variant="secondary" className="capitalize">
+                              {job.job_type}
+                            </Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
                               {job.location}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              Start: {new Date(job.start_date).toLocaleDateString()}
-                            </div>
+                            {job.start_date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                Start: {new Date(job.start_date).toLocaleDateString()}
+                              </div>
+                            )}
+                            {job.hourly_rate_min && (
+                              <span className="font-medium">
+                                ${job.hourly_rate_min}
+                                {job.hourly_rate_max && `-$${job.hourly_rate_max}`}/hr
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm line-clamp-2 mb-3">{job.description}</p>
                           <Button size="sm" asChild>
-                            <a href={`/jobs/${job.id}`}>View Details</a>
+                            <a href={`/jobs/${job.id}`}>View Details & Apply</a>
                           </Button>
                         </div>
                       ))}
@@ -176,6 +230,17 @@ export default function StudioPublicProfilePage() {
                   <CardTitle>Contact Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {studio.address && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div className="text-sm">
+                        <div>{studio.address}</div>
+                        <div>
+                          {studio.suburb}, {studio.state} {studio.postcode}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {studio.phone && (
                     <div className="flex items-center gap-3">
                       <Phone className="h-4 w-4 text-muted-foreground" />
@@ -192,11 +257,11 @@ export default function StudioPublicProfilePage() {
                       </a>
                     </div>
                   )}
-                  {studio.website && (
+                  {studio.social_links?.website && (
                     <div className="flex items-center gap-3">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <a
-                        href={studio.website}
+                        href={studio.social_links.website}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm hover:underline"
@@ -220,8 +285,25 @@ export default function StudioPublicProfilePage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Location</span>
-                    <span className="text-sm font-medium">{studio.location || "Not specified"}</span>
+                    <span className="text-sm font-medium">{studio.suburb || studio.location || "Not specified"}</span>
                   </div>
+                  {studio.equipment && studio.equipment.length > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Equipment</span>
+                      <span className="text-sm font-medium">{studio.equipment.length} types</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Call to Action */}
+              <Card className="bg-primary/5">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2">Interested in working here?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Send a message to introduce yourself or apply for one of their open positions.
+                  </p>
+                  <StartConversationButton userId={studioId} className="w-full" />
                 </CardContent>
               </Card>
             </div>

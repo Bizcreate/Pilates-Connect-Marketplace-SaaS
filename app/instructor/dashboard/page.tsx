@@ -182,9 +182,12 @@ export default function InstructorDashboardPage() {
 
   const isProfileIncomplete = !profile?.display_name
 
-  const pendingApplications = applications.filter((a) => a.status === "pending")
-  const interviewApplications = applications.filter((a) => a.status === "interview")
-  const acceptedApplications = applications.filter((a) => a.status === "accepted")
+  const openApplications = applications.filter((a) => a.job?.status === "open")
+  const closedApplications = applications.filter((a) => a.job?.status === "closed")
+
+  const pendingApplications = openApplications.filter((a) => a.status === "pending")
+  const interviewApplications = openApplications.filter((a) => a.status === "interview")
+  const acceptedApplications = openApplications.filter((a) => a.status === "accepted")
 
   const stats = {
     activeApplications: pendingApplications.length,
@@ -317,7 +320,7 @@ export default function InstructorDashboardPage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
               <TabsTrigger value="availability">My Availability ({availabilitySlots.length})</TabsTrigger>
-              <TabsTrigger value="applications">Applications ({applications.length})</TabsTrigger>
+              <TabsTrigger value="applications">Applications ({openApplications.length})</TabsTrigger>
               <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -560,17 +563,17 @@ export default function InstructorDashboardPage() {
                   <CardDescription>Track the status of your job applications</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {applications.length === 0 ? (
+                  {openApplications.length === 0 ? (
                     <div className="text-center py-12">
                       <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No applications yet</h3>
+                      <h3 className="font-semibold mb-2">No active applications</h3>
                       <p className="text-sm text-muted-foreground mb-4">Start applying to jobs to see them here</p>
                       <Button asChild>
                         <Link href="/jobs">Browse Jobs</Link>
                       </Button>
                     </div>
                   ) : (
-                    applications.map((application) => (
+                    openApplications.map((application) => (
                       <div
                         key={application.id}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -622,6 +625,38 @@ export default function InstructorDashboardPage() {
                         </div>
                       </div>
                     ))
+                  )}
+
+                  {closedApplications.length > 0 && (
+                    <div className="mt-8 pt-8 border-t">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4">Closed Jobs</h3>
+                      {closedApplications.map((application) => (
+                        <div
+                          key={application.id}
+                          className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30 opacity-60 mb-3"
+                        >
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-lg">{application.job?.title}</h3>
+                                <p className="text-sm text-muted-foreground">{application.job?.studio?.display_name}</p>
+                                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+                                  <Badge variant="outline" className="text-xs">
+                                    Job Closed
+                                  </Badge>
+                                  <span className="capitalize">{application.job?.job_type}</span>
+                                  <span>•</span>
+                                  <span>{application.job?.location}</span>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="capitalize">
+                                {application.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </CardContent>
               </Card>

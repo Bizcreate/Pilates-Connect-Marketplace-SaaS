@@ -1,12 +1,27 @@
 import Link from "next/link"
-import { notFound } from 'next/navigation'
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { MapPin, Star, Award, Briefcase, GraduationCap, Clock, CheckCircle2, FileText, Video, Instagram, Globe, ArrowLeft, MessageSquare, Facebook, Linkedin } from 'lucide-react'
+import {
+  MapPin,
+  Star,
+  Award,
+  Briefcase,
+  GraduationCap,
+  Clock,
+  CheckCircle2,
+  FileText,
+  Video,
+  Instagram,
+  Globe,
+  ArrowLeft,
+  Facebook,
+  Linkedin,
+} from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { StartConversationButton } from "@/components/start-conversation-button"
 import { BookAvailabilityButton } from "@/components/book-availability-button"
@@ -70,7 +85,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-6">
                 <img
-                  src={instructorProfile.profile_image || "/placeholder.svg?height=128&width=128"}
+                  src={instructor.avatar_url || "/placeholder.svg?height=128&width=128"}
                   alt={instructor.display_name}
                   className="h-32 w-32 rounded-full object-cover mx-auto md:mx-0"
                 />
@@ -114,7 +129,9 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                     </div>
                   </div>
 
-                  <p className="text-muted-foreground leading-relaxed">{instructorProfile.bio || "No bio provided"}</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {instructorProfile.bio || instructor.bio || "No bio provided"}
+                  </p>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -334,7 +351,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                       {availabilitySlots.map((slot) => {
                         const startDate = new Date(slot.start_time)
                         const endDate = new Date(slot.end_time)
-                        
+
                         let metadata: any = {}
                         try {
                           if (slot.notes) {
@@ -345,30 +362,35 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                         }
 
                         return (
-                          <div key={slot.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <div
+                            key={slot.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
                             <div className="flex-1 space-y-2">
                               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-primary" />
                                   <span className="font-medium">
-                                    {startDate.toLocaleDateString('en-AU', { 
-                                      weekday: 'short', 
-                                      month: 'short', 
-                                      day: 'numeric' 
+                                    {startDate.toLocaleDateString("en-AU", {
+                                      weekday: "short",
+                                      month: "short",
+                                      day: "numeric",
                                     })}
                                   </span>
                                 </div>
                                 <span className="text-sm text-muted-foreground">
-                                  {startDate.toLocaleTimeString('en-AU', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })} - {endDate.toLocaleTimeString('en-AU', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
+                                  {startDate.toLocaleTimeString("en-AU", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}{" "}
+                                  -{" "}
+                                  {endDate.toLocaleTimeString("en-AU", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
                                   })}
                                 </span>
                               </div>
-                              
+
                               {(metadata.location || metadata.pilates_level || metadata.rate_min) && (
                                 <div className="flex flex-wrap gap-2 text-sm">
                                   {metadata.location && (
@@ -384,23 +406,26 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                                   )}
                                   {metadata.rate_min && (
                                     <Badge variant="outline" className="text-xs">
-                                      ${metadata.rate_min}{metadata.rate_unit ? `/${metadata.rate_unit}` : ''}
+                                      ${metadata.rate_min}
+                                      {metadata.rate_unit ? `/${metadata.rate_unit}` : ""}
                                     </Badge>
                                   )}
                                 </div>
                               )}
 
-                              {metadata.equipment && Array.isArray(metadata.equipment) && metadata.equipment.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {metadata.equipment.map((item: string) => (
-                                    <Badge key={item} variant="outline" className="text-xs">
-                                      {item}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
+                              {metadata.equipment &&
+                                Array.isArray(metadata.equipment) &&
+                                metadata.equipment.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {metadata.equipment.map((item: string) => (
+                                      <Badge key={item} variant="outline" className="text-xs">
+                                        {item}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                             </div>
-                            
+
                             {user && userType === "studio" && (
                               <BookAvailabilityButton
                                 slot={slot}
@@ -433,7 +458,9 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                           <span className="font-medium capitalize text-sm">{day}</span>
                           <span
                             className={
-                              times === "Not Available" ? "text-muted-foreground text-sm" : "text-foreground font-medium text-sm"
+                              times === "Not Available"
+                                ? "text-muted-foreground text-sm"
+                                : "text-foreground font-medium text-sm"
                             }
                           >
                             {times as string}

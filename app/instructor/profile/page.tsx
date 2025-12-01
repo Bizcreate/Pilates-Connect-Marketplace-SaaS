@@ -147,9 +147,12 @@ export default function InstructorProfilePage() {
         website: formData.website || null,
       }
 
+      console.log("[v0] Saving to instructor_profiles with social links:", socialLinksObj)
+
       const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
         {
           id: userId,
+          bio: formData.bio, // Also save bio to instructor_profiles for backward compatibility
           years_experience: formData.years_experience,
           hourly_rate_min: formData.hourly_rate_min,
           hourly_rate_max: formData.hourly_rate_max,
@@ -167,6 +170,7 @@ export default function InstructorProfilePage() {
         throw instructorError
       }
 
+      console.log("[v0] Profile saved successfully!")
       alert("Profile saved successfully!")
     } catch (error: any) {
       console.error("[v0] Save error:", error)
