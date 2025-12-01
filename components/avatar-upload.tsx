@@ -49,10 +49,8 @@ export function AvatarUpload({ userId, currentAvatarUrl, userType, onUploadCompl
 
       const { url } = await response.json()
 
-      // Update profile in database
       const supabase = createBrowserClient()
-      const table = userType === "instructor" ? "instructor_profiles" : "studio_profiles"
-      const { error: updateError } = await supabase.from(table).update({ avatar_url: url }).eq("id", userId)
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId)
 
       if (updateError) throw updateError
 

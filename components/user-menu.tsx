@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, Settings } from "lucide-react"
+import { LogOut, Settings, User } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/ssr"
@@ -54,6 +54,15 @@ export function UserMenu({ user, userType }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <button
+            className="w-full cursor-pointer"
+            onClick={() => router.push(userType === "studio" ? "/studio/profile" : "/instructor/profile")}
+          >
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </button>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <button
             className="w-full cursor-pointer"

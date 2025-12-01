@@ -74,8 +74,10 @@ export default function InstructorProfilePage() {
           years_experience: instructorProfile.years_experience || 0,
           hourly_rate_min: instructorProfile.hourly_rate_min || 60,
           hourly_rate_max: instructorProfile.hourly_rate_max || 80,
-          certifications: instructorProfile.certifications || "",
-          equipment: instructorProfile.equipment || "",
+          certifications: Array.isArray(instructorProfile.certifications)
+            ? instructorProfile.certifications.join(", ")
+            : "",
+          equipment: Array.isArray(instructorProfile.equipment) ? instructorProfile.equipment.join(", ") : "",
         }))
       }
     }
@@ -110,14 +112,27 @@ export default function InstructorProfilePage() {
 
       if (baseError) throw baseError
 
+      const certificationsArray = formData.certifications
+        ? formData.certifications
+            .split(",")
+            .map((c) => c.trim())
+            .filter((c) => c.length > 0)
+        : []
+      const equipmentArray = formData.equipment
+        ? formData.equipment
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0)
+        : []
+
       const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
         {
           id: user.id,
           years_experience: formData.years_experience,
           hourly_rate_min: formData.hourly_rate_min,
           hourly_rate_max: formData.hourly_rate_max,
-          certifications: formData.certifications,
-          equipment: formData.equipment,
+          certifications: certificationsArray,
+          equipment: equipmentArray,
           updated_at: new Date().toISOString(),
         },
         {
