@@ -195,15 +195,25 @@ export default function StudioDashboardPage() {
   const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
     console.log("[v0] Updating application status:", { applicationId, newStatus })
 
-    const { error } = await supabase.from("job_applications").update({ status: newStatus }).eq("id", applicationId)
+    const { data, error } = await supabase
+      .from("job_applications")
+      .update({ status: newStatus })
+      .eq("id", applicationId)
+      .select()
 
     if (error) {
       console.error("[v0] Error updating application:", error)
-      alert("Failed to update application status")
+      console.error("[v0] Error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      })
+      alert(`Failed to update application status: ${error.message}`)
       return
     }
 
-    console.log("[v0] Successfully updated application status")
+    console.log("[v0] Successfully updated application status:", data)
     // Refresh applications
     fetchApplications()
     setIsApplicationModalOpen(false)
