@@ -119,6 +119,12 @@ export default function InstructorProfilePage() {
     console.log("[v0] Form data to save:", formData)
     console.log("[v0] User ID:", userId)
 
+    const timeoutId = setTimeout(() => {
+      console.error("[v0] ⏱️ SAVE TIMEOUT - Save took longer than 30 seconds")
+      setLoading(false)
+      alert("Save timed out. Please check your internet connection and try again.")
+    }, 30000)
+
     try {
       const supabase = createBrowserClient()
       if (!userId) throw new Error("Not authenticated")
@@ -227,6 +233,8 @@ export default function InstructorProfilePage() {
       console.log("[v0] ✅ Instructor profiles updated successfully:", instructorResult)
       console.log("[v0] ===== PROFILE SAVE COMPLETE =====")
 
+      clearTimeout(timeoutId)
+
       setFormData({
         ...formData,
         ...profilesData,
@@ -236,6 +244,7 @@ export default function InstructorProfilePage() {
 
       alert("Profile saved successfully!")
     } catch (error: any) {
+      clearTimeout(timeoutId)
       console.error("[v0] ❌ SAVE FAILED:", error)
       alert(`Save failed: ${error.message}\n\nCheck the browser console for detailed error information.`)
     } finally {
