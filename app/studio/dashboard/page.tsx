@@ -652,14 +652,14 @@ export default function StudioDashboardPage() {
                     </div>
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm">
-                        Interview ({applications.filter((a) => a.status === "interview").length})
+                        Interview ({applications.filter((a) => a.status === "reviewed").length})
                       </h3>
-                      {applications.filter((a) => a.status === "interview").length === 0 ? (
+                      {applications.filter((a) => a.status === "reviewed").length === 0 ? (
                         <p className="text-xs text-muted-foreground">No interviews scheduled</p>
                       ) : (
                         <div className="space-y-2">
                           {applications
-                            .filter((a) => a.status === "interview")
+                            .filter((a) => a.status === "reviewed")
                             .map((app) => (
                               <Card
                                 key={app.id}
@@ -885,7 +885,7 @@ export default function StudioDashboardPage() {
                       e.preventDefault()
                       e.stopPropagation()
                       console.log("[v0] Move to Interview clicked", selectedApplication)
-                      updateApplicationStatus(selectedApplication.id, "interview")
+                      updateApplicationStatus(selectedApplication.id, "reviewed")
                     }}
                   >
                     Move to Interview
@@ -897,7 +897,7 @@ export default function StudioDashboardPage() {
                       e.preventDefault()
                       e.stopPropagation()
                       console.log("[v0] Send Offer clicked", selectedApplication)
-                      updateApplicationStatus(selectedApplication.id, "offer")
+                      updateApplicationStatus(selectedApplication.id, "accepted")
                     }}
                   >
                     Send Offer
@@ -909,7 +909,7 @@ export default function StudioDashboardPage() {
                       e.preventDefault()
                       e.stopPropagation()
                       console.log("[v0] Mark as Hired clicked", selectedApplication)
-                      updateApplicationStatus(selectedApplication.id, "hired")
+                      updateApplicationStatus(selectedApplication.id, "accepted")
                     }}
                   >
                     Mark as Hired
