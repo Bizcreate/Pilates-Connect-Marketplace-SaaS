@@ -64,6 +64,10 @@ export default async function InstructorProfilePage({ params }: { params: Promis
     .order("start_time", { ascending: true })
     .limit(10)
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -359,6 +363,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                     slots={availabilitySlots || []}
                     instructorName={instructor.display_name}
                     instructorId={instructor.id}
+                    userId={user?.id}
                   />
                 </CardContent>
               </Card>

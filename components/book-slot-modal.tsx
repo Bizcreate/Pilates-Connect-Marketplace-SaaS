@@ -54,8 +54,12 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
           description: "Please log in to book availability slots",
           variant: "destructive",
         })
+        router.push("/auth/login")
         return
       }
+
+      console.log("[v0] Booking slot - User ID:", user.id)
+      console.log("[v0] Booking slot - Instructor ID:", slot.instructor_id)
 
       // Create or get conversation
       const { data: existingConv } = await supabase
@@ -69,6 +73,7 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
       let conversationId = existingConv?.id
 
       if (!conversationId) {
+        console.log("[v0] Creating new conversation")
         const { data: newConv, error: convError } = await supabase
           .from("conversations")
           .insert({
@@ -78,9 +83,14 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
           .select()
           .single()
 
-        if (convError) throw convError
+        if (convError) {
+          console.error("[v0] Error creating conversation:", convError)
+          throw convError
+        }
         conversationId = newConv.id
       }
+
+      console.log("[v0] Using conversation ID:", conversationId)
 
       // Format booking message
       const bookingMessage =
@@ -98,6 +108,7 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
         })}.`
 
       // Send message
+      console.log("[v0] Sending message to conversation")
       const { error: messageError } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: user.id,
@@ -105,19 +116,47 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
         read: false,
       })
 
-      if (messageError) throw messageError
+      if (messageError) {
+        console.error("[v0] Error sending message:", messageError)
+        throw messageError
+      }
 
-      // Create in-dashboard notification for instructor
-      await supabase.from("notifications").insert({
+      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId)
+
+      const coverRequestDate = startDate.toISOString().split("T")[0]
+      const coverStartTime = startDate.toLocaleTimeString("en-AU", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+      const coverEndTime = endDate.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })
+
+      console.log("[v0] Creating cover request")
+      await supabase.from("cover_requests").insert({
+        studio_id: user.id,
+        instructor_id: slot.instructor_id,
+        date: coverRequestDate,
+        start_time: coverStartTime,
+        end_time: coverEndTime,
+        status: "pending",
+        notes: message || null,
+      })
+
+      console.log("[v0] Creating notification")
+      const { error: notifError } = await supabase.from("notifications").insert({
         user_id: slot.instructor_id,
-        type: "booking_request",
-        title: "New Booking Request",
-        message: `You have a new booking request from ${user.email}`,
+        type: "cover_request",
+        title: "New Cover Request",
+        message: `You have a new booking request for ${startDate.toLocaleDateString("en-AU")}`,
         link: `/messages?conversation=${conversationId}`,
         read: false,
       })
 
-      // Send push notification (if user has enabled it)
+      if (notifError) {
+        console.error("[v0] Error creating notification (table may not exist):", notifError)
+        // Don't throw - continue even if notifications fail
+      }
+
       const { data: notifPrefs } = await supabase
         .from("notification_preferences")
         .select("push_messages")
@@ -125,16 +164,17 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
         .single()
 
       if (notifPrefs?.push_messages) {
+        console.log("[v0] Sending push notification")
         await fetch("/api/notifications/push", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: slot.instructor_id,
             title: "New Booking Request",
-            body: `${user.email} wants to book your slot on ${startDate.toLocaleDateString("en-AU")}`,
+            body: `New booking request for ${startDate.toLocaleDateString("en-AU")}`,
             link: `/messages?conversation=${conversationId}`,
           }),
-        })
+        }).catch((err) => console.error("[v0] Push notification failed:", err))
       }
 
       toast({
@@ -145,9 +185,10 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
       setTimeout(() => {
         router.push(`/messages?conversation=${conversationId}`)
         onOpenChange(false)
+        router.refresh()
       }, 1500)
     } catch (error) {
-      console.error("Error booking slot:", error)
+      console.error("[v0] Error booking slot:", error)
       toast({
         title: "Booking failed",
         description: "There was an error sending your booking request. Please try again.",
