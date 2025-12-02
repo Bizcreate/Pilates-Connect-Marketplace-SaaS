@@ -47,116 +47,121 @@ export default function StudioDashboardPage() {
     async function loadDashboard() {
       console.log("[v0] Loading studio dashboard...")
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-      console.log("[v0] User:", user?.id)
+        console.log("[v0] User:", user?.id)
 
-      if (!user) {
-        console.log("[v0] No user found, redirecting to login")
-        router.push("/auth/login")
-        return
-      }
+        if (!user) {
+          console.log("[v0] No user found, redirecting to login")
+          router.push("/auth/login")
+          return
+        }
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("user_type, display_name")
-        .eq("id", user.id)
-        .maybeSingle()
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("user_type, display_name")
+          .eq("id", user.id)
+          .maybeSingle()
 
-      console.log("[v0] Profile data:", profileData)
+        console.log("[v0] Profile data:", profileData)
 
-      if (!profileData) {
-        console.log("[v0] No profile found, redirecting to login")
-        router.push("/auth/login")
-        return
-      }
+        if (!profileData) {
+          console.log("[v0] No profile found, redirecting to login")
+          router.push("/auth/login")
+          return
+        }
 
-      if (profileData.user_type !== "studio") {
-        console.log("[v0] User is not a studio, redirecting to instructor dashboard")
-        router.push("/instructor/dashboard")
-        return
-      }
+        if (profileData.user_type !== "studio") {
+          console.log("[v0] User is not a studio, redirecting to instructor dashboard")
+          router.push("/instructor/dashboard")
+          return
+        }
 
-      setProfile(profileData)
+        setProfile(profileData)
 
-      const { data: coverRequestsData, error: coverError } = await supabase
-        .from("cover_requests")
-        .select(`
-          *,
-          instructor:profiles!cover_requests_instructor_id_fkey(display_name)
-        `)
-        .eq("studio_id", user.id)
-        .order("date", { ascending: true })
-
-      console.log("[v0] Cover requests:", { count: coverRequestsData?.length, error: coverError })
-      setCoverRequests(coverRequestsData || [])
-
-      const { data: instructorsData, error: instructorsError } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          display_name,
-          location,
-          avatar_url,
-          instructor_profile:instructor_profiles!instructor_profiles_id_fkey(
-            years_experience,
-            hourly_rate_min,
-            hourly_rate_max,
-            availability_status,
-            specializations,
-            certifications,
-            equipment
-          )
-        `)
-        .eq("user_type", "instructor")
-        .not("instructor_profile", "is", null)
-        .limit(20)
-
-      console.log("[v0] Available instructors:", {
-        count: instructorsData?.length,
-        error: instructorsError,
-        sample: instructorsData?.[0],
-      })
-
-      // Filter for only available instructors
-      const availableInstructorsData =
-        instructorsData?.filter((instructor) => instructor.instructor_profile?.availability_status === "available") ||
-        []
-
-      setAvailableInstructors(availableInstructorsData)
-
-      const { data: jobsData, error: jobsError } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("studio_id", user.id)
-        .order("created_at", { ascending: false })
-
-      console.log("[v0] Jobs:", { count: jobsData?.length, error: jobsError })
-      setJobs(jobsData || [])
-
-      if (jobsData && jobsData.length > 0) {
-        const { data: applicationsData, error: appsError } = await supabase
-          .from("job_applications")
+        const { data: coverRequestsData, error: coverError } = await supabase
+          .from("cover_requests")
           .select(`
             *,
-            instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
-            job:jobs(title)
+            instructor:profiles!cover_requests_instructor_id_fkey(display_name)
           `)
-          .in(
-            "job_id",
-            jobsData.map((j) => j.id),
-          )
+          .eq("studio_id", user.id)
+          .order("date", { ascending: true })
+
+        console.log("[v0] Cover requests:", { count: coverRequestsData?.length, error: coverError })
+        setCoverRequests(coverRequestsData || [])
+
+        const { data: instructorsData, error: instructorsError } = await supabase
+          .from("profiles")
+          .select(`
+            id,
+            display_name,
+            location,
+            avatar_url,
+            instructor_profile:instructor_profiles!instructor_profiles_id_fkey(
+              years_experience,
+              hourly_rate_min,
+              hourly_rate_max,
+              availability_status,
+              specializations,
+              certifications,
+              equipment
+            )
+          `)
+          .eq("user_type", "instructor")
+          .not("instructor_profile", "is", null)
+          .limit(20)
+
+        console.log("[v0] Available instructors:", {
+          count: instructorsData?.length,
+          error: instructorsError,
+          sample: instructorsData?.[0],
+        })
+
+        // Filter for only available instructors
+        const availableInstructorsData =
+          instructorsData?.filter((instructor) => instructor.instructor_profile?.availability_status === "available") ||
+          []
+
+        setAvailableInstructors(availableInstructorsData)
+
+        const { data: jobsData, error: jobsError } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("studio_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(10)
 
-        console.log("[v0] Applications:", { count: applicationsData?.length, error: appsError })
-        setApplications(applicationsData || [])
+        console.log("[v0] Jobs:", { count: jobsData?.length, error: jobsError })
+        setJobs(jobsData || [])
+
+        if (jobsData && jobsData.length > 0) {
+          const { data: applicationsData, error: appsError } = await supabase
+            .from("job_applications")
+            .select(`
+              *,
+              instructor:profiles!job_applications_instructor_id_fkey(display_name, email),
+              job:jobs(title)
+            `)
+            .in(
+              "job_id",
+              jobsData.map((j) => j.id),
+            )
+            .order("created_at", { ascending: false })
+            .limit(10)
+
+          console.log("[v0] Applications:", { count: applicationsData?.length, error: appsError })
+          setApplications(applicationsData || [])
+        }
+
+        console.log("[v0] Dashboard loaded successfully")
+      } catch (error) {
+        console.error("[v0] Dashboard load error:", error)
+      } finally {
+        setLoading(false)
       }
-
-      console.log("[v0] Dashboard loaded successfully")
-      setLoading(false)
     }
 
     loadDashboard()

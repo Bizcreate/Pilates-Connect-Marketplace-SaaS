@@ -106,6 +106,7 @@ export default function StudioProfilePage() {
 
       if (result.success) {
         alert("Studio profile saved successfully!")
+        router.push("/studio/dashboard")
       } else {
         alert(`Failed to save profile: ${result.error}`)
       }

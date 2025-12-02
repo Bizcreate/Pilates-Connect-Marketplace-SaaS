@@ -127,6 +127,7 @@ export default function InstructorProfilePage() {
 
       if (result.success) {
         alert("Profile saved successfully!")
+        router.push("/instructor/dashboard")
       } else {
         alert(`Failed to save profile: ${result.error}`)
       }
