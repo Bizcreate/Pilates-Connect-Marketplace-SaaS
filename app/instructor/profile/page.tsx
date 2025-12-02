@@ -115,6 +115,7 @@ export default function InstructorProfilePage() {
 
   async function handleSaveProfile() {
     setLoading(true)
+    console.log("[v0] Starting save with formData:", formData)
 
     try {
       const supabase = createBrowserClient()
@@ -123,7 +124,8 @@ export default function InstructorProfilePage() {
         throw new Error("Not authenticated")
       }
 
-      // Update profiles table
+      console.log("[v0] Saving to profiles table...")
+
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -135,9 +137,14 @@ export default function InstructorProfilePage() {
         })
         .eq("id", userId)
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error("[v0] Profile update error:", profileError)
+        throw new Error(`Profile update failed: ${profileError.message}`)
+      }
 
-      // Prepare arrays
+      console.log("[v0] Profiles table updated successfully")
+      console.log("[v0] Saving to instructor_profiles table...")
+
       const certificationsArray = formData.certifications
         ? formData.certifications
             .split(",")
@@ -152,31 +159,43 @@ export default function InstructorProfilePage() {
             .filter((item) => item.length > 0)
         : []
 
-      // Update instructor_profiles table
-      const { error: instructorError } = await supabase.from("instructor_profiles").upsert({
-        id: userId,
-        years_experience: Number.parseInt(formData.years_experience) || 0,
-        hourly_rate_min: Number.parseInt(formData.hourly_rate_min) || 0,
-        hourly_rate_max: Number.parseInt(formData.hourly_rate_max) || 0,
-        certifications: certificationsArray,
-        equipment: equipmentArray,
-        social_links: {
-          instagram: formData.instagram || null,
-          facebook: formData.facebook || null,
-          linkedin: formData.linkedin || null,
-          website: formData.website || null,
+      console.log("[v0] Certifications array:", certificationsArray)
+      console.log("[v0] Equipment array:", equipmentArray)
+
+      const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
+        {
+          id: userId,
+          years_experience: Number.parseInt(String(formData.years_experience)) || 0,
+          hourly_rate_min: Number.parseInt(String(formData.hourly_rate_min)) || 0,
+          hourly_rate_max: Number.parseInt(String(formData.hourly_rate_max)) || 0,
+          certifications: certificationsArray,
+          equipment: equipmentArray,
+          social_links: {
+            instagram: formData.instagram || null,
+            facebook: formData.facebook || null,
+            linkedin: formData.linkedin || null,
+            website: formData.website || null,
+          },
+          updated_at: new Date().toISOString(),
         },
-        updated_at: new Date().toISOString(),
-      })
+        {
+          onConflict: "id",
+        },
+      )
 
-      if (instructorError) throw instructorError
+      if (instructorError) {
+        console.error("[v0] Instructor profile update error:", instructorError)
+        throw new Error(`Instructor profile update failed: ${instructorError.message}`)
+      }
 
+      console.log("[v0] Instructor_profiles table updated successfully")
       alert("Profile saved successfully!")
-    } catch (error) {
-      console.error("Save error:", error)
-      alert(`Failed to save: ${error.message}`)
+    } catch (error: any) {
+      console.error("[v0] Save error:", error)
+      alert(`Failed to save profile: ${error.message}`)
     } finally {
       setLoading(false)
+      console.log("[v0] Save complete, loading set to false")
     }
   }
 
