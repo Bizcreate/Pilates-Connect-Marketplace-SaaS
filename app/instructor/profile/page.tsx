@@ -115,96 +115,45 @@ export default function InstructorProfilePage() {
 
   async function handleSaveProfile() {
     setLoading(true)
-    console.log("[v0] ===== STARTING PROFILE SAVE =====")
-    console.log("[v0] Form data to save:", formData)
-    console.log("[v0] User ID:", userId)
-
-    const timeoutId = setTimeout(() => {
-      console.error("[v0] ⏱️ SAVE TIMEOUT - Save took longer than 30 seconds")
-      setLoading(false)
-      alert("Save timed out. Please check your internet connection and try again.")
-    }, 30000)
 
     try {
-      console.log("[v0] Creating Supabase client...")
       const supabase = createBrowserClient()
-      console.log("[v0] ✅ Supabase client created")
 
-      if (!userId) throw new Error("Not authenticated")
-
-      console.log("[v0] Getting user session...")
-      const { data: sessionData, error: sessionError } = await supabase.auth.getUser()
-      console.log("[v0] ✅ Session data retrieved:", sessionData)
-      if (sessionError) {
-        console.error("[v0] Session error:", sessionError)
+      if (!userId) {
+        throw new Error("Not authenticated")
       }
 
-      console.log("[v0] Testing read permissions...")
-      const { data: testRead, error: testReadError } = await supabase
+      // Update profiles table
+      const { error: profileError } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single()
-
-      console.log("[v0] ✅ Test read result:", testRead)
-      if (testReadError) {
-        console.error("[v0] ❌ Cannot read profiles table:", testReadError)
-        throw new Error(`Permission error: ${testReadError.message}`)
-      }
-
-      console.log("[v0] Preparing profiles data object...")
-      const profilesData = {
-        display_name: formData.display_name,
-        bio: formData.bio,
-        location: formData.location,
-        phone: formData.phone,
-        updated_at: new Date().toISOString(),
-      }
-      console.log("[v0] ✅ Profiles data prepared:", profilesData)
-
-      console.log("[v0] Step 1: Executing profiles table update...")
-
-      const { data: profilesResult, error: baseError } = await supabase
-        .from("profiles")
-        .update(profilesData)
-        .eq("id", userId)
-        .select()
-
-      console.log("[v0] ✅ Profiles update query returned")
-
-      if (baseError) {
-        console.error("[v0] ❌ Profiles update FAILED:", {
-          error: baseError,
-          message: baseError.message,
-          details: baseError.details,
-          hint: baseError.hint,
-          code: baseError.code,
+        .update({
+          display_name: formData.display_name,
+          bio: formData.bio,
+          location: formData.location,
+          phone: formData.phone,
+          updated_at: new Date().toISOString(),
         })
-        throw baseError
-      }
+        .eq("id", userId)
 
-      console.log("[v0] ✅ Profiles updated successfully:", profilesResult)
+      if (profileError) throw profileError
 
-      console.log("[v0] Preparing certifications array...")
+      // Prepare arrays
       const certificationsArray = formData.certifications
         ? formData.certifications
             .split(",")
             .map((cert) => cert.trim())
             .filter((cert) => cert.length > 0)
         : []
-      console.log("[v0] ✅ Certifications array:", certificationsArray)
 
-      console.log("[v0] Preparing equipment array...")
       const equipmentArray = formData.equipment
         ? formData.equipment
             .split(",")
             .map((item) => item.trim())
             .filter((item) => item.length > 0)
         : []
-      console.log("[v0] ✅ Equipment array:", equipmentArray)
 
-      console.log("[v0] Preparing instructor profile data...")
-      const instructorData = {
+      // Update instructor_profiles table
+      const { error: instructorError } = await supabase.from("instructor_profiles").upsert({
         id: userId,
         years_experience: Number.parseInt(formData.years_experience) || 0,
         hourly_rate_min: Number.parseInt(formData.hourly_rate_min) || 0,
@@ -218,43 +167,16 @@ export default function InstructorProfilePage() {
           website: formData.website || null,
         },
         updated_at: new Date().toISOString(),
-      }
-      console.log("[v0] ✅ Instructor profile data prepared:", instructorData)
+      })
 
-      console.log("[v0] Step 2: Executing instructor_profiles upsert...")
-      const { data: instructorResult, error: instructorError } = await supabase
-        .from("instructor_profiles")
-        .upsert(instructorData, {
-          onConflict: "id",
-        })
-        .select()
+      if (instructorError) throw instructorError
 
-      console.log("[v0] ✅ Instructor profile upsert query returned")
-
-      if (instructorError) {
-        console.error("[v0] ❌ Instructor profile upsert FAILED:", {
-          error: instructorError,
-          message: instructorError.message,
-          details: instructorError.details,
-          hint: instructorError.hint,
-          code: instructorError.code,
-        })
-        throw instructorError
-      }
-
-      console.log("[v0] ✅ Instructor profile upserted successfully:", instructorResult)
-
-      clearTimeout(timeoutId)
-      console.log("[v0] ===== PROFILE SAVE COMPLETED SUCCESSFULLY =====")
       alert("Profile saved successfully!")
     } catch (error) {
-      clearTimeout(timeoutId)
-      console.error("[v0] ===== PROFILE SAVE ERROR =====")
-      console.error("[v0] Error details:", error)
-      alert(error instanceof Error ? error.message : "Failed to save profile")
+      console.error("Save error:", error)
+      alert(`Failed to save: ${error.message}`)
     } finally {
       setLoading(false)
-      console.log("[v0] Save loading state reset")
     }
   }
 
