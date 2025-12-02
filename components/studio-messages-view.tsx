@@ -8,17 +8,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageSquare, Briefcase, Calendar, Clock } from "lucide-react"
 import Link from "next/link"
 
+interface Conversation {
+  id: string
+  participant1_id: string
+  participant2_id: string
+  updated_at: string
+  messages: Message[]
+}
+
 interface Message {
   id: string
   content: string
   sender_id: string
   created_at: string
   read: boolean
-  conversation_id: string
-  sender: {
+}
+
+interface ConversationWithDetails {
+  id: string
+  otherUser: {
+    id: string
     display_name: string
     avatar_url: string | null
-  }
+    user_type: string
+  } | null
+  lastMessage: Message | undefined
+  unreadCount: number
+  updatedAt: string
 }
 
 interface CoverRequest {
@@ -47,43 +63,72 @@ interface JobApplication {
 }
 
 export function StudioMessagesView({ studioId }: { studioId: string }) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<ConversationWithDetails[]>([])
   const [coverRequests, setCoverRequests] = useState<CoverRequest[]>([])
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadAllData()
+    if (studioId) {
+      loadAllData()
+    }
   }, [studioId])
 
   const loadAllData = async () => {
     const supabase = createClient()
 
-    // Load recent messages
-    const { data: conversationsData } = await supabase
+    const { data: conversationsData, error: conversationsError } = await supabase
       .from("conversations")
       .select(`
         id,
+        participant1_id,
+        participant2_id,
+        updated_at,
         messages(
           id,
           content,
           sender_id,
-          created_at,
           read,
-          conversation_id,
-          sender:profiles!messages_sender_id_fkey(display_name, avatar_url)
+          created_at
         )
       `)
       .or(`participant1_id.eq.${studioId},participant2_id.eq.${studioId}`)
+      .order("updated_at", { ascending: false })
 
-    const allMessages: Message[] = []
-    conversationsData?.forEach((conv) => {
-      if (Array.isArray(conv.messages)) {
-        allMessages.push(...conv.messages)
-      }
-    })
-    allMessages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    setMessages(allMessages.slice(0, 10))
+    console.log("[v0] StudioMessagesView - Fetched conversations:", conversationsData?.length || 0)
+    if (conversationsError) {
+      console.error("[v0] StudioMessagesView - Error fetching conversations:", conversationsError)
+    }
+
+    const conversationsWithDetails = await Promise.all(
+      (conversationsData || []).map(async (conv) => {
+        const otherParticipantId = conv.participant1_id === studioId ? conv.participant2_id : conv.participant1_id
+
+        const { data: otherUser } = await supabase
+          .from("profiles")
+          .select("id, display_name, user_type, avatar_url")
+          .eq("id", otherParticipantId)
+          .single()
+
+        const messages = Array.isArray(conv.messages) ? conv.messages : []
+        const lastMessage = messages.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0]
+
+        const unreadCount = messages.filter((m) => !m.read && m.sender_id !== studioId).length
+
+        return {
+          id: conv.id,
+          otherUser,
+          lastMessage,
+          unreadCount,
+          updatedAt: conv.updated_at,
+        }
+      }),
+    )
+
+    console.log("[v0] StudioMessagesView - Conversations with details:", conversationsWithDetails.length)
+    setConversations(conversationsWithDetails)
 
     // Load cover requests
     const { data: coverData } = await supabase
@@ -105,20 +150,28 @@ export function StudioMessagesView({ studioId }: { studioId: string }) {
     setCoverRequests(coverData || [])
 
     // Load job applications
-    const { data: applicationsData } = await supabase
-      .from("job_applications")
-      .select(`
-        id,
-        status,
-        created_at,
-        job:jobs!job_applications_job_id_fkey(title),
-        instructor:profiles!job_applications_instructor_id_fkey(display_name)
-      `)
-      .eq("jobs.studio_id", studioId)
-      .order("created_at", { ascending: false })
-      .limit(10)
+    const { data: jobsData } = await supabase.from("jobs").select("id").eq("studio_id", studioId)
 
-    setJobApplications(applicationsData || [])
+    if (jobsData && jobsData.length > 0) {
+      const { data: applicationsData } = await supabase
+        .from("job_applications")
+        .select(`
+          id,
+          status,
+          created_at,
+          job:jobs!job_applications_job_id_fkey(title),
+          instructor:profiles!job_applications_instructor_id_fkey(display_name)
+        `)
+        .in(
+          "job_id",
+          jobsData.map((j) => j.id),
+        )
+        .order("created_at", { ascending: false })
+        .limit(10)
+
+      setJobApplications(applicationsData || [])
+    }
+
     setLoading(false)
   }
 
@@ -126,15 +179,37 @@ export function StudioMessagesView({ studioId }: { studioId: string }) {
     return <div className="text-center py-8">Loading messages...</div>
   }
 
+  const allMessages: Array<{
+    id: string
+    content: string
+    senderName: string
+    conversationId: string
+    createdAt: string
+    isUnread: boolean
+  }> = []
+
+  conversations.forEach((conv) => {
+    if (conv.lastMessage) {
+      allMessages.push({
+        id: conv.lastMessage.id,
+        content: conv.lastMessage.content,
+        senderName: conv.otherUser?.display_name || "Unknown",
+        conversationId: conv.id,
+        createdAt: conv.lastMessage.created_at,
+        isUnread: conv.unreadCount > 0,
+      })
+    }
+  })
+
   return (
     <Tabs defaultValue="all" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="messages">
           Messages
-          {messages.filter((m) => !m.read && m.sender_id !== studioId).length > 0 && (
+          {conversations.filter((c) => c.unreadCount > 0).length > 0 && (
             <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 text-xs">
-              {messages.filter((m) => !m.read && m.sender_id !== studioId).length}
+              {conversations.reduce((sum, c) => sum + c.unreadCount, 0)}
             </Badge>
           )}
         </TabsTrigger>
@@ -144,21 +219,21 @@ export function StudioMessagesView({ studioId }: { studioId: string }) {
 
       <TabsContent value="all" className="space-y-4 mt-4">
         <div className="space-y-3">
-          {messages.slice(0, 3).map((msg) => (
+          {allMessages.slice(0, 3).map((msg) => (
             <div key={msg.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50">
               <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm">{msg.sender.display_name}</p>
-                  {!msg.read && msg.sender_id !== studioId && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  <p className="font-medium text-sm">{msg.senderName}</p>
+                  {msg.isUnread && <div className="h-2 w-2 rounded-full bg-primary" />}
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{msg.content}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(msg.created_at).toLocaleDateString("en-AU")}
+                  {new Date(msg.createdAt).toLocaleDateString("en-AU")}
                 </p>
               </div>
               <Button size="sm" variant="outline" asChild>
-                <Link href={`/messages?conversation=${msg.conversation_id}`}>View</Link>
+                <Link href={`/messages?conversation=${msg.conversationId}`}>View</Link>
               </Button>
             </div>
           ))}
@@ -200,24 +275,24 @@ export function StudioMessagesView({ studioId }: { studioId: string }) {
       </TabsContent>
 
       <TabsContent value="messages" className="space-y-3 mt-4">
-        {messages.length === 0 ? (
+        {allMessages.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No messages yet</p>
         ) : (
-          messages.map((msg) => (
+          allMessages.map((msg) => (
             <div key={msg.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50">
               <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm">{msg.sender.display_name}</p>
-                  {!msg.read && msg.sender_id !== studioId && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  <p className="font-medium text-sm">{msg.senderName}</p>
+                  {msg.isUnread && <div className="h-2 w-2 rounded-full bg-primary" />}
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{msg.content}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(msg.created_at).toLocaleDateString("en-AU")}
+                  {new Date(msg.createdAt).toLocaleDateString("en-AU")}
                 </p>
               </div>
               <Button size="sm" variant="outline" asChild>
-                <Link href={`/messages?conversation=${msg.conversation_id}`}>Reply</Link>
+                <Link href={`/messages?conversation=${msg.conversationId}`}>Reply</Link>
               </Button>
             </div>
           ))

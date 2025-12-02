@@ -40,6 +40,7 @@ export default function StudioDashboardPage() {
   const [applications, setApplications] = useState<any[]>([])
   const [coverRequests, setCoverRequests] = useState<any[]>([])
   const [availableInstructors, setAvailableInstructors] = useState<any[]>([])
+  const [conversations, setConversations] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedApplication, setSelectedApplication] = useState<any>(null)
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false)
@@ -82,7 +83,28 @@ export default function StudioDashboardPage() {
           return
         }
 
-        setProfile(profileData)
+        setProfile({ ...profileData, id: user.id })
+
+        const { data: conversationsData } = await supabase
+          .from("conversations")
+          .select(`
+            id,
+            participant1_id,
+            participant2_id,
+            updated_at,
+            messages(
+              id,
+              content,
+              sender_id,
+              read,
+              created_at
+            )
+          `)
+          .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
+          .order("updated_at", { ascending: false })
+
+        console.log("[v0] Fetched conversations:", conversationsData?.length || 0)
+        setConversations(conversationsData || [])
 
         const { data: coverRequestsData, error: coverError } = await supabase
           .from("cover_requests")
@@ -247,6 +269,11 @@ export default function StudioDashboardPage() {
   const activeCoverRequests = coverRequests.filter((r) => r.status === "open")
   const upcomingCoverRequests = coverRequests.filter((r) => r.status === "open" && new Date(r.date) >= new Date())
 
+  const totalMessages = conversations.reduce((count, conv) => {
+    const messages = Array.isArray(conv.messages) ? conv.messages : []
+    return count + messages.length
+  }, 0)
+
   const stats = {
     activeJobs: activeJobs.length,
     totalApplications,
@@ -318,7 +345,7 @@ export default function StudioDashboardPage() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{totalMessages}</div>
                 <p className="text-xs text-muted-foreground mt-1">Total messages</p>
               </CardContent>
             </Card>
