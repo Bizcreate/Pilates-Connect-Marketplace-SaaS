@@ -12,6 +12,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { AvatarUpload } from "@/components/avatar-upload"
 import { Instagram, Facebook, Linkedin, Globe, Phone, Mail } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { saveStudioProfile } from "./actions"
 
 export default function StudioProfilePage() {
   const [loading, setLoading] = useState(false)
@@ -93,68 +94,24 @@ export default function StudioProfilePage() {
   }, [router])
 
   async function handleSaveProfile() {
+    if (!userId) {
+      alert("Not authenticated")
+      return
+    }
+
     setLoading(true)
+
     try {
-      const supabase = createBrowserClient()
-      if (!userId) throw new Error("Not authenticated")
+      const result = await saveStudioProfile(formData)
 
-      console.log("[v0] Saving studio profile for user:", userId)
-
-      const { error: baseError } = await supabase
-        .from("profiles")
-        .update({
-          display_name: formData.studio_name,
-          phone: formData.phone,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", userId)
-
-      if (baseError) {
-        console.error("[v0] Profiles update error:", baseError)
-        throw baseError
+      if (result.success) {
+        alert("Studio profile saved successfully!")
+      } else {
+        alert(`Failed to save profile: ${result.error}`)
       }
-
-      const equipmentArray = formData.equipment_available
-        ? formData.equipment_available
-            .split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0)
-        : []
-
-      const socialLinksObj = {
-        instagram: formData.instagram || null,
-        facebook: formData.facebook || null,
-        linkedin: formData.linkedin || null,
-      }
-
-      const { error: studioError } = await supabase.from("studio_profiles").upsert(
-        {
-          id: userId,
-          studio_name: formData.studio_name,
-          description: formData.description,
-          address: formData.address,
-          suburb: formData.suburb,
-          state: formData.state,
-          postcode: formData.postcode,
-          email: formData.email,
-          website: formData.website,
-          studio_size: formData.studio_size,
-          equipment_available: equipmentArray,
-          social_links: socialLinksObj,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      )
-
-      if (studioError) {
-        console.error("[v0] Studio profiles update error:", studioError)
-        throw studioError
-      }
-
-      alert("Profile saved successfully!")
     } catch (error: any) {
       console.error("[v0] Save error:", error)
-      alert(`Save failed: ${error.message}`)
+      alert(`Failed to save profile: ${error.message}`)
     } finally {
       setLoading(false)
     }
