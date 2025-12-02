@@ -32,10 +32,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
 
   const { data: instructor, error } = await supabase
     .from("profiles")
-    .select(`
-      *,
-      instructor_profiles(*)
-    `)
+    .select("*")
     .eq("id", id)
     .eq("user_type", "instructor")
     .maybeSingle()
@@ -45,17 +42,17 @@ export default async function InstructorProfilePage({ params }: { params: Promis
     notFound()
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: instructorProfileData, error: profileError } = await supabase
+    .from("instructor_profiles")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle()
 
-  let userType: string | null = null
-  if (user) {
-    const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle()
-    userType = profile?.user_type || null
+  if (profileError) {
+    console.error("[v0] Error fetching instructor profile:", profileError)
   }
 
-  const instructorProfile = instructor.instructor_profiles?.[0] || {}
+  const instructorProfile = instructorProfileData || {}
   const socialLinks = instructorProfile.social_links || {}
 
   const { data: availabilitySlots } = await supabase
@@ -111,7 +108,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      {user && userType === "studio" ? (
+                      {instructorProfile && (
                         <>
                           <StartConversationButton userId={instructor.id} size="lg" />
                           <Button size="lg" variant="outline" asChild>
@@ -121,11 +118,12 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                             </Link>
                           </Button>
                         </>
-                      ) : !user ? (
+                      )}
+                      {!instructorProfile && (
                         <Button size="lg" asChild>
                           <Link href="/auth/login">Sign In to Contact</Link>
                         </Button>
-                      ) : null}
+                      )}
                     </div>
                   </div>
 
@@ -135,11 +133,17 @@ export default async function InstructorProfilePage({ params }: { params: Promis
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{instructorProfile.years_experience || 0}</div>
+                      <div className="text-2xl font-bold text-primary">
+                        {instructorProfile.years_experience !== undefined && instructorProfile.years_experience !== null
+                          ? instructorProfile.years_experience
+                          : 0}
+                      </div>
                       <div className="text-xs text-muted-foreground">Years Experience</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{instructorProfile.total_classes || 0}+</div>
+                      <div className="text-2xl font-bold text-primary">
+                        {instructorProfile.total_classes ? `${instructorProfile.total_classes}+` : "0+"}
+                      </div>
                       <div className="text-xs text-muted-foreground">Classes Taught</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -155,6 +159,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                       <div className="text-xs text-muted-foreground">Per Class</div>
                     </div>
                   </div>
+                  {/* </CHANGE> */}
                 </div>
               </div>
             </CardContent>
@@ -200,12 +205,17 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {instructorProfile.specialties?.map((specialty: string) => (
-                        <Badge key={specialty} variant="outline" className="text-sm">
-                          {specialty}
-                        </Badge>
-                      )) || <p className="text-sm text-muted-foreground">No specialties listed</p>}
+                      {instructorProfile.specializations && instructorProfile.specializations.length > 0 ? (
+                        instructorProfile.specializations.map((specialty: string) => (
+                          <Badge key={specialty} variant="outline" className="text-sm">
+                            {specialty}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No specialties listed</p>
+                      )}
                     </div>
+                    {/* </CHANGE> */}
                   </CardContent>
                 </Card>
               </div>
@@ -426,7 +436,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                                 )}
                             </div>
 
-                            {user && userType === "studio" && (
+                            {instructorProfile && (
                               <BookAvailabilityButton
                                 slot={slot}
                                 instructorId={instructor.id}
