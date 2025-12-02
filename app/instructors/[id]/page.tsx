@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SiteHeader } from "@/components/site-header"
@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { StartConversationButton } from "@/components/start-conversation-button"
-import { BookAvailabilityButton } from "@/components/book-availability-button"
+import { AvailabilitySlotsView } from "@/components/availability-slots-view"
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -159,7 +159,6 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                       <div className="text-xs text-muted-foreground">Per Class</div>
                     </div>
                   </div>
-                  {/* </CHANGE> */}
                 </div>
               </div>
             </CardContent>
@@ -215,7 +214,6 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                         <p className="text-sm text-muted-foreground">No specialties listed</p>
                       )}
                     </div>
-                    {/* </CHANGE> */}
                   </CardContent>
                 </Card>
               </div>
@@ -354,133 +352,16 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                     <Clock className="h-5 w-5 text-primary" />
                     Available Time Slots
                   </CardTitle>
+                  <CardDescription>View and book available slots with {instructor.display_name}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {availabilitySlots && availabilitySlots.length > 0 ? (
-                    <div className="space-y-3">
-                      {availabilitySlots.map((slot) => {
-                        const startDate = new Date(slot.start_time)
-                        const endDate = new Date(slot.end_time)
-
-                        let metadata: any = {}
-                        try {
-                          if (slot.notes) {
-                            metadata = JSON.parse(slot.notes)
-                          }
-                        } catch (e) {
-                          // Notes is not JSON
-                        }
-
-                        return (
-                          <div
-                            key={slot.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex-1 space-y-2">
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-primary" />
-                                  <span className="font-medium">
-                                    {startDate.toLocaleDateString("en-AU", {
-                                      weekday: "short",
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                </div>
-                                <span className="text-sm text-muted-foreground">
-                                  {startDate.toLocaleTimeString("en-AU", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}{" "}
-                                  -{" "}
-                                  {endDate.toLocaleTimeString("en-AU", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-
-                              {(metadata.location || metadata.pilates_level || metadata.rate_min) && (
-                                <div className="flex flex-wrap gap-2 text-sm">
-                                  {metadata.location && (
-                                    <span className="flex items-center gap-1 text-muted-foreground">
-                                      <MapPin className="h-3 w-3" />
-                                      {metadata.location}
-                                    </span>
-                                  )}
-                                  {metadata.pilates_level && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {metadata.pilates_level}
-                                    </Badge>
-                                  )}
-                                  {metadata.rate_min && (
-                                    <Badge variant="outline" className="text-xs">
-                                      ${metadata.rate_min}
-                                      {metadata.rate_unit ? `/${metadata.rate_unit}` : ""}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-
-                              {metadata.equipment &&
-                                Array.isArray(metadata.equipment) &&
-                                metadata.equipment.length > 0 && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {metadata.equipment.map((item: string) => (
-                                      <Badge key={item} variant="outline" className="text-xs">
-                                        {item}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                            </div>
-
-                            {instructorProfile && (
-                              <BookAvailabilityButton
-                                slot={slot}
-                                instructorId={instructor.id}
-                                instructorName={instructor.display_name}
-                              />
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">No upcoming availability slots</p>
-                  )}
+                  <AvailabilitySlotsView
+                    slots={availabilitySlots || []}
+                    instructorName={instructor.display_name}
+                    instructorId={instructor.id}
+                  />
                 </CardContent>
               </Card>
-
-              {instructorProfile.availability && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Clock className="h-4 w-4 text-primary" />
-                      General Weekly Availability
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {Object.entries(instructorProfile.availability).map(([day, times]) => (
-                        <div key={day} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <span className="font-medium capitalize text-sm">{day}</span>
-                          <span
-                            className={
-                              times === "Not Available"
-                                ? "text-muted-foreground text-sm"
-                                : "text-foreground font-medium text-sm"
-                            }
-                          >
-                            {times as string}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
             <TabsContent value="media" className="space-y-4">

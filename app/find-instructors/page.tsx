@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,11 +14,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { MapPin, Star, Award, Lock, Calendar, Clock, Filter } from 'lucide-react'
+import { MapPin, Star, Award, Lock, Calendar, Clock, Filter } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { createClient } from "@/lib/supabase/client"
-import { Users } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Users } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -620,7 +620,7 @@ export default function FindInstructorsPage() {
                     const profile = Array.isArray(instructor.instructor_profiles)
                       ? instructor.instructor_profiles[0]
                       : instructor.instructor_profiles
-                    
+
                     const displayName = instructor.display_name || "Instructor"
                     const maskedName =
                       userType === "studio"
@@ -628,7 +628,7 @@ export default function FindInstructorsPage() {
                         : displayName.length > 1
                           ? `${displayName[0]}...${displayName[displayName.length - 1]}`
                           : displayName[0] + "..."
-                    
+
                     const nextSlot = slots[0]
                     const slotDate = new Date(nextSlot.start_time)
                     const formattedDate = slotDate.toLocaleDateString("en-AU", {
@@ -644,7 +644,7 @@ export default function FindInstructorsPage() {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
-                    
+
                     const certifications = profile?.certifications || []
                     const hourlyRate =
                       profile?.hourly_rate_min && profile?.hourly_rate_max
@@ -676,7 +676,9 @@ export default function FindInstructorsPage() {
                                     {userType === "studio" ? instructor.location : "Location hidden"}
                                   </div>
                                 )}
-                                <Badge variant="secondary">{slots.length} slot{slots.length > 1 ? 's' : ''} available</Badge>
+                                <Badge variant="secondary">
+                                  {slots.length} slot{slots.length > 1 ? "s" : ""} available
+                                </Badge>
                               </div>
                             </div>
 
@@ -735,7 +737,7 @@ export default function FindInstructorsPage() {
                                   </div>
                                 )}
                                 <Button asChild>
-                                  <Link href={`/instructors/${instructor.id}`}>View All Slots</Link>
+                                  <Link href={`/instructors/${instructor.id}#availability`}>View All Slots</Link>
                                 </Button>
                               </div>
                             </div>
