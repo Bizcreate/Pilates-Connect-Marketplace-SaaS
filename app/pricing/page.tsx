@@ -68,6 +68,11 @@ export default function PricingPage() {
                   </li>
                 </ul>
 
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Platform Fee:</p>
+                  <p className="text-xs text-muted-foreground">5% fee on instructor bookings (billed monthly)</p>
+                </div>
+
                 <div className="pt-4 space-y-2">
                   <p className="text-sm font-medium">Limitations:</p>
                   <ul className="text-xs text-muted-foreground space-y-1">
@@ -137,6 +142,11 @@ export default function PricingPage() {
                   </li>
                 </ul>
 
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Platform Fee:</p>
+                  <p className="text-xs text-muted-foreground">5% fee on instructor bookings (billed monthly)</p>
+                </div>
+
                 <Button className="w-full mt-6" asChild>
                   <Link href="/checkout/studio-professional">Start Free Trial</Link>
                 </Button>
@@ -195,6 +205,14 @@ export default function PricingPage() {
                     <span className="text-sm">Advanced reporting</span>
                   </li>
                 </ul>
+
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Platform Fee:</p>
+                  <p className="text-xs text-primary font-medium">
+                    Only 2.5% fee on instructor bookings (50% savings!)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Billed monthly with your subscription</p>
+                </div>
 
                 <Button className="w-full mt-6 bg-transparent" variant="outline" asChild>
                   <Link href="/checkout/studio-enterprise">Start Now</Link>
