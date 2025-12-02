@@ -12,6 +12,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { Upload, CheckCircle, Instagram, Facebook, Linkedin, Globe } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { AvatarUpload } from "@/components/avatar-upload"
+import { saveInstructorProfile } from "./actions"
 
 export default function InstructorProfilePage() {
   const [loading, setLoading] = useState(false)
@@ -114,88 +115,26 @@ export default function InstructorProfilePage() {
   }, [router])
 
   async function handleSaveProfile() {
+    if (!userId) {
+      alert("Not authenticated")
+      return
+    }
+
     setLoading(true)
-    console.log("[v0] Starting save with formData:", formData)
 
     try {
-      const supabase = createBrowserClient()
+      const result = await saveInstructorProfile(formData)
 
-      if (!userId) {
-        throw new Error("Not authenticated")
+      if (result.success) {
+        alert("Profile saved successfully!")
+      } else {
+        alert(`Failed to save profile: ${result.error}`)
       }
-
-      console.log("[v0] Saving to profiles table...")
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          display_name: formData.display_name,
-          bio: formData.bio,
-          location: formData.location,
-          phone: formData.phone,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", userId)
-
-      if (profileError) {
-        console.error("[v0] Profile update error:", profileError)
-        throw new Error(`Profile update failed: ${profileError.message}`)
-      }
-
-      console.log("[v0] Profiles table updated successfully")
-      console.log("[v0] Saving to instructor_profiles table...")
-
-      const certificationsArray = formData.certifications
-        ? formData.certifications
-            .split(",")
-            .map((cert) => cert.trim())
-            .filter((cert) => cert.length > 0)
-        : []
-
-      const equipmentArray = formData.equipment
-        ? formData.equipment
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item.length > 0)
-        : []
-
-      console.log("[v0] Certifications array:", certificationsArray)
-      console.log("[v0] Equipment array:", equipmentArray)
-
-      const { error: instructorError } = await supabase.from("instructor_profiles").upsert(
-        {
-          id: userId,
-          years_experience: Number.parseInt(String(formData.years_experience)) || 0,
-          hourly_rate_min: Number.parseInt(String(formData.hourly_rate_min)) || 0,
-          hourly_rate_max: Number.parseInt(String(formData.hourly_rate_max)) || 0,
-          certifications: certificationsArray,
-          equipment: equipmentArray,
-          social_links: {
-            instagram: formData.instagram || null,
-            facebook: formData.facebook || null,
-            linkedin: formData.linkedin || null,
-            website: formData.website || null,
-          },
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "id",
-        },
-      )
-
-      if (instructorError) {
-        console.error("[v0] Instructor profile update error:", instructorError)
-        throw new Error(`Instructor profile update failed: ${instructorError.message}`)
-      }
-
-      console.log("[v0] Instructor_profiles table updated successfully")
-      alert("Profile saved successfully!")
     } catch (error: any) {
       console.error("[v0] Save error:", error)
       alert(`Failed to save profile: ${error.message}`)
     } finally {
       setLoading(false)
-      console.log("[v0] Save complete, loading set to false")
     }
   }
 
