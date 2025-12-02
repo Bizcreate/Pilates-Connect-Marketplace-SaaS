@@ -20,9 +20,10 @@ interface AvailabilitySlotsViewProps {
   slots: AvailabilitySlot[]
   instructorName: string
   instructorId: string
+  userId?: string
 }
 
-export function AvailabilitySlotsView({ slots, instructorName, instructorId }: AvailabilitySlotsViewProps) {
+export function AvailabilitySlotsView({ slots, instructorName, instructorId, userId }: AvailabilitySlotsViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null)
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
@@ -208,6 +209,7 @@ export function AvailabilitySlotsView({ slots, instructorName, instructorId }: A
           onOpenChange={setBookingModalOpen}
           slot={selectedSlot}
           instructorName={instructorName}
+          userId={userId} // Added userId prop to BookSlotModal
         />
       )}
     </div>
