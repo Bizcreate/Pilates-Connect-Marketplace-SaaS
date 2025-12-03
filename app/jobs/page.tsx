@@ -79,14 +79,28 @@ export default function JobsPage() {
       try {
         const {
           data: { user },
+          error: authError,
         } = await supabase.auth.getUser()
+
+        if (authError) {
+          console.error("[v0] Jobs page: Auth error:", authError)
+        }
 
         console.log("[v0] Jobs page: User:", user ? `Logged in as ${user.id}` : "Not logged in")
 
         setUserId(user?.id || null)
 
         if (user) {
-          const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle()
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .maybeSingle()
+
+          if (profileError) {
+            console.error("[v0] Jobs page: Profile error:", profileError)
+          }
+
           setUserType(profile?.user_type || null)
           console.log("[v0] Jobs page: User type:", profile?.user_type)
         }

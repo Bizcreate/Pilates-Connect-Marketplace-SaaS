@@ -19,23 +19,53 @@ export function SiteHeader() {
     const supabase = createClient()
 
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      console.log("[v0] SiteHeader: Checking auth state...")
 
-      if (session?.user) {
-        setUser(session.user)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", session.user.id)
-          .maybeSingle()
-        setUserType(profile?.user_type || null)
-      } else {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        console.log("[v0] SiteHeader: Session check result:", {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: error?.message,
+        })
+
+        if (error) {
+          console.error("[v0] SiteHeader: Error getting session:", error)
+          setUser(null)
+          setUserType(null)
+          setLoading(false)
+          return
+        }
+
+        if (session?.user) {
+          setUser(session.user)
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", session.user.id)
+            .maybeSingle()
+
+          console.log("[v0] SiteHeader: Profile query result:", {
+            userType: profile?.user_type,
+            error: profileError?.message,
+          })
+
+          setUserType(profile?.user_type || null)
+        } else {
+          setUser(null)
+          setUserType(null)
+        }
+      } catch (err) {
+        console.error("[v0] SiteHeader: Exception in checkAuth:", err)
         setUser(null)
         setUserType(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     checkAuth()
@@ -43,6 +73,8 @@ export function SiteHeader() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[v0] SiteHeader: Auth state changed:", event, session?.user?.id)
+
       if (session?.user) {
         setUser(session.user)
         const { data: profile } = await supabase
