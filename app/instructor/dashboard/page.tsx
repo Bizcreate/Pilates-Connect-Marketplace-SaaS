@@ -311,7 +311,10 @@ export default function InstructorDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => router.push("/instructor/accepted-jobs")}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Jobs Accepted</CardTitle>
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />

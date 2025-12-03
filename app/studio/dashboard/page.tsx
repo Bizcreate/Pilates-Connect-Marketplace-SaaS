@@ -314,7 +314,7 @@ export default function StudioDashboardPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <Card
               className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => setActiveTab("overview")}
+              onClick={() => setActiveTab("active-jobs")}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
@@ -386,7 +386,8 @@ export default function StudioDashboardPage() {
               <TabsTrigger value="cover-requests">Cover Requests ({activeCoverRequests.length})</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
               <TabsTrigger value="instructors">Available Instructors ({availableInstructors.length})</TabsTrigger>
-              <TabsTrigger value="jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
+              {/* Renamed 'Jobs' tab to 'Active Jobs' and updated its value */}
+              <TabsTrigger value="active-jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -615,70 +616,70 @@ export default function StudioDashboardPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="jobs" className="space-y-4">
-              {activeTab === "jobs" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold">Active Job Postings</h2>
-                      <p className="text-muted-foreground text-sm">Manage and track your current job listings</p>
-                    </div>
+            {/* Added new 'active-jobs' tab content */}
+            <TabsContent value="active-jobs" className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">Active Job Postings</h2>
+                    <p className="text-muted-foreground text-sm">Manage and track your current job listings</p>
                   </div>
+                </div>
 
-                  {activeJobs.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No active jobs</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Post your first job to start finding qualified instructors
-                      </p>
-                      <Button asChild>
-                        <Link href="/studio/post-job">Post a Job</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    activeJobs.map((job) => (
-                      <div
-                        key={job.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{job.title}</h3>
-                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <span className="capitalize">{job.job_type}</span>
-                                <span>•</span>
-                                <span>{job.location}</span>
-                                <span>•</span>
-                                <span>Posted {formatRelativeTime(job.created_at)}</span>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="capitalize">
-                              {job.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">
-                                {applications?.filter((a) => a.job_id === job.id).length || 0}
-                              </span>
-                              <span className="text-muted-foreground">applications</span>
+                {activeJobs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">No active jobs</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Post your first job to start finding qualified instructors
+                    </p>
+                    <Button asChild>
+                      <Link href="/studio/post-job">Post a Job</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  activeJobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{job.title}</h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <span className="capitalize">{job.job_type}</span>
+                              <span>•</span>
+                              <span>{job.location}</span>
+                              <span>•</span>
+                              <span>Posted {formatRelativeTime(job.created_at)}</span>
                             </div>
                           </div>
+                          <Badge variant="secondary" className="capitalize">
+                            {job.status}
+                          </Badge>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/studio/jobs/${job.id}`}>View</Link>
-                          </Button>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {applications?.filter((a) => a.job_id === job.id).length || 0}
+                            </span>
+                            <span className="text-muted-foreground">applications</span>
+                          </div>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/studio/jobs/${job.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </TabsContent>
+            {/* </CHANGE> End of new tab content */}
 
             <TabsContent value="hiring" className="space-y-4">
               <Card>
