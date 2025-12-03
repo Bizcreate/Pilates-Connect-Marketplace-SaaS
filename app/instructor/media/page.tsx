@@ -137,12 +137,27 @@ export default function InstructorMediaPage() {
   }
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("[v0] Video upload handler triggered")
+
     const file = e.target.files?.[0]
-    if (!file) return
+    console.log("[v0] Selected file:", file)
+
+    if (!file) {
+      console.log("[v0] No file selected")
+      return
+    }
+
+    console.log("[v0] File details:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      sizeInMB: (file.size / 1024 / 1024).toFixed(2) + "MB",
+    })
 
     const validVideoTypes = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"]
 
     if (!validVideoTypes.includes(file.type)) {
+      console.log("[v0] Invalid file type:", file.type)
       toast({
         title: "Invalid file type",
         description: `Please upload a video file. Detected type: ${file.type}`,
@@ -153,6 +168,7 @@ export default function InstructorMediaPage() {
     }
 
     if (file.size > 50 * 1024 * 1024) {
+      console.log("[v0] File too large:", file.size)
       toast({
         title: "File too large",
         description: "Video must be less than 50MB",
@@ -162,6 +178,7 @@ export default function InstructorMediaPage() {
       return
     }
 
+    console.log("[v0] File validation passed, starting upload")
     setUploading(true)
 
     try {
@@ -170,10 +187,14 @@ export default function InstructorMediaPage() {
       const formData = new FormData()
       formData.append("file", file)
 
+      console.log("[v0] Sending request to /api/upload")
+
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       })
+
+      console.log("[v0] Response status:", response.status, response.statusText)
 
       if (!response.ok) {
         const errorText = await response.text()

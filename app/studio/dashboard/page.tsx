@@ -388,6 +388,7 @@ export default function StudioDashboardPage() {
               <TabsTrigger value="instructors">Available Instructors ({availableInstructors.length})</TabsTrigger>
               <TabsTrigger value="jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
+              <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -798,6 +799,20 @@ export default function StudioDashboardPage() {
                       )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Studio Media</CardTitle>
+                  <CardDescription>Manage your studio photos and videos</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => router.push("/studio/media")} className="w-full">
+                    Go to Media Gallery
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>

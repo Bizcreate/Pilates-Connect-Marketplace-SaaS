@@ -49,6 +49,8 @@ export default function StudioPublicProfilePage() {
         postcode: studioData?.postcode,
         equipment: studioData?.equipment,
         social_links: studioData?.social_links,
+        image_gallery: studioData?.image_gallery || [],
+        video_urls: studioData?.video_urls || [],
       }
 
       console.log("[v0] Loaded studio:", mergedStudio)
@@ -151,6 +153,53 @@ export default function StudioPublicProfilePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground leading-relaxed">{studio.description}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Studio Media Gallery Section */}
+              {((studio.image_gallery && studio.image_gallery.length > 0) ||
+                (studio.video_urls && studio.video_urls.length > 0)) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Studio Gallery</CardTitle>
+                    <CardDescription>Take a look at our facility and equipment</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Image Gallery */}
+                    {studio.image_gallery && studio.image_gallery.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">Photos</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {studio.image_gallery.map((url: string, idx: number) => (
+                            <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                              <Image
+                                src={url || "/placeholder.svg"}
+                                alt={`Studio photo ${idx + 1}`}
+                                fill
+                                className="object-cover hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video Gallery */}
+                    {studio.video_urls && studio.video_urls.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">Videos</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {studio.video_urls.map((url: string, idx: number) => (
+                            <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                              <video src={url} controls className="w-full h-full object-cover" preload="metadata">
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
