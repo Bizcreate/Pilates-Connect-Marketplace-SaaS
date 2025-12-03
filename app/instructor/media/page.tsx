@@ -211,8 +211,9 @@ export default function InstructorMediaPage() {
       const data = await response.json()
       console.log("[v0] Video upload response:", data)
 
-      const newVideos = [...videos, data.url]
-      setVideos(newVideos)
+      if (!data.url) {
+        throw new Error("No URL returned from upload")
+      }
 
       const supabase = createClient()
       const {
@@ -223,14 +224,23 @@ export default function InstructorMediaPage() {
         throw new Error("User not authenticated")
       }
 
+      const newVideos = [...videos, data.url]
       console.log("[v0] Updating database with videos:", newVideos)
 
-      const { error } = await supabase.from("instructor_profiles").update({ media_videos: newVideos }).eq("id", user.id)
+      const { error: updateError, data: updateData } = await supabase
+        .from("instructor_profiles")
+        .update({ media_videos: newVideos })
+        .eq("id", user.id)
+        .select()
 
-      if (error) {
-        console.error("[v0] Database update error:", error)
-        throw error
+      if (updateError) {
+        console.error("[v0] Database update error:", updateError)
+        throw updateError
       }
+
+      console.log("[v0] Database update successful:", updateData)
+
+      setVideos(newVideos)
 
       console.log("[v0] Video upload complete!")
 
