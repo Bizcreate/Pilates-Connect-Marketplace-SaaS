@@ -321,6 +321,7 @@ export default function InstructorDashboardPage() {
               <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
               <TabsTrigger value="availability">My Availability ({availabilitySlots.length})</TabsTrigger>
               <TabsTrigger value="applications">Applications ({openApplications.length})</TabsTrigger>
+              <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -658,6 +659,23 @@ export default function InstructorDashboardPage() {
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Media</CardTitle>
+                  <CardDescription>Upload images and videos to showcase your work on your profile</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add photos and videos of your classes, certifications, and teaching style to attract more studios.
+                  </p>
+                  <Button asChild>
+                    <Link href="/instructor/media">Manage Media</Link>
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>

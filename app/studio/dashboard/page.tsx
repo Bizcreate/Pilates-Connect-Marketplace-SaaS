@@ -267,7 +267,7 @@ export default function StudioDashboardPage() {
   const totalApplications = applications.length
   const newApplications = applications.filter((a) => a.status === "pending")
   const activeCoverRequests = coverRequests.filter((r) => r.status === "open")
-  const upcomingCoverRequests = coverRequests.filter((r) => r.status === "open" && new Date(r.date) >= new Date())
+  const upcomingCoverRequests = activeCoverRequests.filter((r) => new Date(r.date) >= new Date())
 
   const totalMessages = conversations.reduce((count, conv) => {
     const messages = Array.isArray(conv.messages) ? conv.messages : []
@@ -379,10 +379,10 @@ export default function StudioDashboardPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({activeCoverRequests.length})</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
               <TabsTrigger value="instructors">Available Instructors ({availableInstructors.length})</TabsTrigger>
-              <TabsTrigger value="jobs">Active Jobs ({jobs.length})</TabsTrigger>
+              <TabsTrigger value="jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
