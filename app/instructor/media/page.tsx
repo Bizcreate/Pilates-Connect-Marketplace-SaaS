@@ -27,6 +27,7 @@ export default function InstructorMediaPage() {
 
   useEffect(() => {
     async function loadData() {
+      console.log("[v0] Loading instructor media data...")
       const supabase = createClient()
 
       const {
@@ -34,16 +35,21 @@ export default function InstructorMediaPage() {
         error: userError,
       } = await supabase.auth.getUser()
 
+      console.log("[v0] User data:", user ? `User ID: ${user.id}` : "No user", "Error:", userError)
+
       if (userError || !user) {
+        console.error("[v0] Auth error, redirecting to login")
         router.replace("/auth/login")
         return
       }
 
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("instructor_profiles")
         .select("media_images, media_videos")
         .eq("id", user.id)
         .maybeSingle()
+
+      console.log("[v0] Profile data:", profileData, "Error:", profileError)
 
       if (profileData) {
         setProfile(profileData)
@@ -51,6 +57,7 @@ export default function InstructorMediaPage() {
         setVideos(profileData.media_videos || [])
       }
 
+      console.log("[v0] Loading complete, setting loading to false")
       setLoading(false)
     }
 
