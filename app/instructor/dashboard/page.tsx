@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { CoverRequestDialog } from "@/components/cover-request-dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Search,
   Briefcase,
@@ -34,6 +35,7 @@ export default function InstructorDashboardPage() {
   const [coverRequests, setCoverRequests] = useState<any[]>([])
   const [selectedCoverRequest, setSelectedCoverRequest] = useState<any>(null)
   const [coverDialogOpen, setCoverDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
     async function loadData() {
@@ -306,43 +308,129 @@ export default function InstructorDashboardPage() {
           </div>
 
           {/* Main Content */}
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="cover-requests">Cover Requests ({stats.coverRequests})</TabsTrigger>
+              <TabsTrigger value="availability">My Availability ({stats.availabilitySlots})</TabsTrigger>
+              <TabsTrigger value="applications">Applications ({stats.activeApplications})</TabsTrigger>
+              <TabsTrigger value="media">Media</TabsTrigger>
+              <TabsTrigger value="earnings">Earnings</TabsTrigger>
+              <TabsTrigger value="calendar">Calendar</TabsTrigger>
+              <TabsTrigger value="referrals">Referrals</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/instructor/post-availability">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Post New Availability
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/jobs">
+                        <Search className="h-4 w-4 mr-2" />
+                        Browse All Jobs
+                      </Link>
+                    </Button>
+                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                      <Link href="/messages">
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Messages
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">{/* Placeholder for recent messages */}</CardContent>
+                </Card>
+              </div>
+              <ReferralWidget />
+            </TabsContent>
+
+            <TabsContent value="cover-requests">
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                  <CardTitle>Available Cover Requests</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                    <Link href="/instructor/post-availability">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Post New Availability
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                    <Link href="/jobs">
-                      <Search className="h-4 w-4 mr-2" />
-                      Browse All Jobs
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                    <Link href="/messages">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Messages
-                    </Link>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">Cover requests content coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="availability">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Availability Slots</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">Availability management coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="applications">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Applications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">Applications tracking coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="media">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Media Gallery</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm mb-4">Manage your portfolio images and videos</p>
+                  <Button asChild>
+                    <Link href="/instructor/media">Go to Media Upload</Link>
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
 
+            <TabsContent value="earnings">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Messages</CardTitle>
+                  <CardTitle>Earnings & Payments</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">{/* Placeholder for recent messages */}</CardContent>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">Earnings tracking coming soon...</p>
+                </CardContent>
               </Card>
-            </div>
-            <ReferralWidget />
-          </div>
+            </TabsContent>
+
+            <TabsContent value="calendar">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Calendar View</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">Calendar integration coming soon...</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="referrals">
+              <ReferralWidget />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
