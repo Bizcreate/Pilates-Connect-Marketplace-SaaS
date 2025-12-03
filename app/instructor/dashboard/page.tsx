@@ -230,57 +230,6 @@ export default function InstructorDashboardPage() {
           </div>
         </div>
 
-        <div className="border-b">
-          <div className="container">
-            <div className="flex gap-2 overflow-x-auto py-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/dashboard")}
-                className="whitespace-nowrap"
-              >
-                Overview
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/cover-requests")}
-                className="whitespace-nowrap"
-              >
-                Cover Requests ({coverRequests.length})
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/availability")}
-                className="whitespace-nowrap"
-              >
-                My Availability ({availabilitySlots.length})
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/applications")}
-                className="whitespace-nowrap"
-              >
-                Applications ({openApplications.length})
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/media")} className="whitespace-nowrap">
-                Media
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/earnings")} className="whitespace-nowrap">
-                Earnings
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/calendar")} className="whitespace-nowrap">
-                Calendar
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/referrals")} className="whitespace-nowrap">
-                Referrals
-              </Button>
-              {/* Added Settings button */}
-              <Button variant="ghost" onClick={() => router.push("/instructor/settings")} className="whitespace-nowrap">
-                Settings
-              </Button>
-            </div>
-          </div>
-        </div>
-
         <div className="container py-8 space-y-8">
           {isProfileIncomplete && (
             <Alert>
