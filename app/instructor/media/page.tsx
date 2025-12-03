@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, ImageIcon, Video, X, Loader2 } from "lucide-react"
-import { upload } from "@vercel/blob/client"
 import { useToast } from "@/hooks/use-toast"
 
 export default function InstructorMediaPage() {
@@ -50,7 +49,7 @@ export default function InstructorMediaPage() {
           setVideos(profileData.media_videos || [])
         }
       } catch (error) {
-        console.error("Error loading media:", error)
+        console.error("[v0] Error loading media:", error)
       } finally {
         setLoading(false)
       }
@@ -86,12 +85,25 @@ export default function InstructorMediaPage() {
     setUploading(true)
 
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
+      console.log("[v0] Starting image upload:", file.name)
+
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      const newImages = [...images, blob.url]
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload failed")
+      }
+
+      const data = await response.json()
+      console.log("[v0] Upload response:", data)
+
+      const newImages = [...images, data.url]
       setImages(newImages)
 
       const supabase = createClient()
@@ -112,7 +124,7 @@ export default function InstructorMediaPage() {
         description: "Image uploaded successfully!",
       })
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("[v0] Upload error:", error)
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
@@ -151,12 +163,25 @@ export default function InstructorMediaPage() {
     setUploading(true)
 
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
+      console.log("[v0] Starting video upload:", file.name)
+
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      const newVideos = [...videos, blob.url]
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload failed")
+      }
+
+      const data = await response.json()
+      console.log("[v0] Upload response:", data)
+
+      const newVideos = [...videos, data.url]
       setVideos(newVideos)
 
       const supabase = createClient()
@@ -177,7 +202,7 @@ export default function InstructorMediaPage() {
         description: "Video uploaded successfully!",
       })
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("[v0] Upload error:", error)
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload video",
