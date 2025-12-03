@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,8 @@ export default function AvailabilityPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [slots, setSlots] = useState<AvailabilitySlot[]>([
     {
       id: "1",
@@ -53,6 +55,41 @@ export default function AvailabilityPage() {
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   const equipment = ["Reformer", "Cadillac", "Chair", "Tower", "Mat", "Barrel"]
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      console.log("[v0] Availability Page: Checking authentication on load...")
+      const supabase = createClient()
+
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession()
+
+      console.log("[v0] Availability Page: Session check result:", {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        error: error?.message,
+      })
+
+      if (!session?.user) {
+        console.log("[v0] Availability Page: No session found, redirecting to login...")
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to post availability",
+          variant: "destructive",
+        })
+        router.push("/auth/sign-in?redirect=/instructor/availability")
+        return
+      }
+
+      setUserId(session.user.id)
+      setIsCheckingAuth(false)
+      console.log("[v0] Availability Page: User authenticated:", session.user.id)
+    }
+
+    checkAuth()
+  }, [])
 
   const addSlot = () => {
     setSlots([
@@ -104,179 +141,159 @@ export default function AvailabilityPage() {
 
   const handleSubmit = async () => {
     console.log("[v0] Availability Submit: Button clicked, starting submission...")
-    setIsLoading(true)
-    try {
-      console.log("[v0] Availability Submit: Starting submission...")
-      console.log("[v0] Availability Submit: Current slots:", slots)
-      const supabase = createClient()
-      console.log("[v0] Availability Submit: Supabase client created")
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      console.log("[v0] Availability Submit: Session check result:", {
-        hasSession: !!session,
-        userId: session?.user?.id,
+    if (!userId) {
+      console.log("[v0] Availability Submit: No userId available")
+      toast({
+        title: "Authentication Error",
+        description: "Please refresh the page and try again",
+        variant: "destructive",
       })
+      return
+    }
 
-      if (!session?.user) {
-        throw new Error("Not authenticated. Please sign in to post availability.")
-      }
+    const hasInvalidSlot = slots.some(
+      (slot) =>
+        !slot.dateFrom ||
+        !slot.dateTo ||
+        !slot.location ||
+        !slot.rateMin ||
+        slot.repeatDays.length === 0 ||
+        slot.equipment.length === 0,
+    )
 
-      console.log("[v0] Availability Submit: User authenticated:", session.user.id)
+    if (hasInvalidSlot) {
+      console.log("[v0] Availability Submit: Validation failed - missing required fields")
+      toast({
+        title: "Incomplete Information",
+        description: "Please fill in all required fields for each slot",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      console.log("[v0] Availability Submit: Starting database insertion...")
+      const supabase = createClient()
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id, user_type")
-        .eq("id", session.user.id)
-        .maybeSingle()
+        .eq("user_id", userId)
+        .single()
 
-      console.log("[v0] Availability Submit: Profile query result:", { profile, error: profileError })
+      console.log("[v0] Availability Submit: Profile lookup result:", {
+        hasProfile: !!profile,
+        profileId: profile?.id,
+        userType: profile?.user_type,
+        error: profileError?.message,
+      })
 
-      if (profileError) {
-        throw new Error(`Profile error: ${profileError.message}`)
-      }
-
-      if (!profile) {
-        throw new Error("Profile not found. Please complete your profile first.")
+      if (profileError || !profile) {
+        throw new Error(`Profile not found: ${profileError?.message}`)
       }
 
       if (profile.user_type !== "instructor") {
-        throw new Error("You must be registered as an instructor to post availability.")
+        throw new Error("Only instructors can post availability")
       }
 
-      console.log("[v0] Availability Submit: Profile verified as instructor")
+      const instructorProfileId = profile.id
 
-      const { data: instructorProfile, error: instructorError } = await supabase
-        .from("instructor_profiles")
-        .select("id")
-        .eq("id", session.user.id)
-        .maybeSingle()
+      console.log("[v0] Availability Submit: Generating slots for database...")
+      const allSlots: any[] = []
 
-      console.log("[v0] Availability Submit: Instructor profile query result:", {
-        instructorProfile,
-        error: instructorError,
-      })
+      slots.forEach((slot, slotIndex) => {
+        console.log(`[v0] Availability Submit: Processing slot ${slotIndex + 1}/${slots.length}`)
 
-      if (instructorError) {
-        throw new Error(`Instructor profile error: ${instructorError.message}`)
-      }
-
-      if (!instructorProfile) {
-        throw new Error("Instructor profile not found. Please complete your instructor profile in settings first.")
-      }
-
-      console.log("[v0] Availability Submit: Generating slots from", slots.length, "input slots...")
-
-      const generatedSlots = []
-
-      for (const slot of slots) {
-        if (!slot.dateFrom || !slot.startTime || !slot.endTime) {
-          console.log("[v0] Availability Submit: Skipping incomplete slot:", slot.id)
-          continue
+        const start = new Date(slot.dateFrom)
+        const end = new Date(slot.dateTo)
+        const dayMap: { [key: string]: number } = {
+          Mon: 1,
+          Tue: 2,
+          Wed: 3,
+          Thu: 4,
+          Fri: 5,
+          Sat: 6,
+          Sun: 0,
         }
 
-        const startDate = new Date(slot.dateFrom)
-        const endDate = slot.dateTo ? new Date(slot.dateTo) : startDate
+        const current = new Date(start)
+        let slotCount = 0
 
-        if (slot.repeatDays.length === 0) {
-          const startDateTime = `${slot.dateFrom}T${slot.startTime}:00`
-          const endDateTime = `${slot.dateFrom}T${slot.endTime}:00`
+        while (current <= end) {
+          const dayOfWeek = current.getDay()
+          const dayName = Object.keys(dayMap).find((key) => dayMap[key] === dayOfWeek)
 
-          generatedSlots.push({
-            instructor_id: session.user.id,
-            start_time: startDateTime,
-            end_time: endDateTime,
-            is_available: true,
-            notes: JSON.stringify({
+          if (dayName && slot.repeatDays.includes(dayName)) {
+            const dateStr = current.toISOString().split("T")[0]
+
+            allSlots.push({
+              instructor_profile_id: instructorProfileId,
+              date: dateStr,
+              start_time: slot.startTime,
+              end_time: slot.endTime,
               availability_type: slot.availabilityType,
               pilates_level: slot.pilatesLevel,
-              equipment: slot.equipment,
-              rate_min: slot.rateMin,
+              equipment_available: slot.equipment,
+              rate_min: Number.parseFloat(slot.rateMin),
               rate_unit: slot.rateUnit,
               location: slot.location,
-            }),
-          })
-        } else {
-          const dayMap: Record<string, number> = {
-            Sun: 0,
-            Mon: 1,
-            Tue: 2,
-            Wed: 3,
-            Thu: 4,
-            Fri: 5,
-            Sat: 6,
+              is_available: true,
+              created_at: new Date().toISOString(),
+            })
+
+            slotCount++
           }
 
-          const currentDate = new Date(startDate)
-          while (currentDate <= endDate) {
-            const dayName = Object.keys(dayMap).find((key) => dayMap[key] === currentDate.getDay())
-
-            if (dayName && slot.repeatDays.includes(dayName)) {
-              const dateStr = currentDate.toISOString().split("T")[0]
-              const startDateTime = `${dateStr}T${slot.startTime}:00`
-              const endDateTime = `${dateStr}T${slot.endTime}:00`
-
-              generatedSlots.push({
-                instructor_id: session.user.id,
-                start_time: startDateTime,
-                end_time: endDateTime,
-                is_available: true,
-                notes: JSON.stringify({
-                  availability_type: slot.availabilityType,
-                  pilates_level: slot.pilatesLevel,
-                  equipment: slot.equipment,
-                  rate_min: slot.rateMin,
-                  rate_unit: slot.rateUnit,
-                  location: slot.location,
-                }),
-              })
-            }
-
-            currentDate.setDate(currentDate.getDate() + 1)
-          }
+          current.setDate(current.getDate() + 1)
         }
-      }
 
-      console.log("[v0] Availability Submit: Generated", generatedSlots.length, "slots")
-
-      if (generatedSlots.length === 0) {
-        throw new Error("No valid availability slots to post. Please fill in at least the date and times.")
-      }
-
-      console.log("[v0] Availability Submit: Sample slot data:", generatedSlots[0])
-      console.log("[v0] Availability Submit: Inserting into database...")
-
-      const { data, error } = await supabase.from("availability_slots").insert(generatedSlots).select()
-
-      console.log("[v0] Availability Submit: Insert result:", { success: !error, count: data?.length, error })
-
-      if (error) {
-        console.error("[v0] Availability Submit: Database error:", error)
-        throw new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ""}`)
-      }
-
-      console.log("[v0] Availability Submit: Successfully saved", data.length, "slots to database")
-
-      toast({
-        title: "Availability posted!",
-        description: `${data.length} availability slot(s) have been posted successfully.`,
+        console.log(`[v0] Availability Submit: Generated ${slotCount} slots for slot ${slotIndex + 1}`)
       })
 
-      setTimeout(() => {
-        router.push("/instructor/dashboard")
-      }, 1000)
-    } catch (error) {
-      console.error("[v0] Availability Submit: Error caught:", error)
+      console.log(`[v0] Availability Submit: Total slots to insert: ${allSlots.length}`)
+
+      if (allSlots.length === 0) {
+        throw new Error("No slots generated. Please check your date range and selected days.")
+      }
+
+      const { data, error: insertError } = await supabase.from("availability_slots").insert(allSlots).select()
+
+      console.log("[v0] Availability Submit: Database insertion result:", {
+        success: !!data,
+        insertedCount: data?.length,
+        error: insertError?.message,
+        errorDetails: insertError,
+      })
+
+      if (insertError) {
+        throw insertError
+      }
+
+      console.log("[v0] Availability Submit: Successfully inserted slots:", data?.length)
+
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to post availability",
+        title: "Availability Posted",
+        description: `Successfully created ${allSlots.length} availability slots`,
+      })
+
+      router.push("/instructor/dashboard")
+    } catch (error: any) {
+      console.error("[v0] Availability Submit: Error occurred:", {
+        message: error.message,
+        details: error,
+      })
+
+      toast({
+        title: "Error Posting Availability",
+        description: error.message || "Failed to post availability. Please try again.",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
-      console.log("[v0] Availability Submit: Finished, loading state reset")
+      console.log("[v0] Availability Submit: Submission complete")
     }
   }
 
@@ -312,6 +329,21 @@ export default function AvailabilityPage() {
       }
     }
     return total
+  }
+
+  if (isCheckingAuth) {
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+        <SiteFooter />
+      </>
+    )
   }
 
   return (
