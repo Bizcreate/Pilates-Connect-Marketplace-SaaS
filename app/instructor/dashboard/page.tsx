@@ -203,6 +203,78 @@ export default function InstructorDashboardPage() {
       <SiteHeader />
 
       <main className="flex-1 bg-muted/30">
+        <div className="border-b bg-background">
+          <div className="container py-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Welcome back, {profile?.display_name || "Instructor"}!</h1>
+                <p className="text-muted-foreground">Track your applications and find new opportunities</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => router.push("/instructor/profile")}>
+                  <User className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button onClick={() => router.push("/instructor/availability")}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Post Availability
+                </Button>
+                <Button onClick={() => router.push("/jobs")}>
+                  <Search className="h-4 w-4 mr-2" />
+                  Browse Jobs
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-b">
+          <div className="container">
+            <div className="flex gap-2 overflow-x-auto py-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/instructor/dashboard")}
+                className="whitespace-nowrap"
+              >
+                Overview
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/instructor/cover-requests")}
+                className="whitespace-nowrap"
+              >
+                Cover Requests ({coverRequests.length})
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/instructor/availability")}
+                className="whitespace-nowrap"
+              >
+                My Availability ({availabilitySlots.length})
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/instructor/applications")}
+                className="whitespace-nowrap"
+              >
+                Applications ({openApplications.length})
+              </Button>
+              <Button variant="ghost" onClick={() => router.push("/instructor/media")} className="whitespace-nowrap">
+                Media
+              </Button>
+              <Button variant="ghost" onClick={() => router.push("/instructor/earnings")} className="whitespace-nowrap">
+                Earnings
+              </Button>
+              <Button variant="ghost" onClick={() => router.push("/instructor/calendar")} className="whitespace-nowrap">
+                Calendar
+              </Button>
+              <Button variant="ghost" onClick={() => router.push("/referrals")} className="whitespace-nowrap">
+                Referrals
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div className="container py-8 space-y-8">
           {isProfileIncomplete && (
             <Alert>
@@ -216,36 +288,6 @@ export default function InstructorDashboardPage() {
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">
-                Welcome back{profile?.display_name ? `, ${profile.display_name}` : ""}!
-              </h1>
-              <p className="text-muted-foreground mt-1">Track your applications and find new opportunities</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/instructor/profile">
-                  <User className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/instructor/post-availability">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Post Availability
-                </Link>
-              </Button>
-              <Button size="lg" asChild>
-                <Link href="/jobs">
-                  <Search className="h-4 w-4 mr-2" />
-                  Browse Jobs
-                </Link>
-              </Button>
-            </div>
-          </div>
 
           {/* Stats Grid */}
           <div className="grid gap-4 md:grid-cols-4">

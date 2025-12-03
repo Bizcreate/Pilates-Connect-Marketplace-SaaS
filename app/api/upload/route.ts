@@ -1,41 +1,36 @@
-import { put } from "@vercel/blob"
-import { type NextRequest, NextResponse } from "next/server"
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
+import { NextResponse } from "next/server"
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as HandleUploadBody
+
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File
-    const folder = (formData.get("folder") as string) || "uploads"
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
-    }
-
-    // Validate file size (max 50MB for videos, 10MB for images/docs)
-    const maxSize = file.type.startsWith("video/") ? 50 * 1024 * 1024 : 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        {
-          error: `File too large. Max size: ${maxSize / (1024 * 1024)}MB`,
-        },
-        { status: 400 },
-      )
-    }
-
-    // Upload to Vercel Blob with folder structure
-    const filename = `${folder}/${Date.now()}-${file.name}`
-    const blob = await put(filename, file, {
-      access: "public",
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // Generate a client token for the upload
+        return {
+          allowedContentTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "video/mp4",
+            "video/quicktime",
+            "video/webm",
+          ],
+          maximumSizeInBytes: 50 * 1024 * 1024, // 50MB max
+        }
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log("[v0] Upload completed:", blob.url)
+      },
     })
 
-    return NextResponse.json({
-      url: blob.url,
-      filename: file.name,
-      size: file.size,
-      type: file.type,
-    })
+    return NextResponse.json(jsonResponse)
   } catch (error) {
-    console.error("Upload error:", error)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    console.error("[v0] Upload error:", error)
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 })
   }
 }

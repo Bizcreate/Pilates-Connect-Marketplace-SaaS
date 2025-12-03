@@ -394,6 +394,25 @@ export default function InstructorProfilePage() {
               </CardContent>
             </Card>
 
+            {/* Portfolio Media Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Portfolio Media</CardTitle>
+                <CardDescription>Showcase your teaching with images and videos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Upload photos and videos of your classes to help studios see your teaching style.
+                  </p>
+                  <Button onClick={() => router.push("/instructor/media")} variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Manage Media Gallery
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Documents Section */}
             <Card>
               <CardHeader>
