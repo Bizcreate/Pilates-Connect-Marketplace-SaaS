@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { upload } from "@vercel/blob/client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -182,36 +183,16 @@ export default function InstructorMediaPage() {
     setUploading(true)
 
     try {
-      console.log("[v0] Starting video upload:", file.name, file.type, file.size)
+      console.log("[v0] Starting client-side Blob upload for:", file.name)
 
-      const formData = new FormData()
-      formData.append("file", file)
-
-      console.log("[v0] Sending request to /api/upload")
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
       })
 
-      console.log("[v0] Response status:", response.status, response.statusText)
+      console.log("[v0] Video uploaded to Blob:", blob.url)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        let errorData
-        try {
-          errorData = JSON.parse(errorText)
-        } catch {
-          errorData = { error: errorText || "Upload failed" }
-        }
-        console.error("[v0] Upload failed:", response.status, errorData)
-        throw new Error(errorData.error || "Upload failed")
-      }
-
-      const data = await response.json()
-      console.log("[v0] Video upload response:", data)
-
-      if (!data.url) {
+      if (!blob.url) {
         throw new Error("No URL returned from upload")
       }
 
@@ -224,7 +205,7 @@ export default function InstructorMediaPage() {
         throw new Error("User not authenticated")
       }
 
-      const newVideos = [...videos, data.url]
+      const newVideos = [...videos, blob.url]
       console.log("[v0] Updating database with videos:", newVideos)
 
       const { error: updateError, data: updateData } = await supabase

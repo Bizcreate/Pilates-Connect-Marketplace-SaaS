@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { upload } from "@vercel/blob/client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -182,24 +183,16 @@ export default function StudioMediaPage() {
     console.log("[v0] Uploading video:", file.name)
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("type", "video")
+      console.log("[v0] Starting client-side Blob upload for:", file.name)
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Upload failed: ${errorText}`)
-      }
+      console.log("[v0] Video uploaded to Blob:", blob.url)
 
-      const { url } = await response.json()
-      console.log("[v0] Video uploaded successfully:", url)
-
-      const newVideos = [...videos, url]
+      const newVideos = [...videos, blob.url]
       setVideos(newVideos)
 
       const { error: updateError } = await supabase
