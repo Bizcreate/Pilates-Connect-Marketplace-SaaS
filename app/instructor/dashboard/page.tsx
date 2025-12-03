@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { CoverRequestDialog } from "@/components/cover-request-dialog"
+import { InstructorReferralWidget } from "@/components/instructor-referral-widget"
 import {
   Search,
   Briefcase,
@@ -27,6 +28,7 @@ import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEffect, useState } from "react"
 import { acceptCoverRequest } from "@/app/actions/dashboard"
+import { removeAvailability } from "@/app/actions/dashboard"
 
 export default function InstructorDashboardPage() {
   const router = useRouter()
@@ -271,6 +273,10 @@ export default function InstructorDashboardPage() {
               <Button variant="ghost" onClick={() => router.push("/referrals")} className="whitespace-nowrap">
                 Referrals
               </Button>
+              {/* Added Settings button */}
+              <Button variant="ghost" onClick={() => router.push("/instructor/settings")} className="whitespace-nowrap">
+                Settings
+              </Button>
             </div>
           </div>
         </div>
@@ -290,8 +296,14 @@ export default function InstructorDashboardPage() {
           )}
 
           {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+          <div className="grid gap-4 md:grid-cols-5">
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => {
+                const tabTrigger = document.querySelector('[value="applications"]') as HTMLElement
+                tabTrigger?.click()
+              }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Applications</CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -302,27 +314,30 @@ export default function InstructorDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <Link
-                href="#availability"
-                onClick={(e) => {
-                  e.preventDefault()
-                  const tabTrigger = document.querySelector('[value="availability"]') as HTMLElement
-                  tabTrigger?.click()
-                }}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
-                  <CardTitle className="text-sm font-medium">My Availability</CardTitle>
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="cursor-pointer">
-                  <div className="text-2xl font-bold">{stats.availabilitySlots}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Upcoming slots</p>
-                </CardContent>
-              </Link>
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => {
+                const tabTrigger = document.querySelector('[value="availability"]') as HTMLElement
+                tabTrigger?.click()
+              }}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">My Availability</CardTitle>
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.availabilitySlots}</div>
+                <p className="text-xs text-muted-foreground mt-1">Upcoming slots</p>
+              </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => {
+                const tabTrigger = document.querySelector('[value="cover-requests"]') as HTMLElement
+                tabTrigger?.click()
+              }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cover Requests</CardTitle>
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -344,7 +359,10 @@ export default function InstructorDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => router.push("/messages")}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -367,6 +385,7 @@ export default function InstructorDashboardPage() {
               <TabsTrigger value="earnings">Earnings</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -459,27 +478,27 @@ export default function InstructorDashboardPage() {
                               )}
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedCoverRequest(request)
-                              setCoverDialogOpen(true)
-                            }}
-                          >
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCoverRequest(request)
-                              setCoverDialogOpen(true)
-                            }}
-                          >
-                            Accept Cover
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedCoverRequest(request)
+                                setCoverDialogOpen(true)
+                              }}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedCoverRequest(request)
+                                setCoverDialogOpen(true)
+                              }}
+                            >
+                              Accept Cover
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -790,7 +809,21 @@ export default function InstructorDashboardPage() {
             </TabsContent>
 
             <TabsContent value="referrals" className="space-y-4">
-              <ReferralWidget />
+              <InstructorReferralWidget />
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Settings</CardTitle>
+                  <CardDescription>Manage your account preferences</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => router.push("/instructor/settings")} className="w-full">
+                    Go to Settings
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
@@ -841,9 +874,4 @@ function formatDateTime(dateString: string): string {
 function formatTime(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
-}
-
-// Function to remove availability
-async function removeAvailability(slotId: string) {
-  // Implementation for removing availability
 }

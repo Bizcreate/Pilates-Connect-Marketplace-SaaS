@@ -31,6 +31,7 @@ import {
 import { createBrowserClient } from "@/lib/supabase/client"
 import { StartConversationButton } from "@/components/start-conversation-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { StudioReferralWidget } from "@/components/studio-referral-widget"
 
 export default function StudioDashboardPage() {
   const router = useRouter()
@@ -195,7 +196,7 @@ export default function StudioDashboardPage() {
     const { data: jobsData, error: jobsError } = await supabase
       .from("jobs")
       .select("*")
-      .eq("studio_id", router.query.id)
+      .eq("studio_id", router.query.id) // Note: router.query.id might be undefined client-side before hydration
       .order("created_at", { ascending: false })
 
     console.log("[v0] Jobs:", { count: jobsData?.length, error: jobsError })
@@ -311,7 +312,10 @@ export default function StudioDashboardPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setActiveTab("jobs")}>
+            <Card
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setActiveTab("overview")}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -386,6 +390,7 @@ export default function StudioDashboardPage() {
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -846,7 +851,21 @@ export default function StudioDashboardPage() {
             </TabsContent>
 
             <TabsContent value="referrals" className="space-y-4">
-              <ReferralWidget />
+              <StudioReferralWidget />
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Settings</CardTitle>
+                  <CardDescription>Manage your studio preferences</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => router.push("/studio/settings")} className="w-full">
+                    Go to Settings
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
