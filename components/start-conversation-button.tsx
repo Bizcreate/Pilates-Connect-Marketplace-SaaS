@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { createConversation } from "@/lib/actions/messages"
 
 interface StartConversationButtonProps {
   userId: string
@@ -25,13 +26,7 @@ export function StartConversationButton({
     setIsLoading(true)
 
     try {
-      const response = await fetch(`/messages/${userId}`, {
-        method: "POST",
-      })
-
-      if (!response.ok) throw new Error("Failed to start conversation")
-
-      const { conversationId } = await response.json()
+      const { conversationId } = await createConversation(userId)
       router.push(`/messages?conversation=${conversationId}`)
     } catch (error) {
       console.error("[v0] Error starting conversation:", error)
