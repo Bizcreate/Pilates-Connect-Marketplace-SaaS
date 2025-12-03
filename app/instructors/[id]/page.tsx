@@ -55,7 +55,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
   const instructorProfile = instructorProfileData || {}
   const socialLinks = instructorProfile.social_links || {}
 
-  const { data: availabilitySlots } = await supabase
+  const { data: availabilitySlots, error: availError } = await supabase
     .from("availability_slots")
     .select("*")
     .eq("instructor_id", id)
@@ -63,6 +63,17 @@ export default async function InstructorProfilePage({ params }: { params: Promis
     .gte("start_time", new Date().toISOString())
     .order("start_time", { ascending: true })
     .limit(10)
+
+  if (availError) {
+    console.error("[v0] Instructor Profile: Error fetching availability:", availError)
+  } else {
+    console.log(
+      "[v0] Instructor Profile: Loaded",
+      availabilitySlots?.length || 0,
+      "availability slots for instructor",
+      id,
+    )
+  }
 
   const {
     data: { user },

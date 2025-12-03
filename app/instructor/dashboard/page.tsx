@@ -81,6 +81,7 @@ export default function InstructorDashboardPage() {
         .from("availability_slots")
         .select("*")
         .eq("instructor_id", user.id)
+        .eq("is_available", true) // Added filter for available slots only
         .gte("start_time", new Date().toISOString())
         .order("start_time", { ascending: true })
         .limit(10)
@@ -90,6 +91,10 @@ export default function InstructorDashboardPage() {
         error: slotsError?.message,
         sample: slotsData?.[0],
       })
+
+      if (slotsError) {
+        console.error("[v0] Instructor Dashboard: Error fetching availability:", slotsError)
+      }
 
       setAvailabilitySlots(slotsData || [])
 

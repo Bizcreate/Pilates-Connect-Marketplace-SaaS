@@ -29,11 +29,17 @@ export function ReferralWidget() {
 
       if (!user) return
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("referral_code, referral_earnings")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
+
+      if (profileError) {
+        console.error("[v0] ReferralWidget: Error fetching profile:", profileError)
+        // Don't break - use default values
+        return
+      }
 
       if (profile?.referral_code) {
         setReferralCode(profile.referral_code)
@@ -41,7 +47,15 @@ export function ReferralWidget() {
         setStats((prev) => ({ ...prev, earnings: profile.referral_earnings || 0 }))
       }
 
-      const { data: referralData } = await supabase.from("referrals").select("*").eq("referrer_id", user.id)
+      const { data: referralData, error: referralError } = await supabase
+        .from("referrals")
+        .select("*")
+        .eq("referrer_id", user.id)
+
+      if (referralError) {
+        console.error("[v0] ReferralWidget: Error fetching referrals:", referralError)
+        return
+      }
 
       if (referralData && referralData.length > 0) {
         setReferrals(referralData.slice(0, 3))

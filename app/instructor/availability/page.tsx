@@ -103,25 +103,42 @@ export default function AvailabilityPage() {
   }
 
   const handleSubmit = async () => {
+    console.log("[v0] Availability Submit: Button clicked, starting submission...")
     setIsLoading(true)
     try {
+      console.log("[v0] Availability Submit: Starting submission...")
+      console.log("[v0] Availability Submit: Current slots:", slots)
       const supabase = createClient()
+      console.log("[v0] Availability Submit: Supabase client created")
 
       const {
         data: { session },
       } = await supabase.auth.getSession()
 
+      console.log("[v0] Availability Submit: Session check result:", {
+        hasSession: !!session,
+        userId: session?.user?.id,
+      })
+
       if (!session?.user) {
         throw new Error("Not authenticated. Please sign in to post availability.")
       }
+
+      console.log("[v0] Availability Submit: User authenticated:", session.user.id)
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id, user_type")
         .eq("id", session.user.id)
-        .single()
+        .maybeSingle()
 
-      if (profileError || !profile) {
+      console.log("[v0] Availability Submit: Profile query result:", { profile, error: profileError })
+
+      if (profileError) {
+        throw new Error(`Profile error: ${profileError.message}`)
+      }
+
+      if (!profile) {
         throw new Error("Profile not found. Please complete your profile first.")
       }
 
@@ -129,11 +146,18 @@ export default function AvailabilityPage() {
         throw new Error("You must be registered as an instructor to post availability.")
       }
 
+      console.log("[v0] Availability Submit: Profile verified as instructor")
+
       const { data: instructorProfile, error: instructorError } = await supabase
         .from("instructor_profiles")
         .select("id")
         .eq("id", session.user.id)
         .maybeSingle()
+
+      console.log("[v0] Availability Submit: Instructor profile query result:", {
+        instructorProfile,
+        error: instructorError,
+      })
 
       if (instructorError) {
         throw new Error(`Instructor profile error: ${instructorError.message}`)
@@ -143,10 +167,15 @@ export default function AvailabilityPage() {
         throw new Error("Instructor profile not found. Please complete your instructor profile in settings first.")
       }
 
+      console.log("[v0] Availability Submit: Generating slots from", slots.length, "input slots...")
+
       const generatedSlots = []
 
       for (const slot of slots) {
-        if (!slot.dateFrom || !slot.startTime || !slot.endTime) continue
+        if (!slot.dateFrom || !slot.startTime || !slot.endTime) {
+          console.log("[v0] Availability Submit: Skipping incomplete slot:", slot.id)
+          continue
+        }
 
         const startDate = new Date(slot.dateFrom)
         const endDate = slot.dateTo ? new Date(slot.dateTo) : startDate
@@ -210,23 +239,36 @@ export default function AvailabilityPage() {
         }
       }
 
+      console.log("[v0] Availability Submit: Generated", generatedSlots.length, "slots")
+
       if (generatedSlots.length === 0) {
         throw new Error("No valid availability slots to post. Please fill in at least the date and times.")
       }
 
+      console.log("[v0] Availability Submit: Sample slot data:", generatedSlots[0])
+      console.log("[v0] Availability Submit: Inserting into database...")
+
       const { data, error } = await supabase.from("availability_slots").insert(generatedSlots).select()
 
+      console.log("[v0] Availability Submit: Insert result:", { success: !error, count: data?.length, error })
+
       if (error) {
+        console.error("[v0] Availability Submit: Database error:", error)
         throw new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ""}`)
       }
+
+      console.log("[v0] Availability Submit: Successfully saved", data.length, "slots to database")
 
       toast({
         title: "Availability posted!",
         description: `${data.length} availability slot(s) have been posted successfully.`,
       })
 
-      router.push("/instructor/dashboard")
+      setTimeout(() => {
+        router.push("/instructor/dashboard")
+      }, 1000)
     } catch (error) {
+      console.error("[v0] Availability Submit: Error caught:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to post availability",
@@ -234,6 +276,7 @@ export default function AvailabilityPage() {
       })
     } finally {
       setIsLoading(false)
+      console.log("[v0] Availability Submit: Finished, loading state reset")
     }
   }
 
