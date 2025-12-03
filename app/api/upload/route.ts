@@ -12,9 +12,19 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Uploading file:", file.name, file.type, file.size)
 
-    // Upload to Vercel Blob
+    const isVideo = file.type.startsWith("video/")
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024 // 50MB for videos, 5MB for images
+
+    if (file.size > maxSize) {
+      const maxSizeMB = isVideo ? "50MB" : "5MB"
+      return NextResponse.json({ error: `File too large. Maximum size is ${maxSizeMB}` }, { status: 400 })
+    }
+
+    // Upload to Vercel Blob with content type
     const blob = await put(file.name, file, {
       access: "public",
+      contentType: file.type,
+      addRandomSuffix: true, // Add random suffix to prevent filename conflicts
     })
 
     console.log("[v0] Upload successful:", blob.url)

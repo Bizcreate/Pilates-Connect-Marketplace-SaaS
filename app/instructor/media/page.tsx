@@ -140,10 +140,12 @@ export default function InstructorMediaPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith("video/")) {
+    const validVideoTypes = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"]
+
+    if (!validVideoTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a video file (MP4, MOV, or WebM)",
+        description: `Please upload a video file. Detected type: ${file.type}`,
         variant: "destructive",
       })
       e.target.value = ""
@@ -163,7 +165,7 @@ export default function InstructorMediaPage() {
     setUploading(true)
 
     try {
-      console.log("[v0] Starting video upload:", file.name)
+      console.log("[v0] Starting video upload:", file.name, file.type, file.size)
 
       const formData = new FormData()
       formData.append("file", file)
@@ -174,12 +176,19 @@ export default function InstructorMediaPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText || "Upload failed" }
+        }
+        console.error("[v0] Upload failed:", response.status, errorData)
         throw new Error(errorData.error || "Upload failed")
       }
 
       const data = await response.json()
-      console.log("[v0] Upload response:", data)
+      console.log("[v0] Video upload response:", data)
 
       const newVideos = [...videos, data.url]
       setVideos(newVideos)
@@ -193,16 +202,23 @@ export default function InstructorMediaPage() {
         throw new Error("User not authenticated")
       }
 
+      console.log("[v0] Updating database with videos:", newVideos)
+
       const { error } = await supabase.from("instructor_profiles").update({ media_videos: newVideos }).eq("id", user.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Database update error:", error)
+        throw error
+      }
+
+      console.log("[v0] Video upload complete!")
 
       toast({
         title: "Success",
         description: "Video uploaded successfully!",
       })
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("[v0] Video upload error:", error)
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload video",
@@ -400,7 +416,7 @@ export default function InstructorMediaPage() {
                             <p className="mb-2 text-sm text-foreground">
                               <span className="font-semibold">Click to upload</span> or drag and drop
                             </p>
-                            <p className="text-xs text-muted-foreground">MP4, MOV, or WebM (MAX. 50MB)</p>
+                            <p className="text-xs text-muted-foreground">MP4, MOV, WebM (MAX. 50MB)</p>
                           </>
                         )}
                       </div>
@@ -408,7 +424,7 @@ export default function InstructorMediaPage() {
                         id="video-upload"
                         type="file"
                         className="hidden"
-                        accept="video/mp4,video/quicktime,video/webm"
+                        accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
                         onChange={handleVideoUpload}
                         disabled={uploading}
                       />
@@ -419,7 +435,12 @@ export default function InstructorMediaPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {videos.map((url, index) => (
                         <div key={index} className="relative group">
-                          <video src={url} controls className="w-full h-64 object-cover rounded-lg bg-black" />
+                          <video
+                            src={url}
+                            controls
+                            preload="metadata"
+                            className="w-full h-64 object-cover rounded-lg bg-black"
+                          />
                           <Button
                             size="icon"
                             variant="destructive"
