@@ -39,14 +39,19 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
   const endDate = new Date(slot.end_time)
 
   const handleBooking = async () => {
+    console.log("[v0] Starting booking process...")
     setLoading(true)
 
     try {
       const supabase = createClient()
+      console.log("[v0] Supabase client created")
 
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
+      console.log("[v0] Current user:", user?.id)
+
       if (!user) {
         toast({
           title: "Authentication required",
@@ -54,20 +59,30 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
           variant: "destructive",
         })
         router.push("/auth/login")
+        setLoading(false)
         return
       }
 
-      const { data: instructorProfile } = await supabase
+      console.log("[v0] Fetching instructor rate...")
+      const { data: instructorProfile, error: profileError } = await supabase
         .from("instructor_profiles")
         .select("hourly_rate_min")
         .eq("id", slot.instructor_id)
         .single()
 
+      if (profileError) {
+        console.error("[v0] Error fetching instructor profile:", profileError)
+      }
+
       const durationHours = (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / (1000 * 60 * 60)
       const hourlyRate = instructorProfile?.hourly_rate_min || 60
       const totalAmount = durationHours * hourlyRate
 
+      console.log("[v0] Booking details:", { durationHours, hourlyRate, totalAmount })
+
       const coverRequestDate = startDate.toISOString().split("T")[0]
+
+      console.log("[v0] Inserting booking...")
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
         .insert({
@@ -98,8 +113,14 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
         .select()
         .single()
 
-      if (bookingError) throw bookingError
+      if (bookingError) {
+        console.error("[v0] Booking error:", bookingError)
+        throw new Error(bookingError.message)
+      }
 
+      console.log("[v0] Booking created:", booking.id)
+
+      console.log("[v0] Finding/creating conversation...")
       const { data: existingConv } = await supabase
         .from("conversations")
         .select("id")
@@ -111,6 +132,7 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
       let conversationId = existingConv?.id
 
       if (!conversationId) {
+        console.log("[v0] Creating new conversation...")
         const { data: newConv, error: convError } = await supabase
           .from("conversations")
           .insert({
@@ -122,6 +144,9 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
 
         if (convError) throw convError
         conversationId = newConv.id
+        console.log("[v0] Conversation created:", conversationId)
+      } else {
+        console.log("[v0] Using existing conversation:", conversationId)
       }
 
       const bookingMessage =
@@ -138,20 +163,30 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
           minute: "2-digit",
         })}.`
 
-      await supabase.from("messages").insert({
+      console.log("[v0] Sending message...")
+      const { error: messageError } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: user.id,
         content: bookingMessage,
         read: false,
       })
 
-      await supabase.from("notifications").insert({
+      if (messageError) {
+        console.error("[v0] Message error:", messageError)
+      }
+
+      console.log("[v0] Creating notification...")
+      const { error: notificationError } = await supabase.from("notifications").insert({
         user_id: slot.instructor_id,
         type: "booking_request",
         title: "New Booking Request",
         message: `You have a new booking request for ${coverRequestDate}`,
         link: `/instructor/bookings/${booking.id}`,
       })
+
+      if (notificationError) {
+        console.error("[v0] Notification error:", notificationError)
+      }
 
       try {
         await fetch("/api/notifications/push", {
@@ -167,6 +202,7 @@ export function BookSlotModal({ open, onOpenChange, slot, instructorName }: Book
         console.error("[v0] Push notification failed:", error)
       }
 
+      console.log("[v0] Booking complete!")
       toast({
         title: "Booking request sent!",
         description: "The instructor has been notified. This will be billed in your monthly invoice.",
