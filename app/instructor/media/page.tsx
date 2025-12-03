@@ -23,42 +23,37 @@ export default function InstructorMediaPage() {
   const [uploading, setUploading] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [videos, setVideos] = useState<string[]>([])
-  const [profile, setProfile] = useState<any>(null)
 
   useEffect(() => {
     async function loadData() {
-      console.log("[v0] Loading instructor media data...")
-      const supabase = createClient()
+      try {
+        const supabase = createClient()
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
 
-      console.log("[v0] User data:", user ? `User ID: ${user.id}` : "No user", "Error:", userError)
+        if (userError || !user) {
+          router.replace("/auth/login")
+          return
+        }
 
-      if (userError || !user) {
-        console.error("[v0] Auth error, redirecting to login")
-        router.replace("/auth/login")
-        return
+        const { data: profileData } = await supabase
+          .from("instructor_profiles")
+          .select("media_images, media_videos")
+          .eq("id", user.id)
+          .maybeSingle()
+
+        if (profileData) {
+          setImages(profileData.media_images || [])
+          setVideos(profileData.media_videos || [])
+        }
+      } catch (error) {
+        console.error("Error loading media:", error)
+      } finally {
+        setLoading(false)
       }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("instructor_profiles")
-        .select("media_images, media_videos")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      console.log("[v0] Profile data:", profileData, "Error:", profileError)
-
-      if (profileData) {
-        setProfile(profileData)
-        setImages(profileData.media_images || [])
-        setVideos(profileData.media_videos || [])
-      }
-
-      console.log("[v0] Loading complete, setting loading to false")
-      setLoading(false)
     }
 
     loadData()
@@ -74,6 +69,7 @@ export default function InstructorMediaPage() {
         description: "Please upload an image file (PNG, JPG, or WEBP)",
         variant: "destructive",
       })
+      e.target.value = ""
       return
     }
 
@@ -83,20 +79,17 @@ export default function InstructorMediaPage() {
         description: "Image must be less than 5MB",
         variant: "destructive",
       })
+      e.target.value = ""
       return
     }
 
     setUploading(true)
 
     try {
-      console.log("[v0] Starting image upload:", file.name)
-
       const blob = await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
       })
-
-      console.log("[v0] Image uploaded successfully:", blob.url)
 
       const newImages = [...images, blob.url]
       setImages(newImages)
@@ -112,24 +105,21 @@ export default function InstructorMediaPage() {
 
       const { error } = await supabase.from("instructor_profiles").update({ media_images: newImages }).eq("id", user.id)
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       toast({
         title: "Success",
         description: "Image uploaded successfully!",
       })
-
-      e.target.value = ""
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("Upload error:", error)
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       })
     } finally {
+      e.target.value = ""
       setUploading(false)
     }
   }
@@ -144,6 +134,7 @@ export default function InstructorMediaPage() {
         description: "Please upload a video file (MP4, MOV, or WebM)",
         variant: "destructive",
       })
+      e.target.value = ""
       return
     }
 
@@ -153,20 +144,17 @@ export default function InstructorMediaPage() {
         description: "Video must be less than 50MB",
         variant: "destructive",
       })
+      e.target.value = ""
       return
     }
 
     setUploading(true)
 
     try {
-      console.log("[v0] Starting video upload:", file.name)
-
       const blob = await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
       })
-
-      console.log("[v0] Video uploaded successfully:", blob.url)
 
       const newVideos = [...videos, blob.url]
       setVideos(newVideos)
@@ -182,24 +170,21 @@ export default function InstructorMediaPage() {
 
       const { error } = await supabase.from("instructor_profiles").update({ media_videos: newVideos }).eq("id", user.id)
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
       toast({
         title: "Success",
         description: "Video uploaded successfully!",
       })
-
-      e.target.value = ""
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("Upload error:", error)
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload video",
         variant: "destructive",
       })
     } finally {
+      e.target.value = ""
       setUploading(false)
     }
   }
@@ -223,8 +208,13 @@ export default function InstructorMediaPage() {
         description: "Image has been removed from your profile",
       })
     } catch (error) {
-      console.error("[v0] Remove error:", error)
+      console.error("Remove error:", error)
       setImages([...images])
+      toast({
+        title: "Error",
+        description: "Failed to remove image",
+        variant: "destructive",
+      })
     }
   }
 
@@ -247,8 +237,13 @@ export default function InstructorMediaPage() {
         description: "Video has been removed from your profile",
       })
     } catch (error) {
-      console.error("[v0] Remove error:", error)
+      console.error("Remove error:", error)
       setVideos([...videos])
+      toast({
+        title: "Error",
+        description: "Failed to remove video",
+        variant: "destructive",
+      })
     }
   }
 
