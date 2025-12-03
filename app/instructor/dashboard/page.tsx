@@ -124,9 +124,13 @@ export default function InstructorDashboardPage() {
             title,
             job_type,
             location,
+            status,
             hourly_rate_min,
             hourly_rate_max,
-            studio:profiles!jobs_studio_id_fkey(display_name)
+            studio:profiles!jobs_studio_id_fkey(
+              id,
+              display_name
+            )
           )
         `)
         .eq("instructor_id", user.id)
@@ -135,7 +139,12 @@ export default function InstructorDashboardPage() {
       console.log("[v0] Instructor Dashboard: Applications result:", {
         count: appsData?.length || 0,
         error: appsError?.message,
+        sample: appsData?.[0],
       })
+
+      if (appsError) {
+        console.error("[v0] Error fetching applications:", appsError)
+      }
 
       setApplications(appsData || [])
 
@@ -184,8 +193,8 @@ export default function InstructorDashboardPage() {
 
   const isProfileIncomplete = !profile?.display_name
 
-  const openApplications = applications.filter((a) => a.job?.status === "open")
-  const closedApplications = applications.filter((a) => a.job?.status === "closed")
+  const openApplications = applications.filter((a) => a.job && (!a.job.status || a.job.status === "open"))
+  const closedApplications = applications.filter((a) => a.job && a.job.status === "closed")
 
   const pendingApplications = openApplications.filter((a) => a.status === "pending")
   const interviewApplications = openApplications.filter((a) => a.status === "interview")
