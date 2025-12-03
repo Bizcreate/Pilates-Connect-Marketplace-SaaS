@@ -378,9 +378,9 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {instructorProfile.preview_videos && instructorProfile.preview_videos.length > 0 ? (
+                  {instructorProfile.media_videos && instructorProfile.media_videos.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-4">
-                      {instructorProfile.preview_videos.map((video: string, index: number) => (
+                      {instructorProfile.media_videos.map((video: string, index: number) => (
                         <div key={index} className="aspect-video bg-muted rounded-lg overflow-hidden">
                           <video src={video} controls className="w-full h-full object-cover" />
                         </div>
@@ -397,9 +397,9 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                   <CardTitle>Image Gallery</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {instructorProfile.image_gallery && instructorProfile.image_gallery.length > 0 ? (
+                  {instructorProfile.media_images && instructorProfile.media_images.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {instructorProfile.image_gallery.map((image: string, index: number) => (
+                      {instructorProfile.media_images.map((image: string, index: number) => (
                         <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden">
                           <img
                             src={image || "/placeholder.svg"}
