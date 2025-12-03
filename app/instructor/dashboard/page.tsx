@@ -2,9 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
@@ -15,11 +13,9 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  XCircle,
   User,
   AlertCircle,
   CalendarDays,
-  MapPin,
   MessageSquare,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -228,53 +224,6 @@ export default function InstructorDashboardPage() {
           </div>
         </div>
 
-        <div className="border-b">
-          <div className="container">
-            <div className="flex gap-2 overflow-x-auto py-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/dashboard")}
-                className="whitespace-nowrap"
-              >
-                Overview
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/cover-requests")}
-                className="whitespace-nowrap"
-              >
-                Cover Requests ({coverRequests.length})
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/availability")}
-                className="whitespace-nowrap"
-              >
-                My Availability ({availabilitySlots.length})
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/instructor/applications")}
-                className="whitespace-nowrap"
-              >
-                Applications ({openApplications.length})
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/media")} className="whitespace-nowrap">
-                Media
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/earnings")} className="whitespace-nowrap">
-                Earnings
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/instructor/calendar")} className="whitespace-nowrap">
-                Calendar
-              </Button>
-              <Button variant="ghost" onClick={() => router.push("/referrals")} className="whitespace-nowrap">
-                Referrals
-              </Button>
-            </div>
-          </div>
-        </div>
-
         <div className="container py-8 space-y-8">
           {isProfileIncomplete && (
             <Alert>
@@ -356,443 +305,44 @@ export default function InstructorDashboardPage() {
             </Card>
           </div>
 
-          {/* Main Content Tabs */}
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="cover-requests">Cover Requests ({coverRequests.length})</TabsTrigger>
-              <TabsTrigger value="availability">My Availability ({availabilitySlots.length})</TabsTrigger>
-              <TabsTrigger value="applications">Applications ({openApplications.length})</TabsTrigger>
-              <TabsTrigger value="media">Media</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
-              <TabsTrigger value="calendar">Calendar</TabsTrigger>
-              <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                      <Link href="/instructor/post-availability">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Post New Availability
-                      </Link>
-                    </Button>
-                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                      <Link href="/jobs">
-                        <Search className="h-4 w-4 mr-2" />
-                        Browse All Jobs
-                      </Link>
-                    </Button>
-                    <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
-                      <Link href="/messages">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Messages
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Messages</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">{/* Placeholder for recent messages */}</CardContent>
-                </Card>
-              </div>
-              <ReferralWidget />
-            </TabsContent>
-
-            <TabsContent value="cover-requests" className="space-y-4">
+          {/* Main Content */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Available Cover Requests</CardTitle>
-                  <CardDescription>Studios looking for immediate cover - respond quickly!</CardDescription>
+                  <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {coverRequests.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No cover requests available</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Check back later for urgent cover opportunities from studios
-                      </p>
-                    </div>
-                  ) : (
-                    coverRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-lg">{request.class_type || "Pilates Class"}</h3>
-                                <Badge variant="destructive" className="text-xs">
-                                  Urgent
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{request.studio?.display_name}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>{formatDate(request.date)}</span>
-                                <span>•</span>
-                                <Clock className="h-3 w-3" />
-                                <span>
-                                  {request.start_time} - {request.end_time}
-                                </span>
-                                {request.studio?.location && (
-                                  <>
-                                    <span>•</span>
-                                    <MapPin className="h-3 w-3" />
-                                    <span>{request.studio.location}</span>
-                                  </>
-                                )}
-                              </div>
-                              {request.notes && (
-                                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{request.notes}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedCoverRequest(request)
-                              setCoverDialogOpen(true)
-                            }}
-                          >
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedCoverRequest(request)
-                              setCoverDialogOpen(true)
-                            }}
-                          >
-                            Accept Cover
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="availability" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>My Availability Slots</CardTitle>
-                  <CardDescription>Manage when you're available for work</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {availabilitySlots.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No availability posted</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Post your availability to let studios know when you're free
-                      </p>
-                      <Button asChild>
-                        <Link href="/instructor/post-availability">Post Availability</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    availabilitySlots.map((slot) => {
-                      let metadata: any = {}
-                      try {
-                        metadata = typeof slot.notes === "string" ? JSON.parse(slot.notes) : slot.notes || {}
-                      } catch (e) {
-                        console.error("[v0] Failed to parse slot metadata:", e)
-                      }
-
-                      return (
-                        <div
-                          key={slot.id}
-                          className="flex flex-col md:flex-row md:items-start justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="space-y-3 flex-1">
-                            {/* Date and Time */}
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-semibold">{formatDateTime(slot.start_time)}</span>
-                              <span className="text-muted-foreground">to</span>
-                              <span className="font-semibold">{formatDateTime(slot.end_time)}</span>
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                              {metadata.location && (
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-muted-foreground">Location:</span>
-                                  <span className="font-medium capitalize">{metadata.location}</span>
-                                </div>
-                              )}
-
-                              {metadata.pilates_level && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Level:</span>
-                                  <span className="font-medium capitalize">
-                                    {metadata.pilates_level.replace("-", " ")}
-                                  </span>
-                                </div>
-                              )}
-
-                              {metadata.rate_min && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Rate:</span>
-                                  <span className="font-medium">
-                                    ${metadata.rate_min}
-                                    {metadata.rate_unit === "per_class" ? "/class" : "/hour"}
-                                  </span>
-                                </div>
-                              )}
-
-                              {metadata.equipment &&
-                                Array.isArray(metadata.equipment) &&
-                                metadata.equipment.length > 0 && (
-                                  <div className="flex items-start gap-2 col-span-2">
-                                    <span className="text-muted-foreground">Equipment:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                      {metadata.equipment.map((eq: string, idx: number) => (
-                                        <Badge key={idx} variant="secondary" className="text-xs">
-                                          {eq}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                              {metadata.availability_type && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">Type:</span>
-                                  <Badge variant="outline" className="capitalize text-xs">
-                                    {metadata.availability_type}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/instructor/availability/${slot.id}/edit`}>Edit</Link>
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleRemoveAvailability(slot.id)}>
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="applications" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>My Applications</CardTitle>
-                  <CardDescription>Track the status of your job applications</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {openApplications.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">No active applications</h3>
-                      <p className="text-sm text-muted-foreground mb-4">Start applying to jobs to see them here</p>
-                      <Button asChild>
-                        <Link href="/jobs">Browse Jobs</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    openApplications.map((application) => (
-                      <div
-                        key={application.id}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{application.job?.title}</h3>
-                              <p className="text-sm text-muted-foreground">{application.job?.studio?.display_name}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <span className="capitalize">{application.job?.job_type}</span>
-                                <span>•</span>
-                                <span>{application.job?.location}</span>
-                                {application.job?.hourly_rate_min && (
-                                  <>
-                                    <span>•</span>
-                                    <span>
-                                      ${application.job.hourly_rate_min}
-                                      {application.job.hourly_rate_max && `-$${application.job.hourly_rate_max}`}/hour
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <Badge
-                              variant={
-                                application.status === "accepted"
-                                  ? "default"
-                                  : application.status === "rejected"
-                                    ? "destructive"
-                                    : "secondary"
-                              }
-                              className="capitalize"
-                            >
-                              {application.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
-                              {application.status === "accepted" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                              {application.status === "rejected" && <XCircle className="h-3 w-3 mr-1" />}
-                              {application.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            Applied {formatRelativeTime(application.created_at)}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/jobs/${application.job_id}`}>View Job</Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-
-                  {closedApplications.length > 0 && (
-                    <div className="mt-8 pt-8 border-t">
-                      <h3 className="text-sm font-medium text-muted-foreground mb-4">Closed Jobs</h3>
-                      {closedApplications.map((application) => (
-                        <div
-                          key={application.id}
-                          className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30 opacity-60 mb-3"
-                        >
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-lg">{application.job?.title}</h3>
-                                <p className="text-sm text-muted-foreground">{application.job?.studio?.display_name}</p>
-                                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                  <Badge variant="outline" className="text-xs">
-                                    Job Closed
-                                  </Badge>
-                                  <span className="capitalize">{application.job?.job_type}</span>
-                                  <span>•</span>
-                                  <span>{application.job?.location}</span>
-                                </div>
-                              </div>
-                              <Badge variant="secondary" className="capitalize">
-                                {application.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="media" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Media</CardTitle>
-                  <CardDescription>Upload images and videos to showcase your work on your profile</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Add photos and videos of your classes, certifications, and teaching style to attract more studios.
-                  </p>
-                  <Button asChild>
-                    <Link href="/instructor/media">Manage Media</Link>
+                <CardContent className="space-y-2">
+                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                    <Link href="/instructor/post-availability">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Post New Availability
+                    </Link>
+                  </Button>
+                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                    <Link href="/jobs">
+                      <Search className="h-4 w-4 mr-2" />
+                      Browse All Jobs
+                    </Link>
+                  </Button>
+                  <Button className="w-full justify-start bg-transparent" variant="outline" asChild>
+                    <Link href="/messages">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Messages
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="earnings" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$0</div>
-                    <p className="text-xs text-green-600 mt-1">+12% from last month</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Last Month</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$0</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Pending</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$0</div>
-                    <p className="text-xs text-muted-foreground mt-1">To be paid</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$0</div>
-                  </CardContent>
-                </Card>
-              </div>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Earnings History</CardTitle>
-                  <CardDescription>Your monthly earnings over the past 6 months</CardDescription>
+                  <CardTitle>Recent Messages</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">{/* Placeholder for earnings history */}</div>
-                </CardContent>
+                <CardContent className="space-y-3">{/* Placeholder for recent messages */}</CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="calendar" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Schedule</CardTitle>
-                  <CardDescription>Upcoming classes, covers, and availability</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">Calendar View Coming Soon</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Full calendar integration with your schedule, availability, and bookings
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="referrals" className="space-y-4">
-              <ReferralWidget />
-            </TabsContent>
-          </Tabs>
+            </div>
+            <ReferralWidget />
+          </div>
         </div>
       </main>
 
