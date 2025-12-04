@@ -19,22 +19,28 @@ export function SiteHeader() {
     const supabase = createClient()
 
     const checkAuth = async () => {
-      console.log("[v0] SiteHeader: Checking auth state...")
-
       try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
+        let retries = 0
+        let session = null
+        let sessionError = null
 
-        console.log("[v0] SiteHeader: Session check result:", {
-          hasSession: !!session,
-          userId: session?.user?.id,
-          error: error?.message,
-        })
+        while (retries < 3) {
+          const {
+            data: { session: s },
+            error,
+          } = await supabase.auth.getSession()
+          session = s
+          sessionError = error
 
-        if (error) {
-          console.error("[v0] SiteHeader: Error getting session:", error)
+          if (!error && session) break
+          if (error && !error.message.includes("network")) break
+
+          retries++
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        }
+
+        if (sessionError) {
+          console.error("[v0] SiteHeader: Error getting session:", sessionError)
           setUser(null)
           setUserType(null)
           setLoading(false)
@@ -43,16 +49,16 @@ export function SiteHeader() {
 
         if (session?.user) {
           setUser(session.user)
+
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("user_type")
             .eq("id", session.user.id)
             .maybeSingle()
 
-          console.log("[v0] SiteHeader: Profile query result:", {
-            userType: profile?.user_type,
-            error: profileError?.message,
-          })
+          if (profileError) {
+            console.error("[v0] SiteHeader: Profile query error:", profileError)
+          }
 
           setUserType(profile?.user_type || null)
         } else {
@@ -73,7 +79,7 @@ export function SiteHeader() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[v0] SiteHeader: Auth state changed:", event, session?.user?.id)
+      console.log("[v0] SiteHeader: Auth state changed:", event)
 
       if (session?.user) {
         setUser(session.user)

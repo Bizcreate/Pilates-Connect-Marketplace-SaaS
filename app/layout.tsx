@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react"
 import { Analytics } from "@/components/analytics"
+import { SessionProvider } from "@/components/session-provider"
 
 export const metadata: Metadata = {
   title: "Pilates Connect",
@@ -15,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {children}
+        <SessionProvider>{children}</SessionProvider>
         <Suspense fallback={null}>
           <Analytics />
         </Suspense>

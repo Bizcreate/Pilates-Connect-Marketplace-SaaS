@@ -135,7 +135,7 @@ importers:
         specifier: 8.5.1
         version: 8.5.1(react@19.2.0)
       fs:
-        specifier: latest
+        specifier: 0.0.1-security
         version: 0.0.1-security
       input-otp:
         specifier: 1.4.1
@@ -150,7 +150,7 @@ importers:
         specifier: latest
         version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       path:
-        specifier: latest
+        specifier: 0.12.7
         version: 0.12.7
       react:
         specifier: 19.2.0
@@ -189,7 +189,7 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.9)
       url:
-        specifier: latest
+        specifier: 0.11.4
         version: 0.11.4
       vaul:
         specifier: ^0.9.9
