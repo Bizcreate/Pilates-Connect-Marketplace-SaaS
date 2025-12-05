@@ -2,16 +2,16 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send } from 'lucide-react'
+import { Send } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 
 interface Message {
   id: string
@@ -40,15 +40,61 @@ interface MessagesListProps {
   selectedConversationId?: string
 }
 
-export function MessagesList({ conversations, currentUserId, initialMessage, selectedConversationId }: MessagesListProps) {
+export function MessagesList({
+  conversations,
+  currentUserId,
+  initialMessage,
+  selectedConversationId,
+}: MessagesListProps) {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(
-    selectedConversationId || conversations[0]?.id || null
+    selectedConversationId || conversations[0]?.id || null,
   )
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState(initialMessage ? decodeURIComponent(initialMessage) : "")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!selectedConversation) return
+
+    const channel = supabase
+      .channel(`conversation:${selectedConversation}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selectedConversation}`,
+        },
+        (payload) => {
+          console.log("[v0] Real-time message received:", payload)
+          const newMsg = payload.new as Message
+          setMessages((prev) => [...prev, newMsg])
+
+          // Mark as read if not from current user
+          if (newMsg.sender_id !== currentUserId) {
+            supabase
+              .from("messages")
+              .update({ read: true })
+              .eq("id", newMsg.id)
+              .then(() => router.refresh())
+          }
+
+          // Auto-scroll to bottom
+          setTimeout(() => {
+            scrollRef.current?.scrollIntoView({ behavior: "smooth" })
+          }, 100)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedConversation, currentUserId, supabase, router])
 
   useEffect(() => {
     if (selectedConversation) {
@@ -59,7 +105,7 @@ export function MessagesList({ conversations, currentUserId, initialMessage, sel
   useEffect(() => {
     if (initialMessage && selectedConversation && messages.length === 0) {
       const timer = setTimeout(() => {
-        handleSendMessage(new Event('submit') as any)
+        handleSendMessage(new Event("submit") as any)
       }, 500)
       return () => clearTimeout(timer)
     }
@@ -96,6 +142,11 @@ export function MessagesList({ conversations, currentUserId, initialMessage, sel
 
         router.refresh()
       }
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" })
+      }, 100)
     }
   }
 
@@ -232,6 +283,7 @@ export function MessagesList({ conversations, currentUserId, initialMessage, sel
                     )
                   })
                 )}
+                <div ref={scrollRef} />
               </div>
             </ScrollArea>
 

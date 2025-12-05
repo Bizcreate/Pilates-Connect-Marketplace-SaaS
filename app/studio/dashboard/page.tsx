@@ -11,6 +11,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { StudioMessagesView } from "@/components/studio-messages-view"
+import { CalendarExportButton } from "@/components/calendar-export-button"
 import {
   Plus,
   Users,
@@ -296,6 +297,7 @@ export default function StudioDashboardPage() {
               <p className="text-muted-foreground mt-1">Manage your job postings and find instructors</p>
             </div>
             <div className="flex gap-3">
+              {profile?.id && <CalendarExportButton userId={profile.id} userType="studio" />}
               <Button variant="outline" size="lg" asChild>
                 <Link href="/studio/request-cover">
                   <Calendar className="h-4 w-4 mr-2" />

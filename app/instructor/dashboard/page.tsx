@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { ReferralWidget } from "@/components/referral-widget"
 import { CoverRequestDialog } from "@/components/cover-request-dialog"
 import { InstructorReferralWidget } from "@/components/instructor-referral-widget"
+import { CalendarExportButton } from "@/components/calendar-export-button"
 import {
   Search,
   Briefcase,
@@ -34,6 +35,7 @@ export default function InstructorDashboardPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
+  const [userId, setUserId] = useState<string>("")
   const [applications, setApplications] = useState<any[]>([])
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [availabilitySlots, setAvailabilitySlots] = useState<any[]>([])
@@ -58,6 +60,8 @@ export default function InstructorDashboardPage() {
         router.replace("/auth/login")
         return
       }
+
+      setUserId(user.id)
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -227,6 +231,7 @@ export default function InstructorDashboardPage() {
                 <p className="text-muted-foreground">Track your applications and find new opportunities</p>
               </div>
               <div className="flex gap-3">
+                {userId && <CalendarExportButton userId={userId} userType="instructor" />}
                 <Button variant="outline" onClick={() => router.push("/instructor/profile")}>
                   <User className="h-4 w-4 mr-2" />
                   Edit Profile
@@ -758,18 +763,13 @@ export default function InstructorDashboardPage() {
 
             <TabsContent value="calendar" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Your Schedule</CardTitle>
-                  <CardDescription>Upcoming classes, covers, and availability</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">Calendar View Coming Soon</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Full calendar integration with your schedule, availability, and bookings
-                    </p>
-                  </div>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <CalendarDays className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">Calendar Integration</h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
+                    Export your availability and bookings to your favorite calendar app
+                  </p>
+                  {userId && <CalendarExportButton userId={userId} userType="instructor" />}
                 </CardContent>
               </Card>
             </TabsContent>
