@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { BookSlotModal } from "@/components/book-slot-modal"
 import { Calendar, Clock, MapPin, Grid3x3, List } from "lucide-react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { formatTimeInTimezone, formatDateInTimezone, DEFAULT_TIMEZONE } from "@/lib/timezone"
 
 interface AvailabilitySlot {
   id: string
@@ -79,23 +80,12 @@ export function AvailabilitySlotsView({ slots, instructorName, instructorId, use
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Calendar className="h-4 w-4 text-primary" />
-                      {startDate.toLocaleDateString("en-AU", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })}
+                      {formatDateInTimezone(startDate, DEFAULT_TIMEZONE)}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      {startDate.toLocaleTimeString("en-AU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      -{" "}
-                      {endDate.toLocaleTimeString("en-AU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTimeInTimezone(startDate, DEFAULT_TIMEZONE)} -{" "}
+                      {formatTimeInTimezone(endDate, DEFAULT_TIMEZONE)}
                     </div>
                   </div>
 
@@ -154,24 +144,11 @@ export function AvailabilitySlotsView({ slots, instructorName, instructorId, use
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">
-                        {startDate.toLocaleDateString("en-AU", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
+                      <span className="font-medium text-sm">{formatDateInTimezone(startDate, DEFAULT_TIMEZONE)}</span>
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {startDate.toLocaleTimeString("en-AU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      -{" "}
-                      {endDate.toLocaleTimeString("en-AU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTimeInTimezone(startDate, DEFAULT_TIMEZONE)} -{" "}
+                      {formatTimeInTimezone(endDate, DEFAULT_TIMEZONE)}
                     </span>
                   </div>
 

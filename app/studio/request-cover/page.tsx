@@ -16,6 +16,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { ArrowLeft, Send } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { DEFAULT_TIMEZONE } from "@/lib/timezone"
 
 export default function RequestCoverPage() {
   const router = useRouter()
@@ -67,6 +68,7 @@ export default function RequestCoverPage() {
         class_type: formData.get("pilates-level") as string,
         notes: formData.get("description") as string,
         status: "open",
+        timezone: DEFAULT_TIMEZONE, // Store timezone with cover request
       }
 
       console.log("[v0] Cover request data:", coverData)

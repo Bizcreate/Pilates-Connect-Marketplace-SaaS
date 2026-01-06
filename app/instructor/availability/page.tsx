@@ -14,6 +14,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { ArrowLeft, Plus, X, Calendar } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { createTimestampInTimezone, DEFAULT_TIMEZONE } from "@/lib/timezone"
 
 type AvailabilitySlot = {
   id: string
@@ -208,8 +209,9 @@ export default function AvailabilityPage() {
         console.log(`[v0] Availability Submit: Processing slot ${slotIndex + 1}/${slots.length}`)
 
         const start = new Date(slot.dateFrom)
-        const end = new Date(slot.dateTo)
-        const dayMap: { [key: string]: number } = {
+        const end = slot.dateTo ? new Date(slot.dateTo) : new Date(slot.dateFrom)
+
+        const dayMap: Record<string, number> = {
           Mon: 1,
           Tue: 2,
           Wed: 3,
@@ -232,8 +234,8 @@ export default function AvailabilityPage() {
             allSlots.push({
               instructor_profile_id: instructorProfileId,
               date: dateStr,
-              start_time: slot.startTime,
-              end_time: slot.endTime,
+              start_time: createTimestampInTimezone(dateStr, slot.startTime, DEFAULT_TIMEZONE),
+              end_time: createTimestampInTimezone(dateStr, slot.endTime, DEFAULT_TIMEZONE),
               availability_type: slot.availabilityType,
               pilates_level: slot.pilatesLevel,
               equipment_available: slot.equipment,
@@ -241,6 +243,7 @@ export default function AvailabilityPage() {
               rate_unit: slot.rateUnit,
               location: slot.location,
               is_available: true,
+              timezone: DEFAULT_TIMEZONE,
               created_at: new Date().toISOString(),
             })
 
