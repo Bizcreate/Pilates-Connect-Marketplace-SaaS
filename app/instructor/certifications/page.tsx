@@ -10,8 +10,29 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
-import { Award, Upload, X, Plus, FileText, Loader2 } from "lucide-react"
+import { Award, Upload, X, Plus, FileText, Loader2, CheckCircle2, Clock, XCircle, ArrowLeft } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
+
+type CertificationFile = {
+  name: string
+  url: string
+  uploadedAt: string
+}
+
+interface CertificationDocument {
+  type: string
+  issuing_organization: string
+  certification_number: string
+  issue_date: string
+  expiry_date?: string
+  document_url: string
+  status: "pending" | "approved" | "rejected"
+  verified_at?: string
+  verified_by?: string
+  rejection_reason?: string
+  uploaded_at: string
+}
 
 const PREDEFINED_CERTIFICATIONS = [
   "Pilates Reformer Certification",
@@ -26,19 +47,21 @@ const PREDEFINED_CERTIFICATIONS = [
   "Fletcher Pilates Certification",
 ]
 
-type CertificationFile = {
-  name: string
-  url: string
-  uploadedAt: string
-}
-
 export default function CertificationsPage() {
   const [certifications, setCertifications] = useState<string[]>([])
   const [selectedCert, setSelectedCert] = useState<string>("")
   const [customCert, setCustomCert] = useState<string>("")
   const [certFiles, setCertFiles] = useState<CertificationFile[]>([])
+  const [certDocuments, setCertDocuments] = useState<CertificationDocument[]>([])
+  const [certType, setCertType] = useState("")
+  const [issuingOrg, setIssuingOrg] = useState("")
+  const [certNumber, setCertNumber] = useState("")
+  const [issueDate, setIssueDate] = useState("")
+  const [expiryDate, setExpiryDate] = useState("")
+  const [certFile, setCertFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadingCert, setUploadingCert] = useState(false)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -55,13 +78,17 @@ export default function CertificationsPage() {
 
       const { data, error } = await supabase
         .from("instructor_profiles")
-        .select("certifications, qualifications_url")
-        .eq("id", user.id)
+        .select("certifications, qualifications_url, certification_documents")
+        .eq("user_id", user.id)
         .single()
 
       if (error) throw error
 
       setCertifications(data?.certifications || [])
+
+      // Load certification documents
+      const certDocs = data?.certification_documents || []
+      setCertDocuments(certDocs)
 
       // Parse qualifications URL if it's stored as JSON array
       if (data?.qualifications_url) {
@@ -102,7 +129,7 @@ export default function CertificationsPage() {
       const { error } = await supabase
         .from("instructor_profiles")
         .update({ certifications: updatedCerts })
-        .eq("id", user.id)
+        .eq("user_id", user.id)
 
       if (error) throw error
 
@@ -135,7 +162,7 @@ export default function CertificationsPage() {
       const { error } = await supabase
         .from("instructor_profiles")
         .update({ certifications: updatedCerts })
-        .eq("id", user.id)
+        .eq("user_id", user.id)
 
       if (error) throw error
 
@@ -212,7 +239,7 @@ export default function CertificationsPage() {
       const { error } = await supabase
         .from("instructor_profiles")
         .update({ qualifications_url: JSON.stringify(updatedFiles) })
-        .eq("id", user.id)
+        .eq("user_id", user.id)
 
       if (error) throw error
 
@@ -248,7 +275,7 @@ export default function CertificationsPage() {
       const { error } = await supabase
         .from("instructor_profiles")
         .update({ qualifications_url: JSON.stringify(updatedFiles) })
-        .eq("id", user.id)
+        .eq("user_id", user.id)
 
       if (error) throw error
 
@@ -266,6 +293,119 @@ export default function CertificationsPage() {
     }
   }
 
+  const uploadCertificationDocument = async () => {
+    if (!certFile || !certType || !issuingOrg || !certNumber || !issueDate) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingCert(true)
+
+    try {
+      // Upload file to Vercel Blob
+      const formData = new FormData()
+      formData.append("file", certFile)
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) throw new Error("Upload failed")
+
+      const { url } = await uploadResponse.json()
+
+      // Create certification document
+      const newCertDoc: CertificationDocument = {
+        type: certType,
+        issuing_organization: issuingOrg,
+        certification_number: certNumber,
+        issue_date: issueDate,
+        expiry_date: expiryDate || undefined,
+        document_url: url,
+        status: "pending",
+        uploaded_at: new Date().toISOString(),
+      }
+
+      const updatedDocs = [...certDocuments, newCertDoc]
+
+      // Save to database
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data: profile } = await supabase.from("instructor_profiles").select("id").eq("user_id", user.id).single()
+
+      if (!profile) throw new Error("Profile not found")
+
+      const { error } = await supabase
+        .from("instructor_profiles")
+        .update({ certification_documents: updatedDocs })
+        .eq("id", profile.id)
+
+      if (error) throw error
+
+      setCertDocuments(updatedDocs)
+
+      // Reset form
+      setCertType("")
+      setIssuingOrg("")
+      setCertNumber("")
+      setIssueDate("")
+      setExpiryDate("")
+      setCertFile(null)
+
+      // Reset file input
+      const fileInput = document.getElementById("cert-doc-upload") as HTMLInputElement
+      if (fileInput) fileInput.value = ""
+
+      toast({
+        title: "Certification submitted",
+        description: "Your certification has been submitted for verification",
+      })
+    } catch (error) {
+      console.error("[v0] Error uploading certification:", error)
+      toast({
+        title: "Error",
+        description: "Failed to upload certification document",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingCert(false)
+    }
+  }
+
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case "approved":
+        return (
+          <Badge className="bg-green-100 text-green-800">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Verified
+          </Badge>
+        )
+      case "pending":
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Pending Review
+          </Badge>
+        )
+      case "rejected":
+        return (
+          <Badge variant="destructive">
+            <XCircle className="w-3 h-3 mr-1" />
+            Rejected
+          </Badge>
+        )
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -276,6 +416,14 @@ export default function CertificationsPage() {
 
   return (
     <div className="container max-w-4xl py-8">
+      <Link
+        href="/instructor/dashboard"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Dashboard
+      </Link>
+
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Certifications</h1>
@@ -428,6 +576,160 @@ export default function CertificationsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Certification Verification */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Certification Verification</CardTitle>
+            <CardDescription>
+              Upload official certification documents for verification. Verified certifications will be displayed on
+              your profile.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="cert-type">Certification Type *</Label>
+                <Select value={certType} onValueChange={setCertType}>
+                  <SelectTrigger id="cert-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mat">Mat Pilates</SelectItem>
+                    <SelectItem value="reformer">Reformer</SelectItem>
+                    <SelectItem value="tower">Tower</SelectItem>
+                    <SelectItem value="chair">Chair</SelectItem>
+                    <SelectItem value="cadillac">Cadillac</SelectItem>
+                    <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                    <SelectItem value="classical">Classical Pilates</SelectItem>
+                    <SelectItem value="contemporary">Contemporary Pilates</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="issuing-org">Issuing Organization *</Label>
+                <Input
+                  id="issuing-org"
+                  value={issuingOrg}
+                  onChange={(e) => setIssuingOrg(e.target.value)}
+                  placeholder="e.g., STOTT PILATES, Balanced Body"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cert-number">Certification Number *</Label>
+                <Input
+                  id="cert-number"
+                  value={certNumber}
+                  onChange={(e) => setCertNumber(e.target.value)}
+                  placeholder="Enter certification number"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="issue-date-cert">Issue Date *</Label>
+                <Input
+                  id="issue-date-cert"
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="expiry-date-cert">Expiry Date (if applicable)</Label>
+                <Input
+                  id="expiry-date-cert"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cert-doc-upload">Certificate Document (PDF/Image) *</Label>
+                <Input
+                  id="cert-doc-upload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setCertFile(e.target.files?.[0] || null)}
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <Button onClick={uploadCertificationDocument} disabled={uploadingCert} className="w-full">
+              {uploadingCert ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Submit for Verification
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {certDocuments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Submitted Certifications</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {certDocuments.map((doc, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Award className="w-5 h-5 text-primary" />
+                        <div>
+                          <h3 className="font-medium capitalize">{doc.type} Pilates</h3>
+                          <p className="text-sm text-muted-foreground">{doc.issuing_organization}</p>
+                        </div>
+                        {getStatusBadge(doc.status)}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Cert Number</p>
+                          <p className="font-medium">{doc.certification_number}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Issue Date</p>
+                          <p className="font-medium">{new Date(doc.issue_date).toLocaleDateString()}</p>
+                        </div>
+                        {doc.expiry_date && (
+                          <div>
+                            <p className="text-muted-foreground">Expiry Date</p>
+                            <p className="font-medium">{new Date(doc.expiry_date).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {doc.status === "rejected" && doc.rejection_reason && (
+                        <div className="mt-3 p-3 bg-destructive/10 rounded-md">
+                          <p className="text-sm font-medium text-destructive">Rejection Reason:</p>
+                          <p className="text-sm text-destructive/80">{doc.rejection_reason}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={doc.document_url} target="_blank" rel="noopener noreferrer">
+                        View
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
