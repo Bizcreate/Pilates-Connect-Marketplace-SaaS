@@ -316,7 +316,7 @@ export default function StudioDashboardPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <Card
               className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => setActiveTab("active-jobs")}
+              onClick={() => setActiveTab("overview")}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
@@ -845,7 +845,7 @@ export default function StudioDashboardPage() {
                     <CardTitle className="text-sm font-medium">Instructor Rating</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">4.8/5.0</div>
+                    <div className="text-2xl font-bold">5.0/5.0</div>
                     <p className="text-xs text-muted-foreground mt-1">Average rating</p>
                   </CardContent>
                 </Card>

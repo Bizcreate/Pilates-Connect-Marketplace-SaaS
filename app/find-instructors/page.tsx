@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { createClient } from "@/lib/supabase/client"
 import { Users } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { format, parse } from "date-fns"
 
 const MOCK_INSTRUCTORS = [
   {
@@ -38,7 +39,7 @@ const MOCK_INSTRUCTORS = [
     id: "2",
     name: "J...n",
     location: "Surry Hills, NSW",
-    rating: 4.8,
+    rating: 5.0, // Updated rating from 4.8 to 5.0
     reviewCount: 35,
     bio: "Former athlete turned Pilates instructor, focusing on performance enhancement and injury prevention.",
     experience: "8 years",
@@ -535,8 +536,10 @@ export default function FindInstructorsPage() {
                                   )}
                                   <div className="flex items-center gap-1">
                                     <Star className="h-4 w-4 fill-primary text-primary" />
-                                    <span className="font-semibold text-sm">4.8</span>
-                                    <span className="text-xs text-muted-foreground">(0 reviews)</span>
+                                    <span className="font-semibold text-sm">{profile?.rating || "0"}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({profile?.reviewCount || "0"} reviews)
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -630,20 +633,10 @@ export default function FindInstructorsPage() {
                           : displayName[0] + "..."
 
                     const nextSlot = slots[0]
-                    const slotDate = new Date(nextSlot.start_time)
-                    const formattedDate = slotDate.toLocaleDateString("en-AU", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })
-                    const startTime = slotDate.toLocaleTimeString("en-AU", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                    const endTime = new Date(nextSlot.end_time).toLocaleTimeString("en-AU", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                    const upcomingSlots = slots.slice(0, 3)
+                    const formattedDate = format(new Date(nextSlot.start_time), "EEE, d MMM")
+                    const startTime = format(parse(nextSlot.start_time, "HH:mm:ss", new Date()), "h:mm a")
+                    const endTime = format(parse(nextSlot.end_time, "HH:mm:ss", new Date()), "h:mm a")
 
                     const certifications = profile?.certifications || []
                     const hourlyRate =
@@ -690,17 +683,32 @@ export default function FindInstructorsPage() {
                               </p>
                             )}
 
-                            <div className="space-y-3 mb-4">
-                              <div className="flex items-center gap-2 text-sm">
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-2 text-sm font-medium">
                                 <Calendar className="h-4 w-4 text-primary" />
-                                <span className="font-medium">Next available: {formattedDate}</span>
+                                <span>Upcoming Availability</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4 text-primary" />
-                                <span className="text-muted-foreground">
-                                  {startTime} - {endTime}
-                                </span>
-                              </div>
+
+                              {upcomingSlots.map((slot, index) => {
+                                const slotDate = format(new Date(slot.start_time), "EEE, d MMM")
+                                const slotStart = format(parse(slot.start_time, "HH:mm:ss", new Date()), "h:mm a")
+                                const slotEnd = format(parse(slot.end_time, "HH:mm:ss", new Date()), "h:mm a")
+
+                                return (
+                                  <div key={index} className="flex items-center gap-2 text-sm pl-6">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-muted-foreground">
+                                      {slotDate} • {slotStart} - {slotEnd}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+
+                              {slots.length > 3 && (
+                                <p className="text-xs text-muted-foreground pl-6">
+                                  +{slots.length - 3} more slots available
+                                </p>
+                              )}
                             </div>
 
                             {certifications.length > 0 && (
