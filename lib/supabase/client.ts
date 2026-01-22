@@ -37,28 +37,43 @@ export function createBrowserClient() {
   })
 
   if (typeof window !== "undefined" && !sessionCheckInterval) {
-    // Check session health every 5 minutes
+    const isProtectedPage = () => {
+      return (
+        window.location.pathname.includes("/dashboard") ||
+        window.location.pathname.includes("/studio/") ||
+        window.location.pathname.includes("/instructor/") ||
+        window.location.pathname.includes("/admin/")
+      )
+    }
+
+    // Check session health every 5 minutes, but only on protected pages
     sessionCheckInterval = setInterval(
       async () => {
+        // Skip validation if not on a protected page
+        if (!isProtectedPage()) {
+          return
+        }
+
         try {
           const {
             data: { session },
             error,
           } = await browserClient!.auth.getSession()
 
-          if (error || !session) {
-            console.log("[v0] Session validation failed, refreshing...")
+          // Only try to refresh if there WAS a session but it's now invalid
+          if (error && session) {
+            console.log("[v0] Session invalid, attempting refresh...")
             const { error: refreshError } = await browserClient!.auth.refreshSession()
 
             if (refreshError) {
-              console.error("[v0] Session refresh failed:", refreshError)
-              // Clear stale session data
+              console.error("[v0] Session refresh failed:", refreshError.message)
               await browserClient!.auth.signOut()
-              // Force page reload to get fresh state
-              if (window.location.pathname.includes("/dashboard") || window.location.pathname.includes("/studio")) {
-                window.location.href = "/auth/login"
-              }
+              window.location.href = "/auth/login"
             }
+          } else if (!session && isProtectedPage()) {
+            // No session on protected page - redirect to login
+            console.log("[v0] No session on protected page, redirecting...")
+            window.location.href = "/auth/login"
           }
         } catch (err) {
           console.error("[v0] Session health check error:", err)
@@ -68,7 +83,7 @@ export function createBrowserClient() {
     ) // 5 minutes
 
     document.addEventListener("visibilitychange", async () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && isProtectedPage()) {
         try {
           const {
             data: { session },
@@ -76,11 +91,11 @@ export function createBrowserClient() {
           } = await browserClient!.auth.getSession()
 
           if (error && error.message.includes("refresh_token_not_found")) {
-            console.log("[v0] Stale session detected on tab focus, clearing...")
+            console.log("[v0] Stale session detected, redirecting to login...")
             await browserClient!.auth.signOut()
-            window.location.reload()
+            window.location.href = "/auth/login"
           } else if (!error && session) {
-            // Session is valid, refresh it to ensure it's up to date
+            // Silently refresh to keep session fresh
             await browserClient!.auth.refreshSession()
           }
         } catch (err) {
@@ -91,19 +106,18 @@ export function createBrowserClient() {
 
     window.addEventListener("storage", async (e) => {
       if (e.key === "pilates-connect-auth") {
-        console.log("[v0] Auth storage changed in another tab, syncing...")
         const {
           data: { session },
         } = await browserClient!.auth.getSession()
-        if (!session) {
-          // Session cleared in another tab, reload to sync
-          window.location.reload()
+        if (!session && isProtectedPage()) {
+          // Session cleared in another tab and we're on a protected page
+          window.location.href = "/auth/login"
         }
       }
     })
   }
 
-  console.log("[v0] Supabase browser client initialized with session monitoring")
+  console.log("[v0] Supabase browser client initialized")
 
   return browserClient
 }

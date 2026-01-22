@@ -299,6 +299,12 @@ export default function StudioDashboardPage() {
             <div className="flex gap-3">
               {profile?.id && <CalendarExportButton userId={profile.id} userType="studio" />}
               <Button variant="outline" size="lg" asChild>
+                <Link href="/studio/recurring-schedules">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Manage Schedules
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" asChild>
                 <Link href="/studio/request-cover">
                   <Calendar className="h-4 w-4 mr-2" />
                   Request Cover
@@ -391,6 +397,7 @@ export default function StudioDashboardPage() {
               {/* Renamed 'Jobs' tab to 'Active Jobs' and updated its value */}
               <TabsTrigger value="active-jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
               <TabsTrigger value="hiring">Hiring Pipeline</TabsTrigger>
+              <TabsTrigger value="schedules">Schedules</TabsTrigger>
               <TabsTrigger value="media">Media</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -801,6 +808,25 @@ export default function StudioDashboardPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="schedules" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recurring Schedules</CardTitle>
+                  <CardDescription>Manage your studio's weekly class schedules and staff assignments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Button onClick={() => router.push("/studio/recurring-schedules")} className="w-full">
+                      Manage Schedules
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Create and manage recurring class schedules for your studio. Assign instructors, set equipment types, and add notes for each class.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
